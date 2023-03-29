@@ -30,20 +30,6 @@ export sgp4_init, sgp4!
 export dsinit, dsper!, dssec!
 
 ################################################################################
-#                                  Overloads
-################################################################################
-
-# Copy for Sgp4Propagator.
-function Base.copy(m::Sgp4Propagator)
-    return Sgp4Propagator([getfield(m, k) for k = 1:length(fieldnames(m))]...)
-end
-
-# Deepcopy for Sgp4Propagator.
-function Base.deepcopy(m::Sgp4Propagator)
-    return Sgp4Propagator([deepcopy(getfield(m, k)) for k = 1:length(fieldnames(m))]...)
-end
-
-################################################################################
 #                                  Constants
 ################################################################################
 
