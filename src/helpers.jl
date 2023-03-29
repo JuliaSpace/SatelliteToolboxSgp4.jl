@@ -23,6 +23,6 @@ time Δt [s].
 """
 function sgp4(Δt, args...; kwargs...)
     sgp4d = sgp4_init(args...; kwargs...)
-    r,v   = sgp4!(sgp4d, Δt)
-    return r, v, sgp4d
+    r_teme, v_teme = sgp4!(sgp4d, Δt)
+    return r_teme, v_teme, sgp4d
 end
