@@ -82,3 +82,15 @@ end
         @test v_teme[3] ≈  SGP4_results[end, 7] atol=1e-9
     end
 end
+
+@testset "Errors" begin
+    tle = tle"""
+       AMAZONIA 1
+       1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
+       2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652
+       """
+
+    sgp4d = sgp4_init(tle)
+    sgp4d.algorithm = :any
+    @test_throws ErrorException sgp4!(sgp4d, 10)
+end
