@@ -40,7 +40,7 @@ constants are already defined in this package:
 
 - `sgp4c_wgs84`: (**DEFAULT**) Constants based on WGS84 using `Float64`.
 - `sgp4c_wgs84_f32`: Constants based on WGS84 using `Float32`.
-- `sgp4c_wgs72`: (**DEFAULT**) Constants based on WGS72 using `Float64`.
+- `sgp4c_wgs72`: Constants based on WGS72 using `Float64`.
 - `sgp4c_wgs72_f32`: Constants based on WGS72 using `Float32`.
 
 > **Note**
@@ -62,7 +62,7 @@ julia> r_teme, v_teme = sgp4!(sgp4d, 10)
 ([-5300.1473032595195, 2356.780136349037, 4149.0611906521035], [4.464838382952148, -0.5106103512199875, 5.9760603775620815])
 ```
 
-> **Note**
+> **Warning**
 > We do not use SI units here to keep consistency with the original SGP4/SDP4
 > algorithms.
 
