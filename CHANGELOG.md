@@ -1,6 +1,14 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 0.1.1
+-------------
+
+- ![Enhancement][badge-enhancement] We added precompilation statements to improve
+  performance.
+- ![Enhancement][badge-enhancement] The code was refactored to follow BlueStyle, and
+  line-width was increase to 92, leading to a better source-code organization.
+
 Version 0.1.0
 -------------
 
@@ -13,4 +21,3 @@ Version 0.1.0
 [badge-enhancement]: https://img.shields.io/badge/Enhancement-blue.svg
 [badge-bugfix]: https://img.shields.io/badge/Bugfix-purple.svg
 [badge-info]: https://img.shields.io/badge/Info-gray.svg
-
