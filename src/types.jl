@@ -1,11 +1,11 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # Description
-# ==============================================================================
+# ==========================================================================================
 #
 #   Types and structures of SGP4 model.
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 export Sgp4Constants, Sgp4Propagator
 
@@ -33,8 +33,7 @@ end
 """
     struct Sgp4DeepSpace{T}
 
-Structure to store the internal SGP4 variables to account for deep space
-perturbations.
+Store the internal SGP4 variables to account for deep space perturbations.
 """
 Base.@kwdef mutable struct Sgp4DeepSpace{T}
     atime::T  = T(0)
@@ -115,7 +114,7 @@ end
 """
     Sgp4Propagator{Tepoch, T}
 
-Low level SGP4 proapgator structure.
+Low-level SGP4 propagator structure.
 """
 Base.@kwdef mutable struct Sgp4Propagator{Tepoch, T}
     # TLE parameters.

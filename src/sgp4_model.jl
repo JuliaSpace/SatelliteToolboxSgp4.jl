@@ -1,37 +1,38 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # Description
-# ==============================================================================
+# ==========================================================================================
 #
 #   SGP4 orbit propagator model.
 #
 #   This is a independent implementation of the algorithm presented in [1].
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # References
-# ==============================================================================
+# ==========================================================================================
 #
-#   [1] Hoots, F. R., Roehrich, R. L (1980). Models for Propagation of NORAD
-#       Elements Set. Spacetrack Report No. 3.
+#   [1] Hoots, F. R., Roehrich, R. L (1980). Models for Propagation of NORAD Elements Set.
+#       Spacetrack Report No. 3.
 #
-#   [2] Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006). Revisiting
-#       Spacetrack Report #3: Rev1. AIAA.
+#   [2] Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006). Revisiting Spacetrack
+#       Report #3: Rev1. AIAA.
 #
 #   [3] SGP4 Source code of STRF: https://github.com/cbassa/strf
-#       The SGP4 C code available on STRF was converted by Paul. S. Crawford and
-#       Andrew R. Brooks.
+#       The SGP4 C code available on STRF was converted by Paul. S. Crawford and Andrew R.
+#       Brooks.
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 export sgp4c_wgs72, sgp4c_wgs84
 export sgp4c_wgs72_f32, sgp4c_wgs84_f32
 export sgp4_init, sgp4!
 export dsinit, dsper!, dssec!
 
-################################################################################
-#                                  Constants
-################################################################################
+############################################################################################
+#                                        Constants
+############################################################################################
+
 
 # WGS-84 / EGM-08 gravitational constants.
 const sgp4c_wgs84 = Sgp4Constants{Float64}(
@@ -67,9 +68,10 @@ const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
     -0.00000165597
 )
 
-################################################################################
-#                                  Functions
-################################################################################
+############################################################################################
+#                                        Functions
+############################################################################################
+
 
 """
     sgp4_init(epoch::Tepoch, n_0::Number, e_0::Number, i_0::Number, Ω_0::Number, ω_0::Number, M_0::Number, bstar::Number; kwargs...) where {Tepoch, T}
@@ -77,7 +79,7 @@ const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
 
 Initialize the data structure of SGP4 orbit propagator.
 
-# Args
+# Arguments
 
 - `epoch::Number`: Epoch of the orbital elements [Julian Day].
 - `n_0::Number`: SGP type "mean" mean motion at epoch [rad/min].
@@ -91,12 +93,12 @@ Initialize the data structure of SGP4 orbit propagator.
 
 # Keywords
 
-- `spg4_gc::Sgp4Constants`: SPG4 orbit propagator constants (see
-    [`Sgp4Constants`](@ref)). (**Default** = `sgp4c_wgs84`)
+- `spg4_gc::Sgp4Constants`: SPG4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
+    (**Default** = `sgp4c_wgs84`)
 
 # Returns
 
-The structure [`Sgp4Propagator`](@ref) with the initialized parameters.
+- [`Sgp4Propagator`](@ref): The structure with the initialized parameters.
 """
 function sgp4_init(
     tle::TLE;
@@ -136,7 +138,7 @@ function sgp4_init(
     J4  = sgp4c.J4
 
     # Constants
-    # =========
+    # ======================================================================================
     #
     # Note: [er] = Earth radii.
 
@@ -158,10 +160,8 @@ function sgp4_init(
     # (q_0-s)^4 [er]^4
     QOMS2T = (q_0 - s) * (q_0 - s) * (q_0 - s) * (q_0 - s)
 
-    # ==========================================================================
-
-    # Auxiliary variables to improve the performance.
-    # ===============================================
+    # Auxiliary Variables to Improve the Performance
+    # ======================================================================================
 
     e_0² = T(e_0) * T(e_0)
 
@@ -170,10 +170,10 @@ function sgp4_init(
     θ³         = θ² * θ
     θ⁴         = θ² * θ²
 
-    # ==========================================================================
+    # ======================================================================================
 
-    # Recover the original mean motion (nll_0) and semi-major axis (all_0) from
-    # the input elements.
+    # Recover the original mean motion (nll_0) and semi-major axis (all_0) from the input
+    # elements.
 
     aux = (3θ² - 1) / (1 - e_0²)^(T(3 / 2))
 
@@ -184,10 +184,9 @@ function sgp4_init(
 
     nll_0 = T(n_0) / (1 + δ_0)
 
-    # Vallado's implementation of SGP4 [2] compute the semi-major axis
-    # considering the new angular velocity, which is called `no_unkozai`. In the
-    # original SGP4 technical report [1], the semi-major axis was computed
-    # considering:
+    # Vallado's implementation of SGP4 [2] compute the semi-major axis considering the new
+    # angular velocity, which is called `no_unkozai`. In the original SGP4 technical report
+    # [1], the semi-major axis was computed considering:
     #
     #   all_0 = a_0/(1 - δ_0)
     #
@@ -197,7 +196,7 @@ function sgp4_init(
     all_0⁸ = all_0⁴ * all_0⁴
 
     # Initialization
-    # ==============
+    # ======================================================================================
 
     # Compute the orbit perigee [ER].
     perigee = (all_0 * (1 - T(e_0)) - AE) * XKMPER
@@ -233,10 +232,9 @@ function sgp4_init(
     η³ = η² * η
     η⁴ = η² * η²
 
-    # Vallado's implementation of SGP4 [2] considers the absolute value of
-    # (1-η^2) here and in the C2 and C4 computation. Notice that, if (1-η^2) <
-    # 0, then aux1 cannot be computed. The original SGP4 technical report [1]
-    # does not mention anything about this.
+    # Vallado's implementation of SGP4 [2] considers the absolute value of (1-η^2) here and
+    # in the C2 and C4 computation. Notice that, if (1-η^2) < 0, then aux1 cannot be
+    # computed. The original SGP4 technical report [1] does not mention anything about this.
 
     aux0 = abs(1 - η²)
     aux1 = aux0^(-T(7 / 2))
@@ -270,8 +268,8 @@ function sgp4_init(
 
     D3 = T(4 / 3) * all_0 * ξ² * (17all_0 + s) * C1³
 
-    # Vallado's implementation of SGP4 [2] uses all_0^2, instead of only all_0
-    # that is seen in the original SGP4 Technical Report [1].
+    # Vallado's implementation of SGP4 [2] uses all_0^2, instead of only all_0 that is seen
+    # in the original SGP4 Technical Report [1].
     D4 = T(2 / 3) * all_0² * ξ³ * (221all_0 + 31s) * C1⁴
 
     # Compute the time-derivative of some orbital elements.
@@ -304,9 +302,8 @@ function sgp4_init(
 
     sgp4ds::Sgp4DeepSpace{T} = Sgp4DeepSpace{T}()
 
-    # If the orbit period is higher than 225 min., then we must consider the
-    # deep space perturbations. This is indicated by selecting the algorithm
-    # `:sdp4`.
+    # If the orbit period is higher than 225 min., then we must consider the deep space
+    # perturbations. This is indicated by selecting the algorithm `:sdp4`.
     if 2π / T(n_0) >= 225.0
         algorithm = :sdp4
 
@@ -325,12 +322,12 @@ function sgp4_init(
             dotΩ
         )
     else
-        # For perigee lower than 220 km, the equations are truncated to a linear
-        # variation in `sqrt(a)` and quadratic variation in mean anomaly. Also,
-        # the C5 term, the δω term, and the δM term are dropped. This is
-        # indicated by selecting the algorithm `:sgp4_lowper`. Otherwise, if
-        # perigee is higher or equal 220 km and the orbit period is lower than
-        # 225 min., then we use the normal SGP4 algorithm by selecting `:sgp4`.
+        # For perigee lower than 220 km, the equations are truncated to a linear variation
+        # in `sqrt(a)` and quadratic variation in mean anomaly. Also, the C5 term, the δω
+        # term, and the δM term are dropped. This is indicated by selecting the algorithm
+        # `:sgp4_lowper`. Otherwise, if perigee is higher or equal 220 km and the orbit
+        # period is lower than 225 min., then we use the normal SGP4 algorithm by selecting
+        # `:sgp4`.
         algorithm = (perigee / AE >= (220 + (AE - 1) * XKMPER)) ? :sgp4 : :sgp4_lowper
     end
 
@@ -385,16 +382,16 @@ end
 """
     sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where T
 
-Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the
-time `t` [min].
+Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the time `t`
+[min].
 
 !!! note
     The internal values in `sgp4d` will be modified.
 
 # Returns
 
-- The position vector represented in TEME frame at time `t` [km].
-- The velocity vector represented in TEME frame at time `t` [km/s].
+- `SVector{T, 3}`: The position vector represented in TEME frame at time `t` [km].
+- `SVector{T, 3}`: The velocity vector represented in TEME frame at time `t` [km/s].
 """
 function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Unpack variables.
@@ -451,14 +448,13 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     #
     #   (n_k, e_k, i_k, Ω_k, ω_k, M_k).
     #
-    # The first are those initial elements from the orbit defined in `sgp4_init`
-    # function. The second are the current elements. During this functions, the
-    # second set is updated by adding the many effects considered in SGP4.
+    # The first are those initial elements from the orbit defined in `sgp4_init` function.
+    # The second are the current elements. During this functions, the second set is updated
+    # by adding the many effects considered in SGP4.
 
     # Time elapsed since epoch.
     #
-    # We convert to `T` to avoid numerical problems with very big numbers as
-    # pointed out in:
+    # We convert to `T` to avoid numerical problems with very big numbers as pointed out in:
     #
     #   https://github.com/JuliaLang/julia/issues/27355
     Δt = T(t)
@@ -475,8 +471,8 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Auxiliary variables to improve code performance.
     sin_i_k = sin_i_0
 
-    # Secular effects of atmospheric drag and gravitation.
-    # ====================================================
+    # Secular Effects of Atmospheric Drag and Gravitation
+    # ======================================================================================
 
     M_k = M_0 + dotM * Δt
     Ω_k = Ω_0 + dotΩ * Δt - T(21 / 2) * (nll_0 * k_2 * θ) / (all_0^2 * β_0^2) * C1 * Δt^2
@@ -541,8 +537,8 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         error("Unknown algorithm :$algorithm. Possible values are :sgp4, :sgp4_lowper, :sdp4.")
     end
 
-    # TODO: Vallado's implementation [2] apply this normalization to the mean
-    # anomaly. It is necessary to verify the reason for that.
+    # TODO: Vallado's implementation [2] apply this normalization to the mean anomaly. It is
+    # necessary to verify the reason for that.
     M_k_aux = M_k + ω_k + Ω_k
     Ω_k     = rem(Ω_k, T(2π))
     ω_k     = rem(ω_k, T(2π))
@@ -550,7 +546,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     M_k     = rem(M_k_aux - ω_k - Ω_k, T(2π))
 
     # Lunar-Solar Periodics for Deep Space Orbits
-    # ===========================================
+    # ======================================================================================
 
     # This is only necessary if we are using SDP4 algorithm.
     if algorithm === :sdp4
@@ -582,30 +578,29 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Compute the angular velocity [rad/min].
     n_k = XKE / a_k^(T(3 / 2))
 
-    # Long-period periodic terms.
-    # ===========================
+    # Long-Period Periodic Term
+    # ======================================================================================
 
     sin_ω_k, cos_ω_k = sincos(ω_k)
 
     a_xN = e_k * cos_ω_k
 
-    # TODO: Vallado's implementation of SGP4 uses another equation here.
-    # However, both produces the same result. Verify which one is better.
-    #
+    # TODO: Vallado's implementation of SGP4 uses another equation here.  However, both
+    # produces the same result. Verify which one is better.
     a_yNL = A_30 * sin_i_k / (4k_2 * a_k * β^2)
     a_yN  = e_k * sin_ω_k + a_yNL
     IL_L  =  T(1 / 2) * a_yNL * a_xN * (3 + 5θ) / (1 + θ)
     IL_T  = IL + IL_L
 
-    # Solve Kepler's equation for (E + ω).
-    # ====================================
+    # Solve Kepler's Equation for (E + ω)
+    # ======================================================================================
 
     U = rem(IL_T - Ω_k, T(2π))
 
     E_ω = U
 
-    # Define the following variables that will be modified inside the loop so
-    # that we can use them after the loop.
+    # Define the following variables that will be modified inside the loop so that we can
+    # use them after the loop.
     sin_E_ω = T(0)
     cos_E_ω = T(0)
 
@@ -626,14 +621,11 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         abs(ΔE_ω) < 1e-12 && break
     end
 
-    # Short-term periodic terms.
-    # ==========================
+    # Short-Term Periodic Terms
+    # ======================================================================================
 
     # Auxiliary variables.
-    #
-    # Note: the sine and cosine of E+ω was already computed in the previous
-    # loop.
-
+    # NOTE: the sine and cosine of E + ω was already computed in the previous loop.
     e_cos_E = a_xN * cos_E_ω + a_yN * sin_E_ω
     e_sin_E = a_xN * sin_E_ω - a_yN * cos_E_ω
     e_L     = sqrt(a_xN^2 + a_yN^2)
@@ -649,7 +641,6 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     u       = atan(sin_u, cos_u)
 
     # Short-term periodic terms.
-
     Δr       = +k_2 / (2p_L) * (1 - θ²) * cos_2u
     Δu       = -k_2 / (4p_L^2) * (7θ² - 1) * sin_2u
     ΔΩ       = +3k_2 * θ / (2p_L^2) * sin_2u
@@ -658,7 +649,6 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     Δr_dot_f = +k_2 * n_k / p_L * ((1 - θ²) * cos_2u - T(3 / 2) * (1 - 3θ²))
 
     # The short-term periodics are added to give the osculating quantities.
-
     r_k       = r * (1 - T(3 / 2) * k_2 * sqrt(1 - e_L^2) / p_L^2 * (3θ² - 1)) + Δr
     u_k       = u + Δu
     Ω_k       = Ω_k + ΔΩ
@@ -693,17 +683,16 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     return r_TEME, v_TEME
 end
 
-################################################################################
-#                             Deep Space Functions
-################################################################################
+############################################################################################
+#                                   Deep Space Functions
+############################################################################################
 
 """
     dsinit(epoch::Tepoch, nll_0::T, all_0::T, e_0::T, i_0::T, Ω_0::T, ω_0::T, M_0::T, dotM::T, dotω::T, dotΩ::T) where {Tepoch, T}
 
-Initialize the deep space structure. This function performs the initial
-computations and save the values at an instance of the structure
-`Sgp4DeepSpace`. Those will be used when calling the functions `dsper!` and
-`dpsec!`.
+Initialize the deep space structure. This function performs the initial computations and
+save the values at an instance of the structure `Sgp4DeepSpace`. Those will be used when
+calling the functions `dsper!` and `dpsec!`.
 
 # Args
 
@@ -721,7 +710,7 @@ computations and save the values at an instance of the structure
 
 # Returns
 
-An instance of the structure `Sgp4DeepSpace` with the initalized values.
+- [`Sgp4DeepSpace`](@ref): Structure with the initalized values.
 """
 function dsinit(
     epoch::Tepoch,
@@ -812,8 +801,8 @@ function dsinit(
     iresfl = sgp4ds.iresfl
     ilsz   = sgp4ds.ilsz
 
-    #                               Constants
-    # ==========================================================================
+    #                                      Constants
+    # ======================================================================================
 
     STEP   = T(720.0)
     ZNS    = T(1.19459E-5)
@@ -841,8 +830,8 @@ function dsinit(
     ROOT54 = T(2.1765803e-9)
     THDT   = T(4.37526908801129966e-3)
 
-    #                         Auxiliary Variables
-    # ==========================================================================
+    #                                 Auxiliary Variables
+    # ======================================================================================
 
     e_0²        = e_0 * e_0
     e_0³        = e_0 * e_0²
@@ -863,8 +852,8 @@ function dsinit(
     cos_i_0² = cos_i_0 * cos_i_0
     xpidot   = dotω + dotΩ
 
-    #                        Initial Configuration
-    # ==========================================================================
+    #                                Initial Configuration
+    # ======================================================================================
 
     # Drop terms if inclination is smaller than 3 deg.
     ishq = (i_0 >= 3π / 180) ? true : false
@@ -875,8 +864,8 @@ function dsinit(
     # Compute the Greenwhich Mean Sidereal Time at epoch.
     gmst = T(jd_to_gmst(epoch))
 
-    #                      Initialize Lunar Solar Terms
-    # ==========================================================================
+    #                             Initialize Lunar Solar Terms
+    # ======================================================================================
 
     # `day` is the number of days since Jan 0, 1900 at 12h.
     day = T(epoch - (datetime2julian(DateTime(1900, 1, 1, 12, 0, 0)) - 1))
@@ -900,8 +889,8 @@ function dsinit(
     zmol = mod(T(4.7199672) + T(0.22997150)  * day - gam, T(2π))
     zmos = mod(T(6.2565837) + T(0.017201977) * day,       T(2π))
 
-    #                            Do Solar Terms
-    # ==========================================================================
+    #                                    Do Solar Terms
+    # ======================================================================================
 
     zcosg = ZCOSGS
     zsing = ZSINGS
@@ -984,8 +973,8 @@ function dsinit(
 
         ls == 1 && break
 
-        #                        Do Lunar Terms
-        # ======================================================================
+        #                                  Do Lunar Terms
+        # ==================================================================================
 
         sse   = se
         ssi   = si
@@ -1023,8 +1012,8 @@ function dsinit(
     ssh += shdq
 
     if (nll_0 < T(0.0052359877)) && (nll_0 > T(0.0034906585))
-        #        24h Synchronous Resonance Terms Initialization
-        # ======================================================================
+        #                  24h Synchronous Resonance Terms Initialization
+        # ==================================================================================
 
         iresfl = true;
         isynfl = true;
@@ -1046,8 +1035,8 @@ function dsinit(
         bfact   = dotM + xpidot - THDT + ssl + ssg + ssh
 
     elseif (nll_0 >= T(0.00826)) && (nll_0 <= T(0.00924)) && (e_0 >= T(0.5))
-        #   Geopotential Resonance Initialization for 12 Hour Orbits
-        # ======================================================================
+        #             Geopotential Resonance Initialization for 12 Hour Orbits
+        # ==================================================================================
 
         iresfl = true
         isynfl = false
@@ -1128,16 +1117,16 @@ function dsinit(
         xlamo   = mod(M_0 + 2Ω_0 - 2gmst, T(2π))
         bfact   = dotM + 2dotΩ - 2THDT + ssl + 2ssh
     else
-        #                     Non Resonant Orbits
-        # ======================================================================
+        #                               Non Resonant Orbits
+        # ==================================================================================
 
         iresfl = false
         isynfl = false
     end
 
     if iresfl
-        #                   Initialize the Integrator
-        # ======================================================================
+        #                            Initialize the Integrator
+        # ==================================================================================
 
         xfact = bfact - nll_0
         xli   = xlamo
@@ -1146,8 +1135,8 @@ function dsinit(
         # TODO: Check if this variable can be removed from Sgp4DeepSpace.
         xni   = nll_0
 
-        # Compute the "dot" terms.
-        # ========================
+        # Compute the "dot" Terms
+        # ==================================================================================
 
         if isynfl
             sin_1, cos_1 = sincos(  (xli - fasx2) )
@@ -1273,7 +1262,7 @@ Compute the secular effects.
 !!! note
     The internal values in `sgp4ds` will be modified.
 
-# Args
+# Arguments
 
 - `sgp4ds::Sgp4DeepSpace`: Deep space structure (see [`Sgp4DeepSpace`](@ref)).
 - `nll_0::Number`: Initial mean motion [rad/min].
@@ -1290,12 +1279,12 @@ Compute the secular effects.
 
 The following elements perturbed by the secular effects:
 
-- Mean motion [rad/min].
-- Eccentricity.
-- Inclination [rad].
-- Right ascension of the ascending node [rad].
-- Argument of perigee [rad].
-- Mean anomaly [rad].
+- `T`: Mean motion [rad/min].
+- `T`: Eccentricity.
+- `T`: Inclination [rad].
+- `T`: Right ascension of the ascending node [rad].
+- `T`: Argument of perigee [rad].
+- `T`: Mean anomaly [rad].
 """
 function dssec!(
     sgp4ds::Sgp4DeepSpace{T},
@@ -1344,8 +1333,8 @@ function dssec!(
     iresfl = sgp4ds.iresfl
     isynfl = sgp4ds.isynfl
 
-    #                               Constants
-    # ==========================================================================
+    #                                      Constants
+    # ======================================================================================
 
     STEP = T(720.0)
     G22  = T(5.7686396)
@@ -1355,8 +1344,8 @@ function dssec!(
     G54  = T(4.4108898)
     THDT = T(4.37526908801129966e-3)
 
-    #                             Initialization
-    # ==========================================================================
+    #                                    Initialization
+    # ======================================================================================
 
     M_sec = M_k + ssl * Δt
     e_sec = e_0 + sse * Δt
@@ -1364,21 +1353,21 @@ function dssec!(
     Ω_sec = Ω_k + ssh * Δt
     ω_sec = ω_k + ssg * Δt
 
-    # TODO: Verify what this variable means. This is found in `dspace.m` of
-    # Vallado's implementation [2].
+    # TODO: Verify what this variable means. This is found in `dspace.m` of Vallado's
+    # implementation [2].
     θ = mod(gmst + THDT * Δt, T(2π))
 
     # If the orbit is not resonant, then nothing more should be computed.
     !iresfl && return nll_0, e_sec, i_sec, Ω_sec, ω_sec, M_sec
 
-    #   Update Resonances using Numerical (Euler-Maclaurin) Integration
-    # ==========================================================================
+    #           Update Resonances using Numerical (Euler-Maclaurin) Integration
+    # ======================================================================================
 
     # Epoch restart
-    # =============
+    # --------------------------------------------------------------------------------------
 
-    # This verification is different between Vallado's [2] and [3]. We will use
-    # [2] since it seems more recent.
+    # This verification is different between Vallado's [2] and [3]. We will use [2] since it
+    # seems more recent.
     if  (atime == 0) || (Δt * atime <= 0) || (abs(Δt) < abs(atime))
         atime = T(0)
         xni   = nll_0
@@ -1386,20 +1375,20 @@ function dssec!(
     end
 
     # Integration
-    # ===========
+    # --------------------------------------------------------------------------------------
 
     ft = Δt - atime
 
-    # In [3], the integration process is performed only if `ft` is larger than
-    # `STEP`. However, Vallado's implementation [2] does not verify this and the
-    # integration is performed every time. This behavior was chose because it
-    # seems that [3] is a more recent version of the algorithm.
+    # In [3], the integration process is performed only if `ft` is larger than `STEP`.
+    # However, Vallado's implementation [2] does not verify this and the integration is
+    # performed every time. This behavior was chose because it seems that [3] is a more
+    # recent version of the algorithm.
 
     # Check integration direction.
     delt = (Δt >= atime) ? STEP : -STEP
 
-    # Perform the integration with step `delt` until the difference between
-    # the time `Δt` and `atime` is less then `STEP`.
+    # Perform the integration with step `delt` until the difference between the time `Δt`
+    # and `atime` is less then `STEP`.
     while true
         # Compute the dot terms.
         if isynfl
@@ -1441,8 +1430,8 @@ function dssec!(
         ft = Δt - atime
         (abs(ft) < STEP) && break
 
-        # In Vallado's implementation [2], this is in the final of the loop
-        # instead of at the beginning.
+        # In Vallado's implementation [2], this is in the final of the loop instead of at
+        # the beginning.
         xli   += delt * (xldot + delt * xndot / 2)
         xni   += delt * (xndot + delt * xnddt / 2)
         atime += delt
@@ -1471,7 +1460,7 @@ Compute the effects caused by Lunar-Solar periodics.
 !!! note
     The internal values in `sgp4ds` will be modified.
 
-# Args
+# Arguments
 
 - `sgp4ds::Sgp4DeepSpace`: Deep space structure (see [`Sgp4DeepSpace`](@ref)).
 - `e_k::Number`: Current eccentricity.
@@ -1485,11 +1474,11 @@ Compute the effects caused by Lunar-Solar periodics.
 
 The following elements perturbed by lunar-solar periodics.
 
-- Eccentricity.
-- Inclination [rad].
-- Right ascension of the ascending node [rad].
-- Argument of perigee [rad].
-- Mean anomaly [rad].
+- `T`: Eccentricity.
+- `T`: Inclination [rad].
+- `T`: Right ascension of the ascending node [rad].
+- `T`: Argument of perigee [rad].
+- `T`: Mean anomaly [rad].
 """
 function dsper!(
     sgp4ds::Sgp4DeepSpace{T},
@@ -1529,8 +1518,8 @@ function dsper!(
     xh2  = sgp4ds.xh2
     xh3  = sgp4ds.xh3
 
-    #                               Constants
-    # ==========================================================================
+    #                                      Constants
+    # ======================================================================================
 
     STEP = T(720.0)
     ZNS  = T(1.19459E-5)
@@ -1538,8 +1527,8 @@ function dsper!(
     ZNL  = T(1.5835218e-4)
     ZEL  = T(0.05490)
 
-    #                          Update Solar Terms
-    # ==========================================================================
+    #                                  Update Solar Terms
+    # ======================================================================================
 
     zm = zmos +  ZNS * Δt
     zf = zm   + 2ZES * sin(zm)
@@ -1554,8 +1543,8 @@ function dsper!(
     sghs = sgh2 * f2 + sgh3 * f3 + sgh4 * sinzf
     shs  = sh2  * f2 + sh3  * f3
 
-    #                          Update Lunar Terms
-    # ==========================================================================
+    #                                  Update Lunar Terms
+    # ======================================================================================
 
     zm    = zmol +  ZNL * Δt
     zf    = zm   + 2ZEL * sin(zm)
@@ -1570,8 +1559,8 @@ function dsper!(
     sghl = xgh2 * f2 + xgh3 * f3 + xgh4 * sinzf
     shl  = xh2  * f2 + xh3  * f3
 
-    #                         Save computed values
-    # ==========================================================================
+    #                                 Save Computed Values
+    # ======================================================================================
 
     pgh  = sghs + sghl
     ph   = shs  + shl
@@ -1585,10 +1574,10 @@ function dsper!(
 
     sinis, cosis = sincos(i_per)
 
-    # The original algorithm considered the original inclination to select the
-    # Lyddane Lunar-Solar perturbations algorithm. However, Vallado's
-    # implementation [2] test the perturbed inclination to select this. It is
-    # mentioned that this is the behavior selected in GSFC source code.
+    # The original algorithm considered the original inclination to select the Lyddane
+    # Lunar-Solar perturbations algorithm. However, Vallado's implementation [2] test the
+    # perturbed inclination to select this. It is mentioned that this is the behavior
+    # selected in GSFC source code.
     if i_per >= T(0.2)
         tmp_ph = ph / sinis;
         ω_per  = ω_k + pgh - cosis * tmp_ph;
@@ -1603,9 +1592,8 @@ function dsper!(
         #                     |----------    dbet     ----------|
         betdp = sinis * cosok - ph * sinok + pinc * cosis * cosok
 
-        # For the following computation, in which `Ω_per` is used without a
-        # trigonometric function, it is advisable to make sure that it stays in
-        # the interval [0, 2π].
+        # For the following computation, in which `Ω_per` is used without a trigonometric
+        # function, it is advisable to make sure that it stays in the interval [0, 2π].
         Ω_per = mod(Ω_k, T(2π))
 
         #                                 |----------    dls    ----------|

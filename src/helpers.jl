@@ -1,25 +1,24 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # Description
-# ==============================================================================
+# ==========================================================================================
 #
 #   Helpers for SGP4 algorithm.
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 export sgp4
 
 """
     sgp4(Δt, args...; kwargs...)
 
-Function that initialize the SGP4 structure and propagate the orbit until the
-time Δt [s].
+Initialize the SGP4 structure and propagate the orbit until the time Δt [s].
 
 # Returns
 
-- The position vector [km].
-- The velocity vector [km/s].
-- The SGP4 orbit propagator structure (see `Sgp4Propagator`).
+- `SVector{3, T}`: The position vector [km].
+- `SVector{3, T}`: The velocity vector [km/s].
+- [`Sgp4Propagator`](@ref): The SGP4 orbit propagator structure.
 """
 function sgp4(Δt, args...; kwargs...)
     sgp4d = sgp4_init(args...; kwargs...)

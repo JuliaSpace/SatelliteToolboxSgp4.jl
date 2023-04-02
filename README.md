@@ -3,10 +3,11 @@ SatelliteToolboxSgp4.jl
 
 [![CI](https://github.com/JuliaSpace/SatelliteToolboxSgp4.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaSpace/SatelliteToolboxSgp4.jl/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/JuliaSpace/SatelliteToolboxSgp4.jl/branch/main/graph/badge.svg?token=480UYDX6H5)](https://codecov.io/gh/JuliaSpace/SatelliteToolboxSgp4.jl)
+[![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
 This package contains the implementation of the
-[SGP4/SDP4](https://en.wikipedia.org/wiki/Simplified_perturbations_models) orbit
-propagator for the Julia language.
+[SGP4/SDP4](https://en.wikipedia.org/wiki/Simplified_perturbations_models) orbit propagator
+for the Julia language.
 
 ## Installation
 
@@ -17,10 +18,10 @@ julia> Pkg.install("SatelliteToolboxSgp4")
 
 ## Usage
 
-First, we need to initialize the structure that contains the information to
-propagate the orbit using the function `sgp4_init`. Usually, we pass a
-[TLE](https://github.com/JuliaSpace/SatelliteToolboxTle.jl) to initialize the
-SGP4 algorithm:
+First, we need to initialize the structure that contains the information to propagate the
+orbit using the function `sgp4_init`. Usually, we pass a
+[TLE](https://github.com/JuliaSpace/SatelliteToolboxTle.jl) to initialize the SGP4
+algorithm:
 
 ```julia
 julia> using SatelliteToolboxTle
@@ -34,9 +35,9 @@ julia> tle = tle"""
 julia> sgp4d = sgp4_init(tle)
 ```
 
-`sgp4_init` supports the keyword `sgp4c` to select the constants used to
-propagate the orbit. It must be an object of type `Sgp4Constants`. The following
-constants are already defined in this package:
+`sgp4_init` supports the keyword `sgp4c` to select the constants used to propagate the
+orbit. It must be an object of type `Sgp4Constants`. The following constants are already
+defined in this package:
 
 - `sgp4c_wgs84`: (**DEFAULT**) Constants based on WGS84 using `Float64`.
 - `sgp4c_wgs84_f32`: Constants based on WGS84 using `Float32`.
@@ -44,17 +45,17 @@ constants are already defined in this package:
 - `sgp4c_wgs72_f32`: Constants based on WGS72 using `Float32`.
 
 > **Note**
-> The propagator will use the same type of object `sgp4c` to propagate the
-> orbit. Hence, if one selects `sgp4c_wgs84_f32`, the SGP4 will compute
-> everything considering `Float32` numbers.
+> The propagator will use the same type of object `sgp4c` to propagate the orbit. Hence, if
+> one selects `sgp4c_wgs84_f32`, the SGP4 will compute everything considering `Float32`
+> numbers.
 
 The SGP4 can also be initialized by passing the mean elements directly. For more
 information, see the documentation of the function `sgp4_init`.
 
-Afterward, we can propagate the orbit using the function `sgp4!(sgp4d, t)` that
-propagates the mean elements defined in `sgp4d` by `t` minutes. This function
-returns the position [km] and velocity [km/s] vectors represented in the
-True Equator, Mean Equinox (TEME) reference frame.
+Afterward, we can propagate the orbit using the function `sgp4!(sgp4d, t)` that propagates
+the mean elements defined in `sgp4d` by `t` minutes. This function returns the position [km]
+and velocity [km/s] vectors represented in the True Equator, Mean Equinox (TEME) reference
+frame.
 
 ```julia
 # Propagate the orbit for 10 minutes.
@@ -63,13 +64,11 @@ julia> r_teme, v_teme = sgp4!(sgp4d, 10)
 ```
 
 > **Warning**
-> We do not use SI units here to keep consistency with the original SGP4/SDP4
-> algorithms.
+> We do not use SI units here to keep consistency with the original SGP4/SDP4 algorithms.
 
-The function `sgp4(t, args...)` creates the propagator and propagates the orbit
-defined in `args...` by `t` minutes. It returns the same information as the
-function `sgp4!` and the initialized propagator structure. `args...` must be the
-same arguments supported by `sgp4!`.
+The function `sgp4(t, args...)` creates the propagator and propagates the orbit defined in
+`args...` by `t` minutes. It returns the same information as the function `sgp4!` and the
+initialized propagator structure. `args...` must be the same arguments supported by `sgp4!`.
 
 ``` julia
 julia> r_teme, v_teme, sgp4d = sgp4(10, tle)
@@ -93,9 +92,9 @@ julia> v_teme
 
 The code in this package was built using the following references:
 
-- **[1]** Hoots, F. R., Roehrich, R. L (1980). *Models for Propagation of NORAD
-  Elements Set*. **Spacetrack Report No. 3**.
-- **[2]** Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006).
-  *Revisiting Spacetrack Report #3: Rev1*. **AIAA**.
-- **[3]** SGP4 Source code of [STRF](https://github.com/cbassa/strf), which the
-  C code was converted by Paul. S. Crawford and Andrew R. Brooks.
+- **[1]** Hoots, F. R., Roehrich, R. L (1980). *Models for Propagation of NORAD Elements
+  Set*. **Spacetrack Report No. 3**.
+- **[2]** Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006). *Revisiting
+  Spacetrack Report #3: Rev1*. **AIAA**.
+- **[3]** SGP4 Source code of [STRF](https://github.com/cbassa/strf), which the C code was
+  converted by Paul. S. Crawford and Andrew R. Brooks.
