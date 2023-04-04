@@ -1,6 +1,15 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 1.0.0
+-------------
+
+- ![Enhancement][badge-enhancement] After all testing and source-code cleaning, we can mark
+  this package as stable, reaching v1.
+- ![Enhancement][badge-enhancement] We use
+  [SatelliteToolboxBase.jl](https://github.com/JuliaSpace/SatelliteToolboxBase.jl) as
+  dependencies to provide some functionalities for the algorithm.
+
 Version 0.1.1
 -------------
 
