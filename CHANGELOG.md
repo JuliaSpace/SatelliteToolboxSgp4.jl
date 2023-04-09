@@ -1,6 +1,11 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 1.0.1
+-------------
+
+- ![Enhancement][badge-enhancement] Bump the version of **SatelliteToolboxBase.jl**.
+
 Version 1.0.0
 -------------
 
