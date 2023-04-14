@@ -125,12 +125,12 @@ Low-level SGP4 propagator structure.
 mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
     # TLE parameters.
     epoch::Tepoch
-    n_0::T
-    e_0::T
-    i_0::T
-    Ω_0::T
-    ω_0::T
-    M_0::T
+    n₀::T
+    e₀::T
+    i₀::T
+    Ω₀::T
+    ω₀::T
+    M₀::T
     bstar::T
     # Propagation time from epoch.
     Δt::T
@@ -143,20 +143,20 @@ mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
     M_k::T
     n_k::T
     # Parameters related with the orbit.
-    all_0::T
-    nll_0::T
+    all₀::T
+    nll₀::T
     # Useful constants to decrease the computational burden.
     AE::T
     QOMS2T::T
-    β_0::T
+    β₀::T
     ξ::T
     η::T
-    sin_i_0::T
+    sin_i₀::T
     θ::T
     θ²::T
-    A_30::T
-    k_2::T
-    k_4::T
+    A₃₀::T
+    k₂::T
+    k₄::T
     C1::T
     C3::T
     C4::T
@@ -164,10 +164,10 @@ mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
     D2::T
     D3::T
     D4::T
-    dotM::T
-    dotω::T
-    dotΩ1::T
-    dotΩ::T
+    ∂M::T
+    ∂ω::T
+    ∂Ω1::T
+    ∂Ω::T
     # Selected algorithm.
     algorithm::Symbol
     # SGP4 gravitational constants.

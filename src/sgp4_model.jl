@@ -73,7 +73,7 @@ const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
 
 
 """
-    sgp4_init(epoch::Tepoch, n_0::Number, e_0::Number, i_0::Number, Ω_0::Number, ω_0::Number, M_0::Number, bstar::Number; kwargs...) where {Tepoch, T}
+    sgp4_init(epoch::Tepoch, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number; kwargs...) where {Tepoch, T}
     sgp4_init(tle::TLE; kwargs...) where T
 
 Initialize the data structure of SGP4 orbit propagator.
@@ -81,12 +81,12 @@ Initialize the data structure of SGP4 orbit propagator.
 # Arguments
 
 - `epoch::Number`: Epoch of the orbital elements [Julian Day].
-- `n_0::Number`: SGP type "mean" mean motion at epoch [rad/min].
-- `e_0::Number`: "Mean" eccentricity at epoch.
-- `i_0::Number`: "Mean" inclination at epoch [rad].
-- `Ω_0::Number`: "Mean" longitude of the ascending node at epoch [rad].
-- `ω_0::Number`: "Mean" argument of perigee at epoch [rad].
-- `M_0::Number`: "Mean" mean anomaly at epoch [rad].
+- `n₀::Number`: SGP type "mean" mean motion at epoch [rad/min].
+- `e₀::Number`: "Mean" eccentricity at epoch.
+- `i₀::Number`: "Mean" inclination at epoch [rad].
+- `Ω₀::Number`: "Mean" longitude of the ascending node at epoch [rad].
+- `ω₀::Number`: "Mean" argument of perigee at epoch [rad].
+- `M₀::Number`: "Mean" mean anomaly at epoch [rad].
 - `bstar::Number`: Drag parameter (B*).
 - `tle::TLE`: TLE to initialize the SPG4 (see `TLE`).
 
@@ -115,12 +115,12 @@ end
 
 function sgp4_init(
     epoch::Tepoch,
-    n_0::Number,
-    e_0::Number,
-    i_0::Number,
-    Ω_0::Number,
-    ω_0::Number,
-    M_0::Number,
+    n₀::Number,
+    e₀::Number,
+    i₀::Number,
+    Ω₀::Number,
+    ω₀::Number,
+    M₀::Number,
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where {Tepoch, T}
@@ -129,7 +129,7 @@ function sgp4_init(
     sgp4d.sgp4c = sgp4c
     sgp4d.sgp4ds = Sgp4DeepSpace{T}()
 
-    sgp4_init!(sgp4d, epoch, n_0, e_0, i_0, Ω_0, ω_0, M_0, bstar)
+    sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
     return sgp4d
 end
 
@@ -156,12 +156,12 @@ end
 function sgp4_init!(
     sgp4d::Sgp4Propagator{Tepoch, T},
     epoch::Tepoch,
-    n_0::Number,
-    e_0::Number,
-    i_0::Number,
-    Ω_0::Number,
-    ω_0::Number,
-    M_0::Number,
+    n₀::Number,
+    e₀::Number,
+    i₀::Number,
+    Ω₀::Number,
+    ω₀::Number,
+    M₀::Number,
     bstar::Number
 ) where {Tepoch<:Number, T<:Number}
 
@@ -181,61 +181,61 @@ function sgp4_init!(
     # Distance units / Earth radii.
     AE = T(1)
 
-    k_2  = +T(1 / 2) * J2 * AE * AE
-    k_2² = k_2 * k_2
-    k_4  = -T(3 / 8) * J4 * AE * AE * AE * AE
-    A_30 = -J3 * AE * AE * AE
+    k₂  = +T(1 / 2) * J2 * AE * AE
+    k₂² = k₂ * k₂
+    k₄  = -T(3 / 8) * J4 * AE * AE * AE * AE
+    A₃₀ = -J3 * AE * AE * AE
 
     # Kilometers / Earth radii.
     XKMPER = R0
 
     # Parameters for the SGP4 density function.
-    s   =  78 / XKMPER + 1
-    q_0 = 120 / XKMPER + 1
+    s  =  78 / XKMPER + 1
+    q₀ = 120 / XKMPER + 1
 
-    # (q_0-s)^4 [er]^4
-    QOMS2T = (q_0 - s) * (q_0 - s) * (q_0 - s) * (q_0 - s)
+    # (q₀ - s)^4 [er]^4
+    QOMS2T = (q₀ - s) * (q₀ - s) * (q₀ - s) * (q₀ - s)
 
     # Auxiliary Variables to Improve the Performance
     # ======================================================================================
 
-    e_0² = T(e_0) * T(e_0)
+    e₀² = T(e₀) * T(e₀)
 
-    sin_i_0, θ = sincos(T(i_0))
+    sin_i₀, θ = sincos(T(i₀))
     θ²         = θ  * θ
     θ³         = θ² * θ
     θ⁴         = θ² * θ²
 
     # ======================================================================================
 
-    # Recover the original mean motion (nll_0) and semi-major axis (all_0) from the input
+    # Recover the original mean motion (nll₀) and semi-major axis (all₀) from the input
     # elements.
 
-    aux = (3θ² - 1) / (1 - e_0²)^(T(3 / 2))
+    aux = (3θ² - 1) / (1 - e₀²)^(T(3 / 2))
 
-    a_1 = (XKE / T(n_0))^(T(2 / 3))
-    δ_1 = T(3 / 2) * k_2 / (a_1 * a_1)* aux
-    a_0 = a_1 * @evalpoly(δ_1, 1, -T(1 / 3), -1, -T(134 / 81))
-    δ_0 = T(3 / 2) * k_2 / (T(a_0) * T(a_0)) * aux
+    a_1 = (XKE / T(n₀))^(T(2 / 3))
+    δ_1 = T(3 / 2) * k₂ / (a_1 * a_1)* aux
+    a₀ = a_1 * @evalpoly(δ_1, 1, -T(1 / 3), -1, -T(134 / 81))
+    δ₀ = T(3 / 2) * k₂ / (T(a₀) * T(a₀)) * aux
 
-    nll_0 = T(n_0) / (1 + δ_0)
+    nll₀ = T(n₀) / (1 + δ₀)
 
     # Vallado's implementation of SGP4 [2] compute the semi-major axis considering the new
     # angular velocity, which is called `no_unkozai`. In the original SGP4 technical report
     # [1], the semi-major axis was computed considering:
     #
-    #   all_0 = a_0/(1 - δ_0)
+    #   all₀ = a₀ / (1 - δ₀)
     #
-    all_0  = (XKE / nll_0)^(T(2 / 3))
-    all_0² = all_0  * all_0
-    all_0⁴ = all_0² * all_0²
-    all_0⁸ = all_0⁴ * all_0⁴
+    all₀  = (XKE / nll₀)^(T(2 / 3))
+    all₀² = all₀  * all₀
+    all₀⁴ = all₀² * all₀²
+    all₀⁸ = all₀⁴ * all₀⁴
 
     # Initialization
     # ======================================================================================
 
     # Compute the orbit perigee [ER].
-    perigee = (all_0 * (1 - T(e_0)) - AE) * XKMPER
+    perigee = (all₀ * (1 - T(e₀)) - AE) * XKMPER
 
     # For perigee below 156 km, the values of S and QOMS2T are altered.
     if perigee < 156
@@ -243,27 +243,27 @@ function sgp4_init!(
             s = 20 / XKMPER + AE
         # Perigee between 98km and 156km.
         else
-            s = all_0 * (1 - T(e_0)) - s + AE
+            s = all₀ * (1 - T(e₀)) - s + AE
         end
 
-        QOMS2T = (q_0 - s) * (q_0 - s) * (q_0 - s) * (q_0 - s)
+        QOMS2T = (q₀ - s) * (q₀ - s) * (q₀ - s) * (q₀ - s)
     end
 
     # Compute SGP4 constants.
-    ξ  = 1 / (all_0 - s)
+    ξ  = 1 / (all₀ - s)
     ξ² = ξ  * ξ
     ξ³ = ξ² * ξ
     ξ⁴ = ξ² * ξ²
     ξ⁵ = ξ⁴ * ξ
 
-    β_0  = sqrt(1 - e_0²)
-    β_0² = β_0  * β_0
-    β_0³ = β_0² * β_0
-    β_0⁴ = β_0² * β_0²
-    β_0⁷ = β_0⁴ * β_0³
-    β_0⁸ = β_0⁴ * β_0⁴
+    β₀  = sqrt(1 - e₀²)
+    β₀² = β₀  * β₀
+    β₀³ = β₀² * β₀
+    β₀⁴ = β₀² * β₀²
+    β₀⁷ = β₀⁴ * β₀³
+    β₀⁸ = β₀⁴ * β₀⁴
 
-    η  = all_0 * T(e_0) * ξ
+    η  = all₀ * T(e₀) * ξ
     η² = η  * η
     η³ = η² * η
     η⁴ = η² * η²
@@ -274,11 +274,11 @@ function sgp4_init!(
 
     aux0 = abs(1 - η²)
     aux1 = aux0^(-T(7 / 2))
-    aux2 = ξ⁴ * all_0 * β_0² * aux1
+    aux2 = ξ⁴ * all₀ * β₀² * aux1
 
-    C2 = QOMS2T * ξ⁴ * nll_0 * aux1 * (
-        all_0 * (1 + T(3 / 2) * η² + 4T(e_0) * η + T(e_0) * η³) +
-        T(3 / 2) * (k_2 * ξ) / aux0 * (-T(1 / 2) + T(3 / 2) * θ²) * (8 + 24η² + 3η⁴)
+    C2 = QOMS2T * ξ⁴ * nll₀ * aux1 * (
+        all₀ * (1 + T(3 / 2) * η² + 4T(e₀) * η + T(e₀) * η³) +
+        T(3 / 2) * (k₂ * ξ) / aux0 * (-T(1 / 2) + T(3 / 2) * θ²) * (8 + 24η² + 3η⁴)
     )
 
     C1  = T(bstar) * C2
@@ -286,75 +286,75 @@ function sgp4_init!(
     C1³ = C1² * C1
     C1⁴ = C1² * C1²
 
-    C3 = (T(e_0) > 1e-4) ?
-        QOMS2T * ξ⁵ * A_30 * nll_0 * AE * sin_i_0 / (k_2 * T(e_0)) :
+    C3 = (T(e₀) > 1e-4) ?
+        QOMS2T * ξ⁵ * A₃₀ * nll₀ * AE * sin_i₀ / (k₂ * T(e₀)) :
         T(0)
 
-    C4 = 2nll_0 * QOMS2T * aux2 * (
-        2η * (1 + T(e_0) * η) + T(1 / 2) * T(e_0) + T(1 / 2) * η³ -
-        2k_2 * ξ / (all_0 * aux0) * (
-            3 * (1 - 3θ²) * (1 + T(3 / 2) * η² - 2T(e_0) * η - T(1 / 2) * T(e_0) * η³) +
-            T(3 / 4) * (1 - θ²) * (2η² - T(e_0) * η - T(e_0) * η³) * cos(2T(ω_0))
+    C4 = 2nll₀ * QOMS2T * aux2 * (
+        2η * (1 + T(e₀) * η) + T(1 / 2) * T(e₀) + T(1 / 2) * η³ -
+        2k₂ * ξ / (all₀ * aux0) * (
+            3 * (1 - 3θ²) * (1 + T(3 / 2) * η² - 2T(e₀) * η - T(1 / 2) * T(e₀) * η³) +
+            T(3 / 4) * (1 - θ²) * (2η² - T(e₀) * η - T(e₀) * η³) * cos(2T(ω₀))
         )
     )
 
-    C5 = 2QOMS2T * aux2 * (1 + T(11 / 4) * η * (η + T(e_0)) + T(e_0) * η³)
+    C5 = 2QOMS2T * aux2 * (1 + T(11 / 4) * η * (η + T(e₀)) + T(e₀) * η³)
 
-    D2 = 4all_0 * ξ * C1²
+    D2 = 4all₀ * ξ * C1²
 
-    D3 = T(4 / 3) * all_0 * ξ² * (17all_0 + s) * C1³
+    D3 = T(4 / 3) * all₀ * ξ² * (17all₀ + s) * C1³
 
-    # Vallado's implementation of SGP4 [2] uses all_0^2, instead of only all_0 that is seen
+    # Vallado's implementation of SGP4 [2] uses all₀^2, instead of only all₀ that is seen
     # in the original SGP4 Technical Report [1].
-    D4 = T(2 / 3) * all_0² * ξ³ * (221all_0 + 31s) * C1⁴
+    D4 = T(2 / 3) * all₀² * ξ³ * (221all₀ + 31s) * C1⁴
 
     # Compute the time-derivative of some orbital elements.
-    dotM = (
-        1 + 3k_2 * (-1 + 3θ²) / (2all_0² * β_0³) +
-        3k_2² * (13 - 78θ² + 137θ⁴) / (16all_0⁴ * β_0⁷)
-    ) * nll_0
+    ∂M = (
+        1 + 3k₂ * (-1 + 3θ²) / (2all₀² * β₀³) +
+        3k₂² * (13 - 78θ² + 137θ⁴) / (16all₀⁴ * β₀⁷)
+    ) * nll₀
 
-    dotω = (
-        -3k_2  *           (1 - 5θ²) / ( 2all_0² * β_0⁴) +
-         3k_2² * (7 - 114θ² + 395θ⁴) / (16all_0⁴ * β_0⁸) +
-         5k_4  * (3 -  36θ² +  49θ⁴) / ( 4all_0⁴ * β_0⁸)
-    ) * nll_0
+    ∂ω = (
+        -3k₂  *           (1 - 5θ²) / ( 2all₀² * β₀⁴) +
+         3k₂² * (7 - 114θ² + 395θ⁴) / (16all₀⁴ * β₀⁸) +
+         5k₄  * (3 -  36θ² +  49θ⁴) / ( 4all₀⁴ * β₀⁸)
+    ) * nll₀
 
-    dotΩ1 = -3k_2 * θ / (all_0² * β_0⁴) * nll_0
+    ∂Ω1 = -3k₂ * θ / (all₀² * β₀⁴) * nll₀
 
-    dotΩ  = dotΩ1 + (
-        3k_2² * (4θ - 19θ³) / (2all_0⁴ * β_0⁸) +
-        5k_4  * (3θ -  7θ³) / (2all_0⁴ * β_0⁸)
-    ) * nll_0
+    ∂Ω  = ∂Ω1 + (
+        3k₂² * (4θ - 19θ³) / (2all₀⁴ * β₀⁸) +
+        5k₄  * (3θ -  7θ³) / (2all₀⁴ * β₀⁸)
+    ) * nll₀
 
     # The current orbital parameters are obtained from the TLE.
-    a_k = all_0
-    e_k = T(e_0)
-    i_k = T(i_0)
-    Ω_k = T(Ω_0)
-    ω_k = T(ω_0)
-    M_k = T(M_0)
-    n_k = nll_0
+    a_k = all₀
+    e_k = T(e₀)
+    i_k = T(i₀)
+    Ω_k = T(Ω₀)
+    ω_k = T(ω₀)
+    M_k = T(M₀)
+    n_k = nll₀
 
     # If the orbit period is higher than 225 min., then we must consider the deep space
     # perturbations. This is indicated by selecting the algorithm `:sdp4`.
-    if 2π / T(n_0) >= 225.0
+    if 2π / T(n₀) >= 225.0
         algorithm = :sdp4
 
         # Initialize the values for the SDP4 (deep space) algorithm.
-        dsinit!(
+        _dsinit!(
             sgp4d.sgp4ds,
             epoch,
-            nll_0,
-            all_0,
-            T(e_0),
-            T(i_0),
-            T(Ω_0),
-            T(ω_0),
-            T(M_0),
-            dotM,
-            dotω,
-            dotΩ
+            nll₀,
+            all₀,
+            T(e₀),
+            T(i₀),
+            T(Ω₀),
+            T(ω₀),
+            T(M₀),
+            ∂M,
+            ∂ω,
+            ∂Ω
         )
     else
         # For perigee lower than 220 km, the equations are truncated to a linear variation
@@ -368,12 +368,12 @@ function sgp4_init!(
 
     # Initialize the structure with the data.
     sgp4d.epoch     = epoch
-    sgp4d.n_0       = n_0
-    sgp4d.e_0       = e_0
-    sgp4d.i_0       = i_0
-    sgp4d.Ω_0       = Ω_0
-    sgp4d.ω_0       = ω_0
-    sgp4d.M_0       = M_0
+    sgp4d.n₀        = n₀
+    sgp4d.e₀        = e₀
+    sgp4d.i₀        = i₀
+    sgp4d.Ω₀        = Ω₀
+    sgp4d.ω₀        = ω₀
+    sgp4d.M₀        = M₀
     sgp4d.bstar     = bstar
     sgp4d.Δt        = 0
     sgp4d.a_k       = a_k
@@ -383,19 +383,19 @@ function sgp4_init!(
     sgp4d.ω_k       = ω_k
     sgp4d.M_k       = M_k
     sgp4d.n_k       = n_k
-    sgp4d.all_0     = all_0
-    sgp4d.nll_0     = nll_0
+    sgp4d.all₀      = all₀
+    sgp4d.nll₀      = nll₀
     sgp4d.AE        = AE
     sgp4d.QOMS2T    = QOMS2T
-    sgp4d.β_0       = β_0
+    sgp4d.β₀        = β₀
     sgp4d.ξ         = ξ
     sgp4d.η         = η
-    sgp4d.sin_i_0   = sin_i_0
+    sgp4d.sin_i₀    = sin_i₀
     sgp4d.θ         = θ
     sgp4d.θ²        = θ²
-    sgp4d.A_30      = A_30
-    sgp4d.k_2       = k_2
-    sgp4d.k_4       = k_4
+    sgp4d.A₃₀       = A₃₀
+    sgp4d.k₂        = k₂
+    sgp4d.k₄        = k₄
     sgp4d.C1        = C1
     sgp4d.C3        = C3
     sgp4d.C4        = C4
@@ -403,10 +403,10 @@ function sgp4_init!(
     sgp4d.D2        = D2
     sgp4d.D3        = D3
     sgp4d.D4        = D4
-    sgp4d.dotM      = dotM
-    sgp4d.dotω      = dotω
-    sgp4d.dotΩ1     = dotΩ1
-    sgp4d.dotΩ      = dotΩ
+    sgp4d.∂M        = ∂M
+    sgp4d.∂ω        = ∂ω
+    sgp4d.∂Ω1       = ∂Ω1
+    sgp4d.∂Ω        = ∂Ω
     sgp4d.algorithm = algorithm
 
     return nothing
@@ -428,11 +428,11 @@ Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the 
 """
 function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Unpack variables.
-    e_0       = sgp4d.e_0
-    i_0       = sgp4d.i_0
-    Ω_0       = sgp4d.Ω_0
-    ω_0       = sgp4d.ω_0
-    M_0       = sgp4d.M_0
+    e₀        = sgp4d.e₀
+    i₀        = sgp4d.i₀
+    Ω₀        = sgp4d.Ω₀
+    ω₀        = sgp4d.ω₀
+    M₀        = sgp4d.M₀
     bstar     = sgp4d.bstar
     a_k       = sgp4d.a_k
     e_k       = sgp4d.e_k
@@ -441,18 +441,18 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     ω_k       = sgp4d.ω_k
     M_k       = sgp4d.M_k
     n_k       = sgp4d.n_k
-    all_0     = sgp4d.all_0
-    nll_0     = sgp4d.nll_0
+    all₀      = sgp4d.all₀
+    nll₀      = sgp4d.nll₀
     AE        = sgp4d.AE
     QOMS2T    = sgp4d.QOMS2T
-    β_0       = sgp4d.β_0
+    β₀        = sgp4d.β₀
     ξ         = sgp4d.ξ
     η         = sgp4d.η
-    sin_i_0   = sgp4d.sin_i_0
+    sin_i₀    = sgp4d.sin_i₀
     θ         = sgp4d.θ
     θ²        = sgp4d.θ²
-    A_30      = sgp4d.A_30
-    k_2       = sgp4d.k_2
+    A₃₀       = sgp4d.A₃₀
+    k₂        = sgp4d.k₂
     C1        = sgp4d.C1
     C3        = sgp4d.C3
     C4        = sgp4d.C4
@@ -460,9 +460,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     D2        = sgp4d.D2
     D3        = sgp4d.D3
     D4        = sgp4d.D4
-    dotM      = sgp4d.dotM
-    dotω      = sgp4d.dotω
-    dotΩ      = sgp4d.dotΩ
+    ∂M        = sgp4d.∂M
+    ∂ω        = sgp4d.∂ω
+    ∂Ω        = sgp4d.∂Ω
     algorithm = sgp4d.algorithm
     sgp4c     = sgp4d.sgp4c
     sgp4ds    = sgp4d.sgp4ds
@@ -475,7 +475,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
     # After unpacking sgp4d, we have two sets of orbit elements:
     #
-    #   (n_0, e_0, i_0, Ω_0, ω_0, M_0),
+    #   (n₀, e₀, i₀, Ω₀, ω₀, M₀),
     #
     # and
     #
@@ -493,61 +493,61 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     Δt = T(t)
 
     # Initialization of the current elements with the values of the epoch.
-    n_k = nll_0
-    a_k = all_0
-    e_k = e_0
-    i_k = i_0
-    Ω_k = Ω_0
-    ω_k = ω_0
-    M_k = M_0
+    n_k = nll₀
+    a_k = all₀
+    e_k = e₀
+    i_k = i₀
+    Ω_k = Ω₀
+    ω_k = ω₀
+    M_k = M₀
 
     # Auxiliary variables to improve code performance.
-    sin_i_k = sin_i_0
+    sin_i_k = sin_i₀
 
     # Secular Effects of Atmospheric Drag and Gravitation
     # ======================================================================================
 
-    M_k = M_0 + dotM * Δt
-    Ω_k = Ω_0 + dotΩ * Δt - T(21 / 2) * (nll_0 * k_2 * θ) / (all_0^2 * β_0^2) * C1 * Δt^2
-    ω_k = ω_0 + dotω * Δt
+    M_k = M₀ + ∂M * Δt
+    Ω_k = Ω₀ + ∂Ω * Δt - T(21 / 2) * (nll₀ * k₂ * θ) / (all₀^2 * β₀^2) * C1 * Δt^2
+    ω_k = ω₀ + ∂ω * Δt
 
     # Check if we need to use SDP4 (deep space) algorithm.
     if algorithm == :sdp4
         # Compute the elements perturbed by the secular effects.
-        n_k, e_k, i_k, Ω_k, ω_k, M_k = dssec!(
+        n_k, e_k, i_k, Ω_k, ω_k, M_k = _dssec!(
             sgp4ds,
-            nll_0,
-            e_0,
-            i_0,
-            ω_0,
+            nll₀,
+            e₀,
+            i₀,
+            ω₀,
             Ω_k,
             ω_k,
             M_k,
-            dotω,
+            ∂ω,
             Δt
         )
 
         a_k  = (XKE / n_k)^(T(2 / 3)) * (1 - C1 * Δt)^2
         e_k += -bstar * C4 * Δt
-        M_k += nll_0 * (T(1.5) * C1 * Δt^2)
+        M_k += nll₀ * (T(1.5) * C1 * Δt^2)
 
     # Check if perigee is above 220 km.
     elseif algorithm === :sgp4
 
-        sin_M_0, cos_M_0 = sincos(M_0)
-        δω  = bstar * C3 * cos(ω_0) * Δt
+        sin_M₀, cos_M₀ = sincos(M₀)
+        δω  = bstar * C3 * cos(ω₀) * Δt
 
         # TODO: sin(M_k) and cos(M_k) can be computed faster here.
 
-        δM  = (e_0 > 1e-4) ?
-            -T(2 / 3) * QOMS2T * bstar * ξ^4 * AE / (e_0 * η) * (
-                (1 + η * cos(M_k))^3 - (1 + η * cos_M_0)^3
+        δM  = (e₀ > 1e-4) ?
+            -T(2 / 3) * QOMS2T * bstar * ξ^4 * AE / (e₀ * η) * (
+                (1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3
             ) : T(0)
         M_k += +δω + δM
         ω_k += -δω - δM
-        e_k  = e_0 - bstar * C4 * Δt - bstar * C5 * (sin(M_k) - sin_M_0)
-        a_k  = all_0 * (@evalpoly(Δt, 1, -C1, -D2, -D3, -D4))^2
-        IL   = M_k + ω_k + Ω_k + nll_0 * @evalpoly(
+        e_k  = e₀ - bstar * C4 * Δt - bstar * C5 * (sin(M_k) - sin_M₀)
+        a_k  = all₀ * (@evalpoly(Δt, 1, -C1, -D2, -D3, -D4))^2
+        IL   = M_k + ω_k + Ω_k + nll₀ * @evalpoly(
             Δt,
             0,
             0,
@@ -563,9 +563,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         #     2. Drop all terms involving C5.
         #     3. Drop δω.
         #     4. Drop δM.
-        e_k = e_0 - bstar * C4 * Δt
-        a_k = all_0 * (1 - C1 * Δt)^2
-        IL  = M_k + ω_k + Ω_k + nll_0 * T(3 / 2) * C1 * Δt^2
+        e_k = e₀ - bstar * C4 * Δt
+        a_k = all₀ * (1 - C1 * Δt)^2
+        IL  = M_k + ω_k + Ω_k + nll₀ * T(3 / 2) * C1 * Δt^2
     else
         error("Unknown algorithm :$algorithm. Possible values are :sgp4, :sgp4_lowper, :sdp4.")
     end
@@ -584,7 +584,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # This is only necessary if we are using SDP4 algorithm.
     if algorithm === :sdp4
         # Compute the elements perturbed by the Lunar-Solar periodics.
-        e_k, i_k, Ω_k, ω_k, M_k = dsper!(sgp4ds, e_k, i_k, Ω_k, ω_k, M_k, Δt)
+        e_k, i_k, Ω_k, ω_k, M_k = _dsper!(sgp4ds, e_k, i_k, Ω_k, ω_k, M_k, Δt)
 
         IL = M_k + ω_k + Ω_k
 
@@ -620,7 +620,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
     # TODO: Vallado's implementation of SGP4 uses another equation here.  However, both
     # produces the same result. Verify which one is better.
-    a_yNL = A_30 * sin_i_k / (4k_2 * a_k * β^2)
+    a_yNL = A₃₀ * sin_i_k / (4k₂ * a_k * β^2)
     a_yN  = e_k * sin_ω_k + a_yNL
     IL_L  =  T(1 / 2) * a_yNL * a_xN * (3 + 5θ) / (1 + θ)
     IL_T  = IL + IL_L
@@ -674,15 +674,15 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     u       = atan(sin_u, cos_u)
 
     # Short-term periodic terms.
-    Δr       = +k_2 / (2p_L) * (1 - θ²) * cos_2u
-    Δu       = -k_2 / (4p_L^2) * (7θ² - 1) * sin_2u
-    ΔΩ       = +3k_2 * θ / (2p_L^2) * sin_2u
-    Δi       = +3k_2 * θ / (2p_L^2) * sin_i_k * cos_2u
-    Δdot_r   = -k_2 * n_k / p_L * (1 - θ²) * sin_2u
-    Δr_dot_f = +k_2 * n_k / p_L * ((1 - θ²) * cos_2u - T(3 / 2) * (1 - 3θ²))
+    Δr       = +k₂ / (2p_L) * (1 - θ²) * cos_2u
+    Δu       = -k₂ / (4p_L^2) * (7θ² - 1) * sin_2u
+    ΔΩ       = +3k₂ * θ / (2p_L^2) * sin_2u
+    Δi       = +3k₂ * θ / (2p_L^2) * sin_i_k * cos_2u
+    Δdot_r   = -k₂ * n_k / p_L * (1 - θ²) * sin_2u
+    Δr_dot_f = +k₂ * n_k / p_L * ((1 - θ²) * cos_2u - T(3 / 2) * (1 - 3θ²))
 
     # The short-term periodics are added to give the osculating quantities.
-    r_k       = r * (1 - T(3 / 2) * k_2 * sqrt(1 - e_L^2) / p_L^2 * (3θ² - 1)) + Δr
+    r_k       = r * (1 - T(3 / 2) * k₂ * sqrt(1 - e_L^2) / p_L^2 * (3θ² - 1)) + Δr
     u_k       = u + Δu
     Ω_k       = Ω_k + ΔΩ
     i_k       = i_k + Δi
@@ -717,45 +717,48 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 end
 
 ############################################################################################
-#                                   Deep Space Functions
+#                                    Private Functions
 ############################################################################################
 
+#                                   Deep Space Functions
+# ==========================================================================================
+
 """
-    dsinit!(sgp4ds::Sgp4DeepSpace{T}, args...) where {Tepoch<:Number, T<:Number} -> Nothing
+    _dsinit!(sgp4ds::Sgp4DeepSpace{T}, args...) where {Tepoch<:Number, T<:Number} -> Nothing
 
 Initialize the deep space structure `sgp4ds` using the parameters in `args...`.
 
 This function computes several parameters in `sgp4ds` that will be used when calling the
-functions `dsper!` and `dpsec!`.
+functions `_dsper!` and `_dssec!`.
 
 # Arguments
 
 - `sgp4ds::Sgp4DeepSpace`: Structure that will be initialized.
 - `epoch::T`: Epoch of the initial orbit [Julian Day].
-- `nll_0::T`: Initial mean motion [rad/min].
-- `all_0::T`: Initial semi-major axis [ER].
-- `e_0::T`: Initial eccentricity.
-- `i_0::T`: Initial inclination [rad].
-- `Ω_0::T`: Initial right ascencion of the ascending node [rad].
-- `ω_0::T`: Initial argument of perigee [rad].
-- `M_0::T`: Initial mean motion [rad].
-- `dotM::T`: Time-derivative of the mean motion [rad/min].
-- `dotω::T`: Time-derivative of the argument of perigee [rad/min].
-- `dotΩ::T`: Time-derivative of the RAAN [rad/min].
+- `nll₀::T`: Initial mean motion [rad/min].
+- `all₀::T`: Initial semi-major axis [ER].
+- `e₀::T`: Initial eccentricity.
+- `i₀::T`: Initial inclination [rad].
+- `Ω₀::T`: Initial right ascencion of the ascending node [rad].
+- `ω₀::T`: Initial argument of perigee [rad].
+- `M₀::T`: Initial mean motion [rad].
+- `∂M::T`: Time-derivative of the mean motion [rad/min].
+- `∂ω::T`: Time-derivative of the argument of perigee [rad/min].
+- `∂Ω::T`: Time-derivative of the RAAN [rad/min].
 """
-function dsinit!(
+function _dsinit!(
     sgp4ds::Sgp4DeepSpace{T},
     epoch::Tepoch,
-    nll_0::T,
-    all_0::T,
-    e_0::T,
-    i_0::T,
-    Ω_0::T,
-    ω_0::T,
-    M_0::T,
-    dotM::T,
-    dotω::T,
-    dotΩ::T
+    nll₀::T,
+    all₀::T,
+    e₀::T,
+    i₀::T,
+    Ω₀::T,
+    ω₀::T,
+    M₀::T,
+    ∂M::T,
+    ∂ω::T,
+    ∂Ω::T
 ) where {Tepoch<:Number, T<:Number}
 
     # Unpack variables.
@@ -864,33 +867,33 @@ function dsinit!(
     #                                 Auxiliary Variables
     # ======================================================================================
 
-    e_0²        = e_0 * e_0
-    e_0³        = e_0 * e_0²
-    sqrt_1_e_0² = sqrt(1 - e_0²)
-    inv_all_0   = 1 / all_0
-    inv_nll_0   = 1 / nll_0
+    e₀²        = e₀ * e₀
+    e₀³        = e₀ * e₀²
+    sqrt_1_e₀² = sqrt(1 - e₀²)
+    inv_all₀   = 1 / all₀
+    inv_nll₀   = 1 / nll₀
     se          = T(0)
     si          = T(0)
     sl          = T(0)
     sgh         = T(0)
     shdq        = T(0)
 
-    sin_i_0, cos_i_0 = sincos(i_0)
-    sin_Ω_0, cos_Ω_0 = sincos(Ω_0)
-    sin_ω_0, cos_ω_0 = sincos(ω_0)
+    sin_i₀, cos_i₀ = sincos(i₀)
+    sin_Ω₀, cos_Ω₀ = sincos(Ω₀)
+    sin_ω₀, cos_ω₀ = sincos(ω₀)
 
-    sin_i_0² = sin_i_0 * sin_i_0
-    cos_i_0² = cos_i_0 * cos_i_0
-    xpidot   = dotω + dotΩ
+    sin_i₀² = sin_i₀ * sin_i₀
+    cos_i₀² = cos_i₀ * cos_i₀
+    xpidot   = ∂ω + ∂Ω
 
     #                                Initial Configuration
     # ======================================================================================
 
     # Drop terms if inclination is smaller than 3 deg.
-    ishq = (i_0 >= 3π / 180) ? true : false
+    ishq = (i₀ >= 3π / 180) ? true : false
 
-    # Do not let `sin_i_0` be 0.
-    abs(sin_i_0) < 1e-12 && (sin_i_0 = sign(sin_i_0) * T(1e-12))
+    # Do not let `sin_i₀` be 0.
+    abs(sin_i₀) < 1e-12 && (sin_i₀ = sign(sin_i₀) * T(1e-12))
 
     # Compute the Greenwhich Mean Sidereal Time at epoch.
     gmst = T(jd_to_gmst(epoch))
@@ -927,8 +930,8 @@ function dsinit!(
     zsing = ZSINGS
     zcosi = ZCOSIS
     zsini = ZSINIS
-    zcosh = cos_Ω_0
-    zsinh = sin_Ω_0
+    zcosh = cos_Ω₀
+    zsinh = sin_Ω₀
     cc    = C1SS
     zn    = ZNS
     ze    = ZES
@@ -941,52 +944,52 @@ function dsinit!(
         a8  = +zsing * zsini
         a9  = +zsing * zsinh + zcosg * zcosi * zcosh
         a10 = +zcosg * zsini
-        a2  = +cos_i_0 * a7  + sin_i_0 * a8
-        a4  = +cos_i_0 * a9  + sin_i_0 * a10
-        a5  = -sin_i_0 * a7  + cos_i_0 * a8
-        a6  = -sin_i_0 * a9  + cos_i_0 * a10
+        a2  = +cos_i₀ * a7  + sin_i₀ * a8
+        a4  = +cos_i₀ * a9  + sin_i₀ * a10
+        a5  = -sin_i₀ * a7  + cos_i₀ * a8
+        a6  = -sin_i₀ * a9  + cos_i₀ * a10
 
-        x1 = +a1 * cos_ω_0 + a2 * sin_ω_0
-        x2 = +a3 * cos_ω_0 + a4 * sin_ω_0
-        x3 = -a1 * sin_ω_0 + a2 * cos_ω_0
-        x4 = -a3 * sin_ω_0 + a4 * cos_ω_0
-        x5 = +a5 * sin_ω_0
-        x6 = +a6 * sin_ω_0
-        x7 = +a5 * cos_ω_0
-        x8 = +a6 * cos_ω_0
+        x1 = +a1 * cos_ω₀ + a2 * sin_ω₀
+        x2 = +a3 * cos_ω₀ + a4 * sin_ω₀
+        x3 = -a1 * sin_ω₀ + a2 * cos_ω₀
+        x4 = -a3 * sin_ω₀ + a4 * cos_ω₀
+        x5 = +a5 * sin_ω₀
+        x6 = +a6 * sin_ω₀
+        x7 = +a5 * cos_ω₀
+        x8 = +a6 * cos_ω₀
 
         z31 = 12x1^2    - 3x3^2
         z32 = 24x1 * x2 - 6x3 * x4
         z33 = 12x2^2    - 3x4^2
-        z1  = 3(   a1^2 + a2^2   ) + z31 * e_0²
-        z2  = 6(a1 * a3 + a2 * a4) + z32 * e_0²
-        z3  = 3(   a3^2 + a4^2   ) + z33 * e_0²
-        z11 = -6a1 * a5 + e_0² * (-24x1 * x7 - 6x3 * x5)
-        z12 = -6(a1 * a6 + a3 * a5) + e_0² * (-24(x2 * x7 + x1 * x8) - 6(x3 * x6 + x4 * x5))
-        z13 = -6a3 * a6 + e_0² * (-24x2 * x8 - 6x4 * x6)
-        z21 = +6a2 * a5 + e_0² * (+24x1 * x5 - 6x3 * x7)
-        z22 = +6(a4 * a5 + a2 * a6) + e_0² * (24(x2 * x5 + x1 * x6) - 6(x4 * x7 + x3 * x8) )
-        z23 = +6a4 * a6 + e_0² * (24x2 * x6 - 6x4 * x8)
-        z1  = +2z1 + (1 - e_0²) * z31
-        z2  = +2z2 + (1 - e_0²) * z32
-        z3  = +2z3 + (1 - e_0²) * z33
-        s3  = +cc * inv_nll_0
-        s2  = -T(0.5) * s3 / sqrt_1_e_0²
-        s4  = +s3 * sqrt_1_e_0²
-        s1  = -15e_0 * s4
+        z1  = 3(   a1^2 + a2^2   ) + z31 * e₀²
+        z2  = 6(a1 * a3 + a2 * a4) + z32 * e₀²
+        z3  = 3(   a3^2 + a4^2   ) + z33 * e₀²
+        z11 = -6a1 * a5 + e₀² * (-24x1 * x7 - 6x3 * x5)
+        z12 = -6(a1 * a6 + a3 * a5) + e₀² * (-24(x2 * x7 + x1 * x8) - 6(x3 * x6 + x4 * x5))
+        z13 = -6a3 * a6 + e₀² * (-24x2 * x8 - 6x4 * x6)
+        z21 = +6a2 * a5 + e₀² * (+24x1 * x5 - 6x3 * x7)
+        z22 = +6(a4 * a5 + a2 * a6) + e₀² * (24(x2 * x5 + x1 * x6) - 6(x4 * x7 + x3 * x8) )
+        z23 = +6a4 * a6 + e₀² * (24x2 * x6 - 6x4 * x8)
+        z1  = +2z1 + (1 - e₀²) * z31
+        z2  = +2z2 + (1 - e₀²) * z32
+        z3  = +2z3 + (1 - e₀²) * z33
+        s3  = +cc * inv_nll₀
+        s2  = -T(0.5) * s3 / sqrt_1_e₀²
+        s4  = +s3 * sqrt_1_e₀²
+        s1  = -15e₀ * s4
         s5  = +x1 * x3 + x2 * x4
         s6  = +x2 * x3 + x1 * x4
         s7  = +x2 * x4 - x1 * x3
         se  = +s1 * zn * s5
         si  = +s2 * zn * (z11 + z13)
-        sl  = -zn * s3 * (z1 + z3 - 14 - 6e_0²)
+        sl  = -zn * s3 * (z1 + z3 - 14 - 6e₀²)
         sgh = +s4 * zn * (z31 + z33 - 6)
 
         shdq = zero(T)
 
         if ishq
             sh   = -zn * s2 * (z21 + z23);
-            shdq = sh / sin_i_0;
+            shdq = sh / sin_i₀;
         end
 
         ee2  =  +2s1 * s6
@@ -995,7 +998,7 @@ function dsinit!(
         xi3  =  +2s2 * (z13 - z11)
         xl2  =  -2s3 * z2
         xl3  =  -2s3 * (z3 - z1)
-        xl4  =  -2s3 * (-21 - 9e_0²) * ze
+        xl4  =  -2s3 * (-21 - 9e₀²) * ze
         xgh2 =  +2s4 * z32
         xgh3 =  +2s4 * (z33 - z31)
         xgh4 = -18s4 * ze
@@ -1011,7 +1014,7 @@ function dsinit!(
         ssi   = si
         ssl   = sl
         ssh   = shdq
-        ssg   = sgh - cos_i_0 * ssh
+        ssg   = sgh - cos_i₀ * ssh
         se2   = ee2
         si2   = xi2
         sl2   = xl2
@@ -1028,8 +1031,8 @@ function dsinit!(
         zsing = zsingl
         zcosi = zcosil
         zsini = zsinil
-        zcosh = cos_Ω_0 * zcoshl + sin_Ω_0 * zsinhl
-        zsinh = sin_Ω_0 * zcoshl - cos_Ω_0 * zsinhl
+        zcosh = cos_Ω₀ * zcoshl + sin_Ω₀ * zsinhl
+        zsinh = sin_Ω₀ * zcoshl - cos_Ω₀ * zsinhl
         zn    = ZNL
         cc    = C1L
         ze    = ZEL
@@ -1039,114 +1042,114 @@ function dsinit!(
     sse += se
     ssi += si
     ssl += sl
-    ssg += sgh - cos_i_0 * shdq
+    ssg += sgh - cos_i₀ * shdq
     ssh += shdq
 
-    if (nll_0 < T(0.0052359877)) && (nll_0 > T(0.0034906585))
+    if (nll₀ < T(0.0052359877)) && (nll₀ > T(0.0034906585))
         #                  24h Synchronous Resonance Terms Initialization
         # ==================================================================================
 
         iresfl = true;
         isynfl = true;
 
-        g200    = e_0² * (T(0.8125) * e_0² - T(2.5)) + 1
-        g310    = 2e_0² + 1
-        g300    = e_0² * (T(6.60937) * e_0² - 6) + 1
-        f220    = T(0.75) * (cos_i_0 + 1)^2
-        f311    = T(0.9375) * (3cos_i_0 + 1) * sin_i_0^2 - T(0.75) * (cos_i_0 + 1)
-        f330    = T(1.875) * (cos_i_0 + 1)^3
-        del1    = 3(nll_0^2 * inv_all_0^2)
+        g200    = e₀² * (T(0.8125) * e₀² - T(2.5)) + 1
+        g310    = 2e₀² + 1
+        g300    = e₀² * (T(6.60937) * e₀² - 6) + 1
+        f220    = T(0.75) * (cos_i₀ + 1)^2
+        f311    = T(0.9375) * (3cos_i₀ + 1) * sin_i₀^2 - T(0.75) * (cos_i₀ + 1)
+        f330    = T(1.875) * (cos_i₀ + 1)^3
+        del1    = 3(nll₀^2 * inv_all₀^2)
         del2    = 2del1 * f220 * g200 * Q22
-        del3    = 3del1 * f330 * g300 * Q33 * inv_all_0
-        del1    =  del1 * f311 * g310 * Q31 * inv_all_0
+        del3    = 3del1 * f330 * g300 * Q33 * inv_all₀
+        del1    =  del1 * f311 * g310 * Q31 * inv_all₀
         fasx2   = T(0.13130908)
         fasx4   = T(2.8843198)
         fasx6   = T(0.37448087)
-        xlamo   = mod(M_0 + Ω_0 + ω_0 - gmst, T(2π))
-        bfact   = dotM + xpidot - THDT + ssl + ssg + ssh
+        xlamo   = mod(M₀ + Ω₀ + ω₀ - gmst, T(2π))
+        bfact   = ∂M + xpidot - THDT + ssl + ssg + ssh
 
-    elseif (nll_0 >= T(0.00826)) && (nll_0 <= T(0.00924)) && (e_0 >= T(0.5))
+    elseif (nll₀ >= T(0.00826)) && (nll₀ <= T(0.00924)) && (e₀ >= T(0.5))
         #             Geopotential Resonance Initialization for 12 Hour Orbits
         # ==================================================================================
 
         iresfl = true
         isynfl = false
 
-        g201 = -T(0.306) - T(0.44) * (e_0 - T(0.64))
+        g201 = -T(0.306) - T(0.44) * (e₀ - T(0.64))
 
-        if e_0 <= 0.65
-            g211 = @evalpoly(e_0, +T( 3.6160), -T( 13.2470), +T( 16.29000))
-            g310 = @evalpoly(e_0, -T(19.3020), +T(117.3900), -T(228.4190 ), +T( 156.5910))
-            g322 = @evalpoly(e_0, -T(18.9068), +T(109.7927), -T(214.6334 ), +T( 146.5816))
-            g410 = @evalpoly(e_0, -T(41.1220), +T(242.6940), -T(471.0940 ), +T( 313.9530))
-            g422 = @evalpoly(e_0, -T(146.407), +T(841.8800), -T(1629.014 ), +T(1083.435 ))
-            g520 = @evalpoly(e_0, -T(532.114), +T(3017.977), -T(5740.032 ), +T(3708.276 ))
+        if e₀ <= 0.65
+            g211 = @evalpoly(e₀, +T( 3.6160), -T( 13.2470), +T( 16.29000))
+            g310 = @evalpoly(e₀, -T(19.3020), +T(117.3900), -T(228.4190 ), +T( 156.5910))
+            g322 = @evalpoly(e₀, -T(18.9068), +T(109.7927), -T(214.6334 ), +T( 146.5816))
+            g410 = @evalpoly(e₀, -T(41.1220), +T(242.6940), -T(471.0940 ), +T( 313.9530))
+            g422 = @evalpoly(e₀, -T(146.407), +T(841.8800), -T(1629.014 ), +T(1083.435 ))
+            g520 = @evalpoly(e₀, -T(532.114), +T(3017.977), -T(5740.032 ), +T(3708.276 ))
         else
-            g211 = @evalpoly(e_0, -  T(72.099), +T(  331.8190), -T( 508.7380), +T(  266.7240))
-            g310 = @evalpoly(e_0, - T(346.844), +T( 1582.851 ), -T( 2415.925), +T( 1246.113 ))
-            g322 = @evalpoly(e_0, - T(342.585), +T( 1554.908 ), -T( 2366.899), +T( 1215.972 ))
-            g410 = @evalpoly(e_0, -T(1052.797), +T( 4758.686 ), -T( 7193.992), +T( 3651.957 ))
-            g422 = @evalpoly(e_0, -T(3581.690), +T(16178.11  ), -T(24462.77 ), +T(12422.52  ))
+            g211 = @evalpoly(e₀, -  T(72.099), +T(  331.8190), -T( 508.7380), +T(  266.7240))
+            g310 = @evalpoly(e₀, - T(346.844), +T( 1582.851 ), -T( 2415.925), +T( 1246.113 ))
+            g322 = @evalpoly(e₀, - T(342.585), +T( 1554.908 ), -T( 2366.899), +T( 1215.972 ))
+            g410 = @evalpoly(e₀, -T(1052.797), +T( 4758.686 ), -T( 7193.992), +T( 3651.957 ))
+            g422 = @evalpoly(e₀, -T(3581.690), +T(16178.11  ), -T(24462.77 ), +T(12422.52  ))
 
-            if e_0 <= T(0.715)
-                g520 = @evalpoly(e_0, +T(1464.74), -T(4664.75), +T(3763.64))
+            if e₀ <= T(0.715)
+                g520 = @evalpoly(e₀, +T(1464.74), -T(4664.75), +T(3763.64))
             else
-                g520 = @evalpoly(e_0, -T(5149.66), +T(29936.92), -T(54087.36), +T(31324.56))
+                g520 = @evalpoly(e₀, -T(5149.66), +T(29936.92), -T(54087.36), +T(31324.56))
             end
         end
 
-        if e_0 < T(0.7)
-            g533 = @evalpoly(e_0, -T(919.22770), +T(4988.6100), -T(9064.7700), +T(5542.210))
-            g521 = @evalpoly(e_0, -T(822.71072), +T(4568.6173), -T(8491.4146), +T(5337.524))
-            g532 = @evalpoly(e_0, -T(853.66600), +T(4690.2500), -T(8624.7700), +T(5341.400))
+        if e₀ < T(0.7)
+            g533 = @evalpoly(e₀, -T(919.22770), +T(4988.6100), -T(9064.7700), +T(5542.210))
+            g521 = @evalpoly(e₀, -T(822.71072), +T(4568.6173), -T(8491.4146), +T(5337.524))
+            g532 = @evalpoly(e₀, -T(853.66600), +T(4690.2500), -T(8624.7700), +T(5341.400))
         else
-            g533 = @evalpoly(e_0, -T(37995.780), +T(161616.52), -T(229838.20), +T(109377.94))
-            g521 = @evalpoly(e_0, -T(51752.104), +T(218913.95), -T(309468.16), +T(146349.42))
-            g532 = @evalpoly(e_0, -T(40023.880), +T(170470.89), -T(242699.48), +T(115605.82))
+            g533 = @evalpoly(e₀, -T(37995.780), +T(161616.52), -T(229838.20), +T(109377.94))
+            g521 = @evalpoly(e₀, -T(51752.104), +T(218913.95), -T(309468.16), +T(146349.42))
+            g532 = @evalpoly(e₀, -T(40023.880), +T(170470.89), -T(242699.48), +T(115605.82))
         end
 
-        f220 = +T(0.75)  * (1 + 2cos_i_0 + cos_i_0²)
-        f221 = +T(1.5)   * sin_i_0²
-        f321 = +T(1.875) * sin_i_0 * (1 - 2cos_i_0 - 3cos_i_0²)
-        f322 = -T(1.875) * sin_i_0 * (1 + 2cos_i_0 - 3cos_i_0²)
-        f441 = +35sin_i_0² * f220
-        f442 = +T(39.375) * sin_i_0²^2
-        f522 = +T(9.84375) * sin_i_0 * (
-            sin_i_0² * (+1 - 2cos_i_0 - 5cos_i_0²) +
-            T(0.33333333) * (-2 + 4cos_i_0 + 6cos_i_0²)
+        f220 = +T(0.75)  * (1 + 2cos_i₀ + cos_i₀²)
+        f221 = +T(1.5)   * sin_i₀²
+        f321 = +T(1.875) * sin_i₀ * (1 - 2cos_i₀ - 3cos_i₀²)
+        f322 = -T(1.875) * sin_i₀ * (1 + 2cos_i₀ - 3cos_i₀²)
+        f441 = +35sin_i₀² * f220
+        f442 = +T(39.375) * sin_i₀²^2
+        f522 = +T(9.84375) * sin_i₀ * (
+            sin_i₀² * (+1 - 2cos_i₀ - 5cos_i₀²) +
+            T(0.33333333) * (-2 + 4cos_i₀ + 6cos_i₀²)
         )
-        f523 = sin_i_0 * (
-            T(4.92187512) * sin_i_0² * (-2 - 4cos_i_0 + 10cos_i_0²) +
-            T(6.56250012) * (+1 + 2cos_i_0 -  3cos_i_0²)
+        f523 = sin_i₀ * (
+            T(4.92187512) * sin_i₀² * (-2 - 4cos_i₀ + 10cos_i₀²) +
+            T(6.56250012) * (+1 + 2cos_i₀ -  3cos_i₀²)
         )
-        f542 = T(29.53125) * sin_i_0 * (
-            +2 - 8cos_i_0 + cos_i_0² * (-12 + 8cos_i_0 + 10cos_i_0²)
+        f542 = T(29.53125) * sin_i₀ * (
+            +2 - 8cos_i₀ + cos_i₀² * (-12 + 8cos_i₀ + 10cos_i₀²)
         )
-        f543 = T(29.53125) * sin_i_0 * (
-            -2 - 8cos_i_0 + cos_i_0² * (+12 + 8cos_i_0 - 10cos_i_0²)
+        f543 = T(29.53125) * sin_i₀ * (
+            -2 - 8cos_i₀ + cos_i₀² * (+12 + 8cos_i₀ - 10cos_i₀²)
         )
 
-        temp1   = 3 * (nll_0 * inv_all_0)^2
+        temp1   = 3 * (nll₀ * inv_all₀)^2
         temp0   = temp1 * ROOT22
         d2201   = temp0 * f220 * g201
         d2211   = temp0 * f221 * g211
-        temp1  *= inv_all_0
+        temp1  *= inv_all₀
         temp0   = temp1 * ROOT32
         d3210   = temp0 * f321 * g310
         d3222   = temp0 * f322 * g322
-        temp1  *= inv_all_0
+        temp1  *= inv_all₀
         temp0   = 2temp1 * ROOT44
         d4410   = temp0 * f441 * g410
         d4422   = temp0 * f442 * g422
-        temp1  *= inv_all_0
+        temp1  *= inv_all₀
         temp0   = temp1 * ROOT52
         d5220   = temp0 * f522 * g520
         d5232   = temp0 * f523 * g532
         temp0   = 2temp1 * ROOT54
         d5421   = temp0 * f542 * g521
         d5433   = temp0 * f543 * g533
-        xlamo   = mod(M_0 + 2Ω_0 - 2gmst, T(2π))
-        bfact   = dotM + 2dotΩ - 2THDT + ssl + 2ssh
+        xlamo   = mod(M₀ + 2Ω₀ - 2gmst, T(2π))
+        bfact   = ∂M + 2∂Ω - 2THDT + ssl + 2ssh
     else
         #                               Non Resonant Orbits
         # ==================================================================================
@@ -1159,12 +1162,12 @@ function dsinit!(
         #                            Initialize the Integrator
         # ==================================================================================
 
-        xfact = bfact - nll_0
+        xfact = bfact - nll₀
         xli   = xlamo
         atime = T(0)
 
         # TODO: Check if this variable can be removed from Sgp4DeepSpace.
-        xni   = nll_0
+        xni   = nll₀
 
         # Compute the "dot" Terms
         # ==================================================================================
@@ -1177,7 +1180,7 @@ function dsinit!(
             xndot = del1 * sin_1 +  del2 * sin_2 +  del3 * sin_3
             xnddt = del1 * cos_1 + 2del2 * cos_2 + 3del3 * cos_3
         else
-            ω = ω_0 + dotω * atime
+            ω = ω₀ + ∂ω * atime
 
             sin_1,  cos_1  = sincos(2ω + xli  - G22)
             sin_2,  cos_2  = sincos(   + xli  - G22)
@@ -1286,7 +1289,7 @@ function dsinit!(
 end
 
 """
-    dssec!(sgp4ds::Sgp4DeepSpace{T}, nll_0::T, e_0::T, i_0::T, ω_0::T, Ω_k::T, ω_k::T, M_k::T, dotω::T, Δt::Number) where T<:Number
+    _dssec!(sgp4ds::Sgp4DeepSpace{T}, nll₀::T, e₀::T, i₀::T, ω₀::T, Ω_k::T, ω_k::T, M_k::T, ∂ω::T, Δt::Number) where T<:Number
 
 Compute the secular effects.
 
@@ -1296,14 +1299,14 @@ Compute the secular effects.
 # Arguments
 
 - `sgp4ds::Sgp4DeepSpace`: Deep space structure (see [`Sgp4DeepSpace`](@ref)).
-- `nll_0::Number`: Initial mean motion [rad/min].
-- `e_0::Number`: Initial eccentricity.
-- `i_0::Number`: Initial inclination [rad].
-- `ω_0::Number`: Initial argument of perigee [rad].
+- `nll₀::Number`: Initial mean motion [rad/min].
+- `e₀::Number`: Initial eccentricity.
+- `i₀::Number`: Initial inclination [rad].
+- `ω₀::Number`: Initial argument of perigee [rad].
 - `Ω_k::Number`: Current right ascension of the ascending node [rad].
 - `ω_k::Number`: Current argument of perigee [rad].
 - `M_k::Number`: Current mean anomaly [rad].
-- `dotω::Number`: Time-derivative of the argument of perigee [rad/min].
+- `∂ω::Number`: Time-derivative of the argument of perigee [rad/min].
 - `Δt::Number`: Time interval since the epoch [min].
 
 # Returns
@@ -1317,16 +1320,16 @@ The following elements perturbed by the secular effects:
 - `T`: Argument of perigee [rad].
 - `T`: Mean anomaly [rad].
 """
-function dssec!(
+function _dssec!(
     sgp4ds::Sgp4DeepSpace{T},
-    nll_0::T,
-    e_0::T,
-    i_0::T,
-    ω_0::T,
+    nll₀::T,
+    e₀::T,
+    i₀::T,
+    ω₀::T,
     Ω_k::T,
     ω_k::T,
     M_k::T,
-    dotω::T,
+    ∂ω::T,
     Δt::Number
 ) where T<:Number
 
@@ -1379,8 +1382,8 @@ function dssec!(
     # ======================================================================================
 
     M_sec = M_k + ssl * Δt
-    e_sec = e_0 + sse * Δt
-    i_sec = i_0 + ssi * Δt
+    e_sec = e₀ + sse * Δt
+    i_sec = i₀ + ssi * Δt
     Ω_sec = Ω_k + ssh * Δt
     ω_sec = ω_k + ssg * Δt
 
@@ -1389,7 +1392,7 @@ function dssec!(
     θ = mod(gmst + THDT * Δt, T(2π))
 
     # If the orbit is not resonant, then nothing more should be computed.
-    !iresfl && return nll_0, e_sec, i_sec, Ω_sec, ω_sec, M_sec
+    !iresfl && return nll₀, e_sec, i_sec, Ω_sec, ω_sec, M_sec
 
     #           Update Resonances using Numerical (Euler-Maclaurin) Integration
     # ======================================================================================
@@ -1401,7 +1404,7 @@ function dssec!(
     # seems more recent.
     if  (atime == 0) || (Δt * atime <= 0) || (abs(Δt) < abs(atime))
         atime = T(0)
-        xni   = nll_0
+        xni   = nll₀
         xli   = xlamo
     end
 
@@ -1431,7 +1434,7 @@ function dssec!(
             xndot = del1 * sin_1 +  del2 * sin_2 +  del3 * sin_3
             xnddt = del1 * cos_1 + 2del2 * cos_2 + 3del3 * cos_3
         else
-            ω = ω_0 + dotω * atime
+            ω = ω₀ + ∂ω * atime
 
             sin_1,  cos_1  = sincos(2ω + xli  - G22)
             sin_2,  cos_2  = sincos(   + xli  - G22)
@@ -1484,7 +1487,7 @@ function dssec!(
 end
 
 """
-    dsper!(sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt:Number) where T<:Number
+    _dsper!(sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt:Number) where T<:Number
 
 Compute the effects caused by Lunar-Solar periodics.
 
@@ -1511,7 +1514,7 @@ The following elements perturbed by lunar-solar periodics.
 - `T`: Argument of perigee [rad].
 - `T`: Mean anomaly [rad].
 """
-function dsper!(
+function _dsper!(
     sgp4ds::Sgp4DeepSpace{T},
     e_k::T,
     i_k::T,
