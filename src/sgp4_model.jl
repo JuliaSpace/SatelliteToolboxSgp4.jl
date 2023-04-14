@@ -27,7 +27,6 @@
 export sgp4c_wgs72, sgp4c_wgs84
 export sgp4c_wgs72_f32, sgp4c_wgs84_f32
 export sgp4_init, sgp4_init!, sgp4!
-export dsinit, dsper!, dssec!
 
 ############################################################################################
 #                                        Constants
@@ -104,10 +103,12 @@ function sgp4_init(
     tle::TLE;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where T
+    # We must initialize the SGP4 propagator structure together with any mutable fields.
     Tepoch = typeof(tle_epoch(tle))
     sgp4d = Sgp4Propagator{Tepoch, T}()
     sgp4d.sgp4c = sgp4c
     sgp4d.sgp4ds = Sgp4DeepSpace{T}()
+
     sgp4_init!(sgp4d, tle)
     return sgp4d
 end
@@ -123,9 +124,11 @@ function sgp4_init(
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where {Tepoch, T}
+    # We must initialize the SGP4 propagator structure together with any mutable fields.
     sgp4d = Sgp4Propagator{Tepoch, T}()
     sgp4d.sgp4c = sgp4c
     sgp4d.sgp4ds = Sgp4DeepSpace{T}()
+
     sgp4_init!(sgp4d, epoch, n_0, e_0, i_0, Ω_0, ω_0, M_0, bstar)
     return sgp4d
 end
