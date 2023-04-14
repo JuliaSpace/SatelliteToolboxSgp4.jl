@@ -35,80 +35,86 @@ end
 
 Store the internal SGP4 variables to account for deep space perturbations.
 """
-Base.@kwdef mutable struct Sgp4DeepSpace{T}
-    atime::T  = T(0)
-    xli::T    = T(0)
-    xni::T    = T(0)
-    xnq::T    = T(0)
-    xfact::T  = T(0)
-    ssl::T    = T(0)
-    ssg::T    = T(0)
-    ssh::T    = T(0)
-    sse::T    = T(0)
-    ssi::T    = T(0)
-    xlamo::T  = T(0)
-    omegaq::T = T(0)
-    omgdt::T  = T(0)
-    gmst::T   = T(0)
-    del1::T   = T(0)
-    del2::T   = T(0)
-    del3::T   = T(0)
-    fasx2::T  = T(0)
-    fasx4::T  = T(0)
-    fasx6::T  = T(0)
-    d2201::T  = T(0)
-    d2211::T  = T(0)
-    d3210::T  = T(0)
-    d3222::T  = T(0)
-    d4410::T  = T(0)
-    d4422::T  = T(0)
-    d5220::T  = T(0)
-    d5232::T  = T(0)
-    d5421::T  = T(0)
-    d5433::T  = T(0)
-    xnddt::T  = T(0)
-    xndot::T  = T(0)
-    xldot::T  = T(0)
-    zmos::T   = T(0)
-    se2::T    = T(0)
-    se3::T    = T(0)
-    si2::T    = T(0)
-    si3::T    = T(0)
-    sl2::T    = T(0)
-    sl3::T    = T(0)
-    sl4::T    = T(0)
-    sgh2::T   = T(0)
-    sgh3::T   = T(0)
-    sgh4::T   = T(0)
-    sh2::T    = T(0)
-    sh3::T    = T(0)
-    zmol::T   = T(0)
-    ee2::T    = T(0)
-    e3::T     = T(0)
-    xi2::T    = T(0)
-    xi3::T    = T(0)
-    xl2::T    = T(0)
-    xl3::T    = T(0)
-    xl4::T    = T(0)
-    xgh2::T   = T(0)
-    xgh3::T   = T(0)
-    xgh4::T   = T(0)
-    xh2::T    = T(0)
-    xh3::T    = T(0)
-    pe::T     = T(0)
-    pinc::T   = T(0)
-    pgh::T    = T(0)
-    ph::T     = T(0)
-    pl::T     = T(0)
-    pgh0::T   = T(0)
-    ph0::T    = T(0)
-    pe0::T    = T(0)
-    pinc0::T  = T(0)
-    pl0::T    = T(0)
+mutable struct Sgp4DeepSpace{T}
+    atime::T
+    xli::T
+    xni::T
+    xnq::T
+    xfact::T
+    ssl::T
+    ssg::T
+    ssh::T
+    sse::T
+    ssi::T
+    xlamo::T
+    omegaq::T
+    omgdt::T
+    gmst::T
+    del1::T
+    del2::T
+    del3::T
+    fasx2::T
+    fasx4::T
+    fasx6::T
+    d2201::T
+    d2211::T
+    d3210::T
+    d3222::T
+    d4410::T
+    d4422::T
+    d5220::T
+    d5232::T
+    d5421::T
+    d5433::T
+    xnddt::T
+    xndot::T
+    xldot::T
+    zmos::T
+    se2::T
+    se3::T
+    si2::T
+    si3::T
+    sl2::T
+    sl3::T
+    sl4::T
+    sgh2::T
+    sgh3::T
+    sgh4::T
+    sh2::T
+    sh3::T
+    zmol::T
+    ee2::T
+    e3::T
+    xi2::T
+    xi3::T
+    xl2::T
+    xl3::T
+    xl4::T
+    xgh2::T
+    xgh3::T
+    xgh4::T
+    xh2::T
+    xh3::T
+    pe::T
+    pinc::T
+    pgh::T
+    ph::T
+    pl::T
+    pgh0::T
+    ph0::T
+    pe0::T
+    pinc0::T
+    pl0::T
 
-    isynfl::Bool = false
-    iresfl::Bool = false
-    ilsz::Bool   = false
+    isynfl::Bool
+    iresfl::Bool
+    ilsz::Bool
+
+    # Constructors
+    # ======================================================================================
+
+    Sgp4DeepSpace{T}(args...) where T<:Number = new(args...)
+    Sgp4DeepSpace{T}() where T<:Number = new()
 end
 
 """
@@ -116,7 +122,7 @@ end
 
 Low-level SGP4 propagator structure.
 """
-Base.@kwdef mutable struct Sgp4Propagator{Tepoch, T}
+mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
     # TLE parameters.
     epoch::Tepoch
     n_0::T
@@ -168,4 +174,10 @@ Base.@kwdef mutable struct Sgp4Propagator{Tepoch, T}
     sgp4c::Sgp4Constants{T}
     # SGP4 deep space structure.
     sgp4ds::Sgp4DeepSpace{T}
+
+    # Constructors
+    # ======================================================================================
+
+    Sgp4Propagator{Tepoch, T}(args...) where {Tepoch<:Number, T<:Number} = new(args...)
+    Sgp4Propagator{Tepoch, T}() where {Tepoch<:Number, T<:Number} = new()
 end

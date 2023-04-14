@@ -26,7 +26,7 @@
 
 export sgp4c_wgs72, sgp4c_wgs84
 export sgp4c_wgs72_f32, sgp4c_wgs84_f32
-export sgp4_init, sgp4!
+export sgp4_init, sgp4_init!, sgp4!
 export dsinit, dsper!, dssec!
 
 ############################################################################################
@@ -104,18 +104,12 @@ function sgp4_init(
     tle::TLE;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where T
-    d2r = T(π / 180)
-    return sgp4_init(
-        tle_epoch(tle),
-        tle.mean_motion * T(2π / (24 * 60)),
-        tle.eccentricity,
-        tle.inclination * d2r,
-        tle.raan * d2r,
-        tle.argument_of_perigee * d2r,
-        tle.mean_anomaly * d2r,
-        tle.bstar;
-        sgp4c = sgp4c
-    )
+    Tepoch = typeof(tle_epoch(tle))
+    sgp4d = Sgp4Propagator{Tepoch, T}()
+    sgp4d.sgp4c = sgp4c
+    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
+    sgp4_init!(sgp4d, tle)
+    return sgp4d
 end
 
 function sgp4_init(
@@ -129,13 +123,52 @@ function sgp4_init(
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where {Tepoch, T}
+    sgp4d = Sgp4Propagator{Tepoch, T}()
+    sgp4d.sgp4c = sgp4c
+    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
+    sgp4_init!(sgp4d, epoch, n_0, e_0, i_0, Ω_0, ω_0, M_0, bstar)
+    return sgp4d
+end
+
+function sgp4_init!(
+    sgp4d::Sgp4Propagator{Tepoch, T},
+    tle::TLE
+) where {Tepoch<:Number, T<:Number}
+    d2r = T(π / 180)
+    sgp4_init!(
+        sgp4d,
+        tle_epoch(tle),
+        tle.mean_motion * T(2π / (24 * 60)),
+        tle.eccentricity,
+        tle.inclination * d2r,
+        tle.raan * d2r,
+        tle.argument_of_perigee * d2r,
+        tle.mean_anomaly * d2r,
+        tle.bstar
+    )
+
+    return nothing
+end
+
+function sgp4_init!(
+    sgp4d::Sgp4Propagator{Tepoch, T},
+    epoch::Tepoch,
+    n_0::Number,
+    e_0::Number,
+    i_0::Number,
+    Ω_0::Number,
+    ω_0::Number,
+    M_0::Number,
+    bstar::Number
+) where {Tepoch<:Number, T<:Number}
 
     # Unpack the gravitational constants to improve code readability.
-    R0  = sgp4c.R0
-    XKE = sgp4c.XKE
-    J2  = sgp4c.J2
-    J3  = sgp4c.J3
-    J4  = sgp4c.J4
+    sgp4c = sgp4d.sgp4c
+    R0    = sgp4c.R0
+    XKE   = sgp4c.XKE
+    J2    = sgp4c.J2
+    J3    = sgp4c.J3
+    J4    = sgp4c.J4
 
     # Constants
     # ======================================================================================
@@ -300,15 +333,14 @@ function sgp4_init(
     M_k = T(M_0)
     n_k = nll_0
 
-    sgp4ds::Sgp4DeepSpace{T} = Sgp4DeepSpace{T}()
-
     # If the orbit period is higher than 225 min., then we must consider the deep space
     # perturbations. This is indicated by selecting the algorithm `:sdp4`.
     if 2π / T(n_0) >= 225.0
         algorithm = :sdp4
 
         # Initialize the values for the SDP4 (deep space) algorithm.
-        sgp4ds = dsinit(
+        dsinit!(
+            sgp4d.sgp4ds,
             epoch,
             nll_0,
             all_0,
@@ -331,52 +363,50 @@ function sgp4_init(
         algorithm = (perigee / AE >= (220 + (AE - 1) * XKMPER)) ? :sgp4 : :sgp4_lowper
     end
 
-    # Create the output structure with the data.
-    Sgp4Propagator{Tepoch, T}(
-        epoch,
-        T(n_0),
-        T(e_0),
-        T(i_0),
-        T(Ω_0),
-        T(ω_0),
-        T(M_0),
-        T(bstar),
-        0,
-        a_k,
-        e_k,
-        i_k,
-        Ω_k,
-        ω_k,
-        M_k,
-        n_k,
-        all_0,
-        nll_0,
-        AE,
-        QOMS2T,
-        β_0,
-        ξ,
-        η,
-        sin_i_0,
-        θ,
-        θ²,
-        A_30,
-        k_2,
-        k_4,
-        C1,
-        C3,
-        C4,
-        C5,
-        D2,
-        D3,
-        D4,
-        dotM,
-        dotω,
-        dotΩ1,
-        dotΩ,
-        algorithm,
-        sgp4c,
-        sgp4ds
-    )
+    # Initialize the structure with the data.
+    sgp4d.epoch     = epoch
+    sgp4d.n_0       = n_0
+    sgp4d.e_0       = e_0
+    sgp4d.i_0       = i_0
+    sgp4d.Ω_0       = Ω_0
+    sgp4d.ω_0       = ω_0
+    sgp4d.M_0       = M_0
+    sgp4d.bstar     = bstar
+    sgp4d.Δt        = 0
+    sgp4d.a_k       = a_k
+    sgp4d.e_k       = e_k
+    sgp4d.i_k       = i_k
+    sgp4d.Ω_k       = Ω_k
+    sgp4d.ω_k       = ω_k
+    sgp4d.M_k       = M_k
+    sgp4d.n_k       = n_k
+    sgp4d.all_0     = all_0
+    sgp4d.nll_0     = nll_0
+    sgp4d.AE        = AE
+    sgp4d.QOMS2T    = QOMS2T
+    sgp4d.β_0       = β_0
+    sgp4d.ξ         = ξ
+    sgp4d.η         = η
+    sgp4d.sin_i_0   = sin_i_0
+    sgp4d.θ         = θ
+    sgp4d.θ²        = θ²
+    sgp4d.A_30      = A_30
+    sgp4d.k_2       = k_2
+    sgp4d.k_4       = k_4
+    sgp4d.C1        = C1
+    sgp4d.C3        = C3
+    sgp4d.C4        = C4
+    sgp4d.C5        = C5
+    sgp4d.D2        = D2
+    sgp4d.D3        = D3
+    sgp4d.D4        = D4
+    sgp4d.dotM      = dotM
+    sgp4d.dotω      = dotω
+    sgp4d.dotΩ1     = dotΩ1
+    sgp4d.dotΩ      = dotΩ
+    sgp4d.algorithm = algorithm
+
+    return nothing
 end
 
 """
@@ -688,31 +718,30 @@ end
 ############################################################################################
 
 """
-    dsinit(epoch::Tepoch, nll_0::T, all_0::T, e_0::T, i_0::T, Ω_0::T, ω_0::T, M_0::T, dotM::T, dotω::T, dotΩ::T) where {Tepoch, T}
+    dsinit!(sgp4ds::Sgp4DeepSpace{T}, args...) where {Tepoch<:Number, T<:Number} -> Nothing
 
-Initialize the deep space structure. This function performs the initial computations and
-save the values at an instance of the structure `Sgp4DeepSpace`. Those will be used when
-calling the functions `dsper!` and `dpsec!`.
+Initialize the deep space structure `sgp4ds` using the parameters in `args...`.
 
-# Args
+This function computes several parameters in `sgp4ds` that will be used when calling the
+functions `dsper!` and `dpsec!`.
 
-- `epoch::Number`: Epoch of the initial orbit [Julian Day].
-- `nll_0::Number`: Initial mean motion [rad/min].
-- `all_0::Number`: Initial semi-major axis [ER].
-- `e_0::Number`: Initial eccentricity.
-- `i_0::Number`: Initial inclination [rad].
-- `Ω_0::Number`: Initial right ascencion of the ascending node [rad].
-- `ω_0::Number`: Initial argument of perigee [rad].
-- `M_0::Number`: Initial mean motion [rad].
-- `dotM::Number`: Time-derivative of the mean motion [rad/min].
-- `dotω::Number`: Time-derivative of the argument of perigee [rad/min].
-- `dotΩ::Number`: Time-derivative of the RAAN [rad/min].
+# Arguments
 
-# Returns
-
-- [`Sgp4DeepSpace`](@ref): Structure with the initalized values.
+- `sgp4ds::Sgp4DeepSpace`: Structure that will be initialized.
+- `epoch::T`: Epoch of the initial orbit [Julian Day].
+- `nll_0::T`: Initial mean motion [rad/min].
+- `all_0::T`: Initial semi-major axis [ER].
+- `e_0::T`: Initial eccentricity.
+- `i_0::T`: Initial inclination [rad].
+- `Ω_0::T`: Initial right ascencion of the ascending node [rad].
+- `ω_0::T`: Initial argument of perigee [rad].
+- `M_0::T`: Initial mean motion [rad].
+- `dotM::T`: Time-derivative of the mean motion [rad/min].
+- `dotω::T`: Time-derivative of the argument of perigee [rad/min].
+- `dotΩ::T`: Time-derivative of the RAAN [rad/min].
 """
-function dsinit(
+function dsinit!(
+    sgp4ds::Sgp4DeepSpace{T},
     epoch::Tepoch,
     nll_0::T,
     all_0::T,
@@ -724,8 +753,7 @@ function dsinit(
     dotM::T,
     dotω::T,
     dotΩ::T
-) where {Tepoch, T}
-    sgp4ds::Sgp4DeepSpace{T} = Sgp4DeepSpace{T}()
+) where {Tepoch<:Number, T<:Number}
 
     # Unpack variables.
     atime  = sgp4ds.atime
@@ -1251,7 +1279,7 @@ function dsinit(
     sgp4ds.iresfl = iresfl
     sgp4ds.ilsz   = ilsz
 
-    return sgp4ds
+    return nothing
 end
 
 """
