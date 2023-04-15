@@ -181,9 +181,9 @@ function sgp4_init!(
     # Distance units / Earth radii.
     AE = T(1)
 
-    k₂  = +T(1 / 2) * J2 * AE * AE
+    k₂  = +(1 // 2) * J2 * AE * AE
     k₂² = k₂ * k₂
-    k₄  = -T(3 / 8) * J4 * AE * AE * AE * AE
+    k₄  = -(3 // 8) * J4 * AE * AE * AE * AE
     A₃₀ = -J3 * AE * AE * AE
 
     # Kilometers / Earth radii.
@@ -199,24 +199,22 @@ function sgp4_init!(
     # Auxiliary Variables to Improve the Performance
     # ======================================================================================
 
-    e₀² = T(e₀) * T(e₀)
+    e₀² = T(e₀)^2
 
     sin_i₀, θ = sincos(T(i₀))
-    θ²         = θ  * θ
-    θ³         = θ² * θ
-    θ⁴         = θ² * θ²
+    θ²        = θ  * θ
+    θ³        = θ² * θ
+    θ⁴        = θ² * θ²
 
     # ======================================================================================
 
     # Recover the original mean motion (nll₀) and semi-major axis (all₀) from the input
     # elements.
-
-    aux = (3θ² - 1) / (1 - e₀²)^(T(3 / 2))
-
-    a_1 = (XKE / T(n₀))^(T(2 / 3))
-    δ_1 = T(3 / 2) * k₂ / (a_1 * a_1)* aux
-    a₀ = a_1 * @evalpoly(δ_1, 1, -T(1 / 3), -1, -T(134 / 81))
-    δ₀ = T(3 / 2) * k₂ / (T(a₀) * T(a₀)) * aux
+    aux = (3θ² - 1) / √((1 - e₀²)^3)
+    a₁  = (XKE / T(n₀))^(T(2 / 3))
+    δ₁  = (3 // 2) * k₂ / (a₁ * a₁)* aux
+    a₀  = a₁ * @evalpoly(δ₁, 1, -(1 // 3), -1, -(134 // 81))
+    δ₀  = (3 // 2) * k₂ / (T(a₀) * T(a₀)) * aux
 
     nll₀ = T(n₀) / (1 + δ₀)
 
@@ -226,10 +224,10 @@ function sgp4_init!(
     #
     #   all₀ = a₀ / (1 - δ₀)
     #
-    all₀  = (XKE / nll₀)^(T(2 / 3))
+
+    all₀  = (XKE / nll₀)^(2 // 3)
     all₀² = all₀  * all₀
     all₀⁴ = all₀² * all₀²
-    all₀⁸ = all₀⁴ * all₀⁴
 
     # Initialization
     # ======================================================================================
@@ -256,7 +254,7 @@ function sgp4_init!(
     ξ⁴ = ξ² * ξ²
     ξ⁵ = ξ⁴ * ξ
 
-    β₀  = sqrt(1 - e₀²)
+    β₀  = √(1 - e₀²)
     β₀² = β₀  * β₀
     β₀³ = β₀² * β₀
     β₀⁴ = β₀² * β₀²
@@ -273,12 +271,12 @@ function sgp4_init!(
     # computed. The original SGP4 technical report [1] does not mention anything about this.
 
     aux0 = abs(1 - η²)
-    aux1 = aux0^(-T(7 / 2))
+    aux1 = 1 / (√aux0^7)           # ......................................... aux0^(-7 / 2)
     aux2 = ξ⁴ * all₀ * β₀² * aux1
 
     C2 = QOMS2T * ξ⁴ * nll₀ * aux1 * (
-        all₀ * (1 + T(3 / 2) * η² + 4T(e₀) * η + T(e₀) * η³) +
-        T(3 / 2) * (k₂ * ξ) / aux0 * (-T(1 / 2) + T(3 / 2) * θ²) * (8 + 24η² + 3η⁴)
+        all₀ * (1 + (3 // 2) * η² + 4T(e₀) * η + T(e₀) * η³) +
+        (3 // 2) * (k₂ * ξ) / aux0 * (-(1 // 2) + (3 // 2) * θ²) * (8 + 24η² + 3η⁴)
     )
 
     C1  = T(bstar) * C2
@@ -286,19 +284,17 @@ function sgp4_init!(
     C1³ = C1² * C1
     C1⁴ = C1² * C1²
 
-    C3 = (T(e₀) > 1e-4) ?
-        QOMS2T * ξ⁵ * A₃₀ * nll₀ * AE * sin_i₀ / (k₂ * T(e₀)) :
-        T(0)
+    C3 = T(e₀) > 1e-4 ? QOMS2T * ξ⁵ * A₃₀ * nll₀ * AE * sin_i₀ / (k₂ * T(e₀)) : T(0)
 
     C4 = 2nll₀ * QOMS2T * aux2 * (
-        2η * (1 + T(e₀) * η) + T(1 / 2) * T(e₀) + T(1 / 2) * η³ -
+        2η * (1 + T(e₀) * η) + (1 // 2) * (T(e₀) + η³) -
         2k₂ * ξ / (all₀ * aux0) * (
-            3 * (1 - 3θ²) * (1 + T(3 / 2) * η² - 2T(e₀) * η - T(1 / 2) * T(e₀) * η³) +
-            T(3 / 4) * (1 - θ²) * (2η² - T(e₀) * η - T(e₀) * η³) * cos(2T(ω₀))
+            3 * (1 - 3θ²) * (1 + (3 // 2) * η² - 2T(e₀) * η - (1 // 2) * T(e₀) * η³) +
+            (3 // 4) * (1 - θ²) * (2η² - T(e₀) * η - T(e₀) * η³) * cos(2T(ω₀))
         )
     )
 
-    C5 = 2QOMS2T * aux2 * (1 + T(11 / 4) * η * (η + T(e₀)) + T(e₀) * η³)
+    C5 = 2QOMS2T * aux2 * (1 + (11 // 4) * η * (η + T(e₀)) + T(e₀) * η³)
 
     D2 = 4all₀ * ξ * C1²
 
@@ -310,12 +306,12 @@ function sgp4_init!(
 
     # Compute the time-derivative of some orbital elements.
     ∂M = (
-        1 + 3k₂ * (-1 + 3θ²) / (2all₀² * β₀³) +
-        3k₂² * (13 - 78θ² + 137θ⁴) / (16all₀⁴ * β₀⁷)
+        1 + 3k₂  * (-1 +  3θ²        ) / ( 2all₀² * β₀³) +
+            3k₂² * (13 - 78θ² + 137θ⁴) / (16all₀⁴ * β₀⁷)
     ) * nll₀
 
     ∂ω = (
-        -3k₂  *           (1 - 5θ²) / ( 2all₀² * β₀⁴) +
+        -3k₂  * (1 -   5θ²        ) / ( 2all₀² * β₀⁴) +
          3k₂² * (7 - 114θ² + 395θ⁴) / (16all₀⁴ * β₀⁸) +
          5k₄  * (3 -  36θ² +  49θ⁴) / ( 4all₀⁴ * β₀⁸)
     ) * nll₀
@@ -326,15 +322,6 @@ function sgp4_init!(
         3k₂² * (4θ - 19θ³) / (2all₀⁴ * β₀⁸) +
         5k₄  * (3θ -  7θ³) / (2all₀⁴ * β₀⁸)
     ) * nll₀
-
-    # The current orbital parameters are obtained from the TLE.
-    a_k = all₀
-    e_k = T(e₀)
-    i_k = T(i₀)
-    Ω_k = T(Ω₀)
-    ω_k = T(ω₀)
-    M_k = T(M₀)
-    n_k = nll₀
 
     # If the orbit period is higher than 225 min., then we must consider the deep space
     # perturbations. This is indicated by selecting the algorithm `:sdp4`.
@@ -376,13 +363,13 @@ function sgp4_init!(
     sgp4d.M₀        = M₀
     sgp4d.bstar     = bstar
     sgp4d.Δt        = 0
-    sgp4d.a_k       = a_k
-    sgp4d.e_k       = e_k
-    sgp4d.i_k       = i_k
-    sgp4d.Ω_k       = Ω_k
-    sgp4d.ω_k       = ω_k
-    sgp4d.M_k       = M_k
-    sgp4d.n_k       = n_k
+    sgp4d.a_k       = all₀
+    sgp4d.e_k       = e₀
+    sgp4d.i_k       = i₀
+    sgp4d.Ω_k       = Ω₀
+    sgp4d.ω_k       = ω₀
+    sgp4d.M_k       = M₀
+    sgp4d.n_k       = nll₀
     sgp4d.all₀      = all₀
     sgp4d.nll₀      = nll₀
     sgp4d.AE        = AE
@@ -469,9 +456,6 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
     R0  = sgp4c.R0
     XKE = sgp4c.XKE
-    J2  = sgp4c.J2
-    J3  = sgp4c.J3
-    J4  = sgp4c.J4
 
     # After unpacking sgp4d, we have two sets of orbit elements:
     #
@@ -508,7 +492,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # ======================================================================================
 
     M_k = M₀ + ∂M * Δt
-    Ω_k = Ω₀ + ∂Ω * Δt - T(21 / 2) * (nll₀ * k₂ * θ) / (all₀^2 * β₀^2) * C1 * Δt^2
+    Ω_k = Ω₀ + ∂Ω * Δt - (21 // 2) * (nll₀ * k₂ * θ) / (all₀^2 * β₀^2) * C1 * Δt^2
     ω_k = ω₀ + ∂ω * Δt
 
     # Check if we need to use SDP4 (deep space) algorithm.
@@ -527,9 +511,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
             Δt
         )
 
-        a_k  = (XKE / n_k)^(T(2 / 3)) * (1 - C1 * Δt)^2
+        a_k  = (XKE / n_k)^(2 // 3) * (1 - C1 * Δt)^2
         e_k += -bstar * C4 * Δt
-        M_k += nll₀ * (T(1.5) * C1 * Δt^2)
+        M_k += (3 // 2) * nll₀ * C1 * Δt^2
 
     # Check if perigee is above 220 km.
     elseif algorithm === :sgp4
@@ -540,7 +524,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         # TODO: sin(M_k) and cos(M_k) can be computed faster here.
 
         δM  = (e₀ > 1e-4) ?
-            -T(2 / 3) * QOMS2T * bstar * ξ^4 * AE / (e₀ * η) * (
+            -(2 // 3) * QOMS2T * bstar * ξ^4 * AE / (e₀ * η) * (
                 (1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3
             ) : T(0)
         M_k += +δω + δM
@@ -551,10 +535,10 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
             Δt,
             0,
             0,
-            T(3 / 2) * C1,
+            (3 // 2) * C1,
             +(D2 + 2C1^2),
-            +(3D3 + 12C1*D2 + 10C1^3) / 4,
-            +(3D4 + 12C1*D3 + 6D2^2 + 30C1^2*D2 + 15C1^4) / 5
+            +(3D3 + 12C1 * D2 + 10C1^3) / 4,
+            +(3D4 + 12C1 * D3 + 6D2^2 + 30C1^2 * D2 + 15C1^4) / 5
         )
 
     elseif algorithm === :sgp4_lowper
@@ -565,7 +549,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         #     4. Drop δM.
         e_k = e₀ - bstar * C4 * Δt
         a_k = all₀ * (1 - C1 * Δt)^2
-        IL  = M_k + ω_k + Ω_k + nll₀ * T(3 / 2) * C1 * Δt^2
+        IL  = M_k + ω_k + Ω_k + (3 // 2) * nll₀ * C1 * Δt^2
     else
         error("Unknown algorithm :$algorithm. Possible values are :sgp4, :sgp4_lowper, :sdp4.")
     end
@@ -604,12 +588,12 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Vallado's code does not let the eccentricity to be smaller than 1e-6.
     #
     # TODO: Verify why this is necessary. I did not find any reason for that.
-    e_k < 1e-6 && (e_k = T(1e-6))
+    e_k = max(e_k, T(1e-6))
 
-    β = sqrt(1 - e_k^2)
+    β = √(1 - e_k^2)
 
     # Compute the angular velocity [rad/min].
-    n_k = XKE / a_k^(T(3 / 2))
+    n_k = XKE / √(a_k^3)
 
     # Long-Period Periodic Term
     # ======================================================================================
@@ -622,7 +606,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # produces the same result. Verify which one is better.
     a_yNL = A₃₀ * sin_i_k / (4k₂ * a_k * β^2)
     a_yN  = e_k * sin_ω_k + a_yNL
-    IL_L  =  T(1 / 2) * a_yNL * a_xN * (3 + 5θ) / (1 + θ)
+    IL_L  = (1 // 2) * a_yNL * a_xN * (3 + 5θ) / (1 + θ)
     IL_T  = IL + IL_L
 
     # Solve Kepler's Equation for (E + ω)
@@ -637,10 +621,10 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     sin_E_ω = T(0)
     cos_E_ω = T(0)
 
-    for k = 1:10
+    for _ in 1:10
         sin_E_ω, cos_E_ω = sincos(E_ω)
 
-        ΔE_ω = (U - a_yN * cos_E_ω + a_xN * sin_E_ω - E_ω)/
+        ΔE_ω = (U - a_yN * cos_E_ω + a_xN * sin_E_ω - E_ω) /
                (1 - a_yN * sin_E_ω - a_xN * cos_E_ω)
 
         # Vallado proposes to limit the maximum increment.
@@ -661,47 +645,48 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # NOTE: the sine and cosine of E + ω was already computed in the previous loop.
     e_cos_E = a_xN * cos_E_ω + a_yN * sin_E_ω
     e_sin_E = a_xN * sin_E_ω - a_yN * cos_E_ω
-    e_L     = sqrt(a_xN^2 + a_yN^2)
-    p_L     = a_k * (1 - e_L^2)
+    e_L²    = a_xN^2 + a_yN^2
+    p_L     = a_k * (1 - e_L²)
+    p_L²    = p_L^2
     r       = a_k * (1 - e_cos_E)
-    dot_r   = XKE * sqrt(a_k) * e_sin_E / r
-    r_dot_f = XKE * sqrt(p_L) / r
-    aux     = e_sin_E / (1 + sqrt(1 - e_L^2))
-    cos_u   = a_k / r * (cos_E_ω - a_xN + a_yN * aux)
-    sin_u   = a_k / r * (sin_E_ω - a_yN - a_xN * aux)
+    ṙ       = XKE * √a_k * e_sin_E / r
+    rḟ      = XKE * √p_L / r
+    auxsp   = e_sin_E / (1 + √(1 - e_L²))
+    cos_u   = a_k / r * (cos_E_ω - a_xN + a_yN * auxsp)
+    sin_u   = a_k / r * (sin_E_ω - a_yN - a_xN * auxsp)
     cos_2u  = 1 - 2sin_u^2
     sin_2u  = 2cos_u * sin_u
     u       = atan(sin_u, cos_u)
 
     # Short-term periodic terms.
-    Δr       = +k₂ / (2p_L) * (1 - θ²) * cos_2u
-    Δu       = -k₂ / (4p_L^2) * (7θ² - 1) * sin_2u
-    ΔΩ       = +3k₂ * θ / (2p_L^2) * sin_2u
-    Δi       = +3k₂ * θ / (2p_L^2) * sin_i_k * cos_2u
-    Δdot_r   = -k₂ * n_k / p_L * (1 - θ²) * sin_2u
-    Δr_dot_f = +k₂ * n_k / p_L * ((1 - θ²) * cos_2u - T(3 / 2) * (1 - 3θ²))
+    Δr  = +k₂ / (2p_L) * (1 - θ²) * cos_2u
+    Δu  = -k₂ / (4p_L²) * (7θ² - 1) * sin_2u
+    ΔΩ  = +3k₂ * θ / (2p_L²) * sin_2u
+    Δi  = +3k₂ * θ / (2p_L²) * sin_i_k * cos_2u
+    Δṙ  = -k₂ * n_k / p_L * (1 - θ²) * sin_2u
+    Δrḟ = +k₂ * n_k / p_L * ((1 - θ²) * cos_2u - (3 // 2) * (1 - 3θ²))
 
     # The short-term periodics are added to give the osculating quantities.
-    r_k       = r * (1 - T(3 / 2) * k₂ * sqrt(1 - e_L^2) / p_L^2 * (3θ² - 1)) + Δr
-    u_k       = u + Δu
-    Ω_k       = Ω_k + ΔΩ
-    i_k       = i_k + Δi
-    dot_r_k   = dot_r + Δdot_r
-    r_dot_f_k = r_dot_f + Δr_dot_f
+    r_k  = r * (1 - (3 // 2) * k₂ * √(1 - e_L²) / p_L² * (3θ² - 1)) + Δr
+    u_k  = u   + Δu
+    Ω_k  = Ω_k + ΔΩ
+    i_k  = i_k + Δi
+    ṙ_k  = ṙ   + Δṙ
+    rḟ_k = rḟ  + Δrḟ
 
     # Orientation vectors.
     sin_Ω_k, cos_Ω_k = sincos(Ω_k)
     sin_i_k, cos_i_k = sincos(i_k)
     sin_u_k, cos_u_k = sincos(u_k)
 
-    M = SVector{3}(-sin_Ω_k * cos_i_k, +cos_Ω_k * cos_i_k, sin_i_k)
-    N = SVector{3}(+cos_Ω_k,           +sin_Ω_k,           T(0))
+    M = SVector{3, T}(-sin_Ω_k * cos_i_k, +cos_Ω_k * cos_i_k, sin_i_k)
+    N = SVector{3, T}(+cos_Ω_k,           +sin_Ω_k,           T(0))
 
     Uv = M * sin_u_k + N * cos_u_k
     Vv = M * cos_u_k - N * sin_u_k
 
-    r_TEME = r_k * Uv * R0
-    v_TEME = (dot_r_k * Uv + r_dot_f_k * Vv) * R0 / 60
+    r_teme = r_k * Uv * R0
+    v_teme = (ṙ_k * Uv + rḟ_k * Vv) * R0 / 60
 
     # Update the variables.
     sgp4d.Δt  = Δt
@@ -713,7 +698,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     sgp4d.M_k = M_k
     sgp4d.n_k = n_k
 
-    return r_TEME, v_TEME
+    return r_teme, v_teme
 end
 
 ############################################################################################
@@ -838,7 +823,6 @@ function _dsinit!(
     #                                      Constants
     # ======================================================================================
 
-    STEP   = T(720.0)
     ZNS    = T(1.19459E-5)
     C1SS   = T(2.9864797e-6)
     ZES    = T(0.01675)
@@ -868,15 +852,14 @@ function _dsinit!(
     # ======================================================================================
 
     e₀²        = e₀ * e₀
-    e₀³        = e₀ * e₀²
-    sqrt_1_e₀² = sqrt(1 - e₀²)
+    sqrt_1_e₀² = √(1 - e₀²)
     inv_all₀   = 1 / all₀
     inv_nll₀   = 1 / nll₀
-    se          = T(0)
-    si          = T(0)
-    sl          = T(0)
-    sgh         = T(0)
-    shdq        = T(0)
+    se         = T(0)
+    si         = T(0)
+    sl         = T(0)
+    sgh        = T(0)
+    shdq       = T(0)
 
     sin_i₀, cos_i₀ = sincos(i₀)
     sin_Ω₀, cos_Ω₀ = sincos(Ω₀)
@@ -884,7 +867,7 @@ function _dsinit!(
 
     sin_i₀² = sin_i₀ * sin_i₀
     cos_i₀² = cos_i₀ * cos_i₀
-    xpidot   = ∂ω + ∂Ω
+    xpidot  = ∂ω + ∂Ω
 
     #                                Initial Configuration
     # ======================================================================================
@@ -895,14 +878,14 @@ function _dsinit!(
     # Do not let `sin_i₀` be 0.
     abs(sin_i₀) < 1e-12 && (sin_i₀ = sign(sin_i₀) * T(1e-12))
 
-    # Compute the Greenwhich Mean Sidereal Time at epoch.
+    # Compute the Greenwich Mean Sidereal Time at epoch.
     gmst = T(jd_to_gmst(epoch))
 
     #                             Initialize Lunar Solar Terms
     # ======================================================================================
 
     # `day` is the number of days since Jan 0, 1900 at 12h.
-    day = T(epoch - (datetime2julian(DateTime(1900, 1, 1, 12, 0, 0)) - 1))
+    day = T(epoch - (_JD_1900 - 1))
 
     xnodce = mod(T(4.5236020) - T(9.2422029e-4) * day, T(2π))
 
@@ -1382,8 +1365,8 @@ function _dssec!(
     # ======================================================================================
 
     M_sec = M_k + ssl * Δt
-    e_sec = e₀ + sse * Δt
-    i_sec = i₀ + ssi * Δt
+    e_sec = e₀  + sse * Δt
+    i_sec = i₀  + ssi * Δt
     Ω_sec = Ω_k + ssh * Δt
     ω_sec = ω_k + ssg * Δt
 
@@ -1555,7 +1538,6 @@ function _dsper!(
     #                                      Constants
     # ======================================================================================
 
-    STEP = T(720.0)
     ZNS  = T(1.19459E-5)
     ZES  = T(0.01675)
     ZNL  = T(1.5835218e-4)
@@ -1569,7 +1551,7 @@ function _dsper!(
 
     sinzf, coszf = sincos(zf)
 
-    f2   = +sinzf * sinzf / 2 - T(0.25)
+    f2   = +sinzf * sinzf / 2 - (1 // 4)
     f3   = -sinzf * coszf / 2
     ses  = se2 * f2 + se3 * f3
     sis  = si2 * f2 + si3 * f3
@@ -1585,7 +1567,7 @@ function _dsper!(
 
     sinzf, coszf = sincos(zf)
 
-    f2   = +sinzf * sinzf / 2 - T(0.25)
+    f2   = +sinzf * sinzf / 2 - (1 // 4)
     f3   = -sinzf * coszf / 2
     sel  = ee2 * f2 + e3 * f3
     sil  = xi2 * f2 + xi3 * f3
