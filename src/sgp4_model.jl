@@ -392,7 +392,6 @@ function sgp4_init!(
     sgp4d.D4        = D4
     sgp4d.∂M        = ∂M
     sgp4d.∂ω        = ∂ω
-    sgp4d.∂Ω1       = ∂Ω1
     sgp4d.∂Ω        = ∂Ω
     sgp4d.algorithm = algorithm
 

@@ -166,7 +166,6 @@ mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
     D4::T
     ∂M::T
     ∂ω::T
-    ∂Ω1::T
     ∂Ω::T
     # Selected algorithm.
     algorithm::Symbol
