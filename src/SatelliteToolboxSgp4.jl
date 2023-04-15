@@ -1,10 +1,12 @@
 module SatelliteToolboxSgp4
 
 using Dates
+using Reexport
 using StaticArrays
 using SatelliteToolboxBase
-using SatelliteToolboxTle
 using SnoopPrecompile
+
+@reexport using SatelliteToolboxTle
 
 ############################################################################################
 #                                         Types
