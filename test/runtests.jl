@@ -42,64 +42,104 @@ using SatelliteToolboxSgp4
     @test sgp4c.sgp4ds    == sgp4ds
 end
 
-@testset "Tests from the Paper AIAA 2006-6753" begin
+@testset "Tests from the Paper AIAA 2006-6753" verbose = true begin
     # Read all TLEs that will be used to test.
     tles = read_tles_from_file("./sgp4_tests/sgp4_tests.tle")
 
-    for tle in tles
-        filename = @sprintf(
-            "./sgp4_tests/aiaa-2006-6753/sgp4_tle_%d_result.txt",
-            tle.satellite_number
-        )
-        SGP4_results = readdlm(filename; comments = true)
+    @testset "Default" begin
+        for tle in tles
+            filename = @sprintf(
+                "./sgp4_tests/aiaa-2006-6753/sgp4_tle_%d_result.txt",
+                tle.satellite_number
+            )
+            SGP4_results = readdlm(filename; comments = true)
 
-        # Initialize the orbit propagator.
-        sgp4d = sgp4_init(tle; sgp4c = sgp4c_wgs72)
+            # Initialize the orbit propagator.
+            sgp4d = sgp4_init(tle; sgp4c = sgp4c_wgs72)
 
-        t = SGP4_results[:,1]
-        @inbounds for k = 1:length(t)
+            t = SGP4_results[:, 1]
 
-            # Propagate the orbit.
-            r_teme, v_teme = sgp4!(sgp4d, t[k])
+            @inbounds for k in 1:length(t)
 
-            # Assemble the result vector.
-            st_sgp4_result = vcat(t[k], r_teme, v_teme)
+                # Propagate the orbit.
+                r_teme, v_teme = sgp4!(sgp4d, t[k])
 
-            # Compare the values.
-            @test t[k]      == SGP4_results[k, 1]
-            @test r_teme[1] ≈  SGP4_results[k, 2] atol=1e-8
-            @test r_teme[2] ≈  SGP4_results[k, 3] atol=1e-8
-            @test r_teme[3] ≈  SGP4_results[k, 4] atol=1e-8
-            @test v_teme[1] ≈  SGP4_results[k, 5] atol=1e-9
-            @test v_teme[2] ≈  SGP4_results[k, 6] atol=1e-9
-            @test v_teme[3] ≈  SGP4_results[k, 7] atol=1e-9
+                # Assemble the result vector.
+                st_sgp4_result = vcat(t[k], r_teme, v_teme)
+
+                # Compare the values.
+                @test t[k]      == SGP4_results[k, 1]
+                @test r_teme[1] ≈  SGP4_results[k, 2] atol=1e-8
+                @test r_teme[2] ≈  SGP4_results[k, 3] atol=1e-8
+                @test r_teme[3] ≈  SGP4_results[k, 4] atol=1e-8
+                @test v_teme[1] ≈  SGP4_results[k, 5] atol=1e-9
+                @test v_teme[2] ≈  SGP4_results[k, 6] atol=1e-9
+                @test v_teme[3] ≈  SGP4_results[k, 7] atol=1e-9
+            end
         end
     end
-end
 
-@testset "Function sgp4" begin
-    # Read all TLEs that will be used to test.
-    tles = read_tles_from_file("./sgp4_tests/sgp4_tests.tle")
+    @testset "In-place Initialization" begin
+        # First, we create a dummy SGP4 structure but with the correct constants and epoch
+        # type.
+        sgp4d = sgp4_init(0.0, 0, 0, 0, 0, 0, 0, 0; sgp4c = sgp4c_wgs72)
 
-    for tle in tles
-        filename = @sprintf(
-            "./sgp4_tests/aiaa-2006-6753/sgp4_tle_%d_result.txt",
-            tle.satellite_number
-        )
-        SGP4_results = readdlm(filename; comments = true)
-        t = SGP4_results[:,1]
+        for tle in tles
+            filename = @sprintf(
+                "./sgp4_tests/aiaa-2006-6753/sgp4_tle_%d_result.txt",
+                tle.satellite_number
+            )
+            SGP4_results = readdlm(filename; comments = true)
 
-        # Initialize the orbit propagator.
-        r_teme, v_teme, sgp4d = sgp4(t[end], tle; sgp4c = sgp4c_wgs72)
+            # Initialize the orbit propagator.
+            sgp4_init!(sgp4d, tle)
 
-        # We test just the final instant to save computational burden.
-        @test t[end]    == SGP4_results[end, 1]
-        @test r_teme[1] ≈  SGP4_results[end, 2] atol=1e-8
-        @test r_teme[2] ≈  SGP4_results[end, 3] atol=1e-8
-        @test r_teme[3] ≈  SGP4_results[end, 4] atol=1e-8
-        @test v_teme[1] ≈  SGP4_results[end, 5] atol=1e-9
-        @test v_teme[2] ≈  SGP4_results[end, 6] atol=1e-9
-        @test v_teme[3] ≈  SGP4_results[end, 7] atol=1e-9
+            t = SGP4_results[:,1]
+
+            @inbounds for k in 1:length(t)
+
+                # Propagate the orbit.
+                r_teme, v_teme = sgp4!(sgp4d, t[k])
+
+                # Assemble the result vector.
+                st_sgp4_result = vcat(t[k], r_teme, v_teme)
+
+                # Compare the values.
+                @test t[k]      == SGP4_results[k, 1]
+                @test r_teme[1] ≈  SGP4_results[k, 2] atol=1e-8
+                @test r_teme[2] ≈  SGP4_results[k, 3] atol=1e-8
+                @test r_teme[3] ≈  SGP4_results[k, 4] atol=1e-8
+                @test v_teme[1] ≈  SGP4_results[k, 5] atol=1e-9
+                @test v_teme[2] ≈  SGP4_results[k, 6] atol=1e-9
+                @test v_teme[3] ≈  SGP4_results[k, 7] atol=1e-9
+            end
+        end
+    end
+
+    @testset "Simultaneous Creation and Propagation" begin
+        # Read all TLEs that will be used to test.
+        tles = read_tles_from_file("./sgp4_tests/sgp4_tests.tle")
+
+        for tle in tles
+            filename = @sprintf(
+                "./sgp4_tests/aiaa-2006-6753/sgp4_tle_%d_result.txt",
+                tle.satellite_number
+            )
+            SGP4_results = readdlm(filename; comments = true)
+            t = SGP4_results[:,1]
+
+            # Initialize the orbit propagator.
+            r_teme, v_teme, sgp4d = sgp4(t[end], tle; sgp4c = sgp4c_wgs72)
+
+            # We test just the final instant to save computational burden.
+            @test t[end]    == SGP4_results[end, 1]
+            @test r_teme[1] ≈  SGP4_results[end, 2] atol=1e-8
+            @test r_teme[2] ≈  SGP4_results[end, 3] atol=1e-8
+            @test r_teme[3] ≈  SGP4_results[end, 4] atol=1e-8
+            @test v_teme[1] ≈  SGP4_results[end, 5] atol=1e-9
+            @test v_teme[2] ≈  SGP4_results[end, 6] atol=1e-9
+            @test v_teme[3] ≈  SGP4_results[end, 7] atol=1e-9
+        end
     end
 end
 
