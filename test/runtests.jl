@@ -57,7 +57,7 @@ using SatelliteToolboxSgp4
     end
 end
 
-@testset "Test helpers" begin
+@testset "Function sgp4" begin
     # Read all TLEs that will be used to test.
     tles = read_tles_from_file("./sgp4_tests/sgp4_tests.tle")
 

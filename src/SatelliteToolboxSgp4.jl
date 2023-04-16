@@ -26,7 +26,6 @@ const _JD_1900 = DateTime(1900, 1, 1, 12, 0, 0) |> datetime2julian
 ############################################################################################
 
 include("sgp4_model.jl")
-include("helpers.jl")
 
 include("precompile.jl")
 

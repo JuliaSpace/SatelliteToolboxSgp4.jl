@@ -88,6 +88,10 @@ julia> v_teme
 
 `sgp4` also supports the same keywords arguments as `sgp4!`.
 
+We also have the function `sgp4_init!` that initializes a SGP4 propagator structure
+in-place, avoiding unnecessary allocations in some cases. For more information, see the
+function documentation.
+
 ## References
 
 The code in this package was built using the following references:
