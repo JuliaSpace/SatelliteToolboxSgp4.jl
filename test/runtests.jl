@@ -22,7 +22,27 @@ using Printf
 using SatelliteToolboxTle
 using SatelliteToolboxSgp4
 
-@testset "Tests from the paper AIAA 2006-6753" begin
+@testset "Constructors" begin
+    sgp4ds = SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false, false, false,
+    )
+
+    sgp4c = Sgp4Propagator{Float64, Float64}(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, :sdp4, sgp4c_wgs84, sgp4ds
+    )
+
+    # Some random tests.
+    @test sgp4c.epoch     == 0.0
+    @test sgp4c.a_k       == 0.0
+    @test sgp4c.∂M        == 0.0
+    @test sgp4c.algorithm == :sdp4
+    @test sgp4c.sgp4ds    == sgp4ds
+end
+
+@testset "Tests from the Paper AIAA 2006-6753" begin
     # Read all TLEs that will be used to test.
     tles = read_tles_from_file("./sgp4_tests/sgp4_tests.tle")
 
