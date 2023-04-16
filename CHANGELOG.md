@@ -1,6 +1,20 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.0.0
+-------------
+
+- ![BREAKING][badge-breaking] We removed the field `Ω1` from the structure `Sgp4Propagator`
+  because it was not being used in the propagation.
+- ![BREAKING][badge-breaking] The structure `Sgp4Propagator` is not a `Base.@kwdef` anymore.
+  We also added custom constructors to help initialize an instance with uninitiated fields.
+  Hence, if one creates the SGP4 structure directly, i.e., without using `sgp4_init`, this
+  version is breaking.
+- ![Feature][badge-feature] We added the function `sgp4_init!` to initialize a SGP4
+  propagator in-place, avoiding unnecessary allocations.
+- ![Enhancement][badge-enhancement] The code was slightly improved, leading to a 5% speed
+  gain in initialization and 4% speed gain in propagation.
+
 Version 1.0.1
 -------------
 
