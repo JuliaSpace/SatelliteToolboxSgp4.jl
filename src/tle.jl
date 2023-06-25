@@ -562,7 +562,7 @@ function fit_sgp4_tle!(
     # Convert the state vector to TLE.
     tle = _mean_state_vector_to_tle(
         x₂,
-        mean_elements_epoch;
+        epoch;
         sgp4c                    = sgp4c,
         classification           = classification,
         element_set_number       = element_set_number,
@@ -572,14 +572,10 @@ function fit_sgp4_tle!(
         satellite_number         = satellite_number,
     )
 
-    # Check if the TLE epoch differs more than 1 ms from the desired epoch in
-    # `mean_elements_epoch`. If so, update the TLE epoch.
-    if abs(epoch - mean_elements_epoch) > 0.001 / 86400
-        verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the initial TLE guess to match the desired one.")
-        verbose && println()
-
-        update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch)
-    end
+    # Update the epoch of the fitted TLE to match the desired one.
+    verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE guess to match the desired one.")
+    verbose && println()
+    tle = update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch; verbose = verbose)
 
     # Initialize the propagator with the TLE.
     sgp4_init!(sgp4d, tle)
@@ -787,9 +783,15 @@ function update_sgp4_tle_epoch!(
     max_iterations::Number = 50,
     verbose::Bool          = true
 )
-    # First, we need to initialize the SGP4 propagator with the initial TLE and propagate
-    # up to the desired epoch.
+    # First, we need to initialize the SGP4 propagator with the initial TLE.
     sgp4_init!(sgp4d, tle)
+
+    # Do not update the epoch if the new epoch is less than 1ms from the desired one.
+    if abs(sgp4d.epoch - new_epoch) < 0.001 / 86400
+        return tle
+    end
+
+    # Propagate up to the desired epoch.
     r_teme, v_teme = sgp4!(sgp4d, 1440 * (new_epoch - sgp4d.epoch))
 
     # Assemble the initial guess vector using the osculating information together with the
