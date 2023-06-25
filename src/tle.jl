@@ -345,10 +345,10 @@ function fit_sgp4_tle!(
 
     # Check the inputs.
     length(vr_teme) != num_measurements &&
-        throw(ArgumentError("The number of elements in `vjd` and `vr_i` must be the same."))
+        throw(ArgumentError("The number of elements in `vjd` and `vr_teme` must be the same."))
 
     length(vv_teme) != num_measurements &&
-        throw(ArgumentError("The number of elements in `vjd` and `vv_i` must be the same."))
+        throw(ArgumentError("The number of elements in `vjd` and `vv_teme` must be the same."))
 
     if length(weight_vector) != 6
         throw(ArgumentError("The weight vector must have 6 elements."))
@@ -433,6 +433,8 @@ function fit_sgp4_tle!(
     J = zeros(T, num_observations, num_states)
 
     # Header.
+    verbose && println("$(cy)ACTION:$(cd)   Fitting the TLE.")
+    verbose && println()
     verbose && @printf("          %s%10s %20s %20s %20s %20s%s\n", cy, "Iteration", "Position RMSE", "Velocity RMSE", "Total RMSE", "RMSE Variation", cd)
     verbose && @printf("          %s%10s %20s %20s %20s %20s%s\n", cb, "", "[km]", "[km / s]", "[ ]", "", cd)
 
