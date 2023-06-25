@@ -406,7 +406,7 @@ function fit_sgp4_tle!(
         end
     else
         # In this case, we must find the closest osculating vector to the desired epoch.
-        ~, id = findmin(jd -> abs(jd - mean_elements_epoch), vjd)
+        ~, id = findmin(abs.(vjd .- mean_elements_epoch))
         epoch = vjd[id]
         x₁ = SVector{7, T}(vr_teme[id]..., vv_teme[id]..., estimate_bstar ? T(0.00001) : T(0))
     end
