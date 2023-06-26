@@ -198,7 +198,6 @@ julia> vv_teme = [@SVector [0.3445760107690598, 1.0395135806993514, 7.3936861314
 
 julia> tle, P = fit_sgp4_tle(vjd, vr_teme, vv_teme; estimate_bstar = false)
 ACTION:   Fitting the TLE.
-
            Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
                                      [km]             [km / s]                  [ ]
 PROGRESS:          1              15.0608           0.00777352              15.0608                  ---
@@ -305,7 +304,6 @@ TLE:
 
 julia> update_sgp4_tle_epoch(tle, DateTime("2023-05-01"))
 ACTION:   Fitting the TLE.
-
            Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
                                      [km]             [km / s]                  [ ]
 PROGRESS:          1               8.1461           0.00185857               8.1461                  ---
