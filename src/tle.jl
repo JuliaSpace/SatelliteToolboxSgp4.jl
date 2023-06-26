@@ -432,9 +432,12 @@ function fit_sgp4_tle!(
     J = zeros(T, num_observations, num_states)
 
     # Header.
-    verbose && println("$(cy)ACTION:$(cd)   Fitting the TLE.")
-    verbose && @printf("          %s%10s %20s %20s %20s %20s%s\n", cy, "Iteration", "Position RMSE", "Velocity RMSE", "Total RMSE", "RMSE Variation", cd)
-    verbose && @printf("          %s%10s %20s %20s %20s %20s%s\n", cb, "", "[km]", "[km / s]", "[ ]", "", cd)
+    if verbose
+        println("$(cy)ACTION:$(cd)   Fitting the TLE.")
+        @printf("          %s%10s %20s %20s %20s %20s%s\n", cy, "Iteration", "Position RMSE", "Velocity RMSE", "Total RMSE", "RMSE Variation", cd)
+        @printf("          %s%10s %20s %20s %20s %20s%s\n", cb, "", "[km]", "[km / s]", "[ ]", "", cd)
+        println()
+    end
 
     # We need a reference to the covariance inverse because we will invert it and return
     # after the iterations.
@@ -529,13 +532,15 @@ function fit_sgp4_tle!(
 
         # We cannot compute the RMSE variation in the first iteration.
         if it == 1
-            verbose && @printf("%sPROGRESS:%s %10d %20g %20g %20g %20s\n", cb, cd, it, σp_i, σv_i, σ_i, "---")
+            verbose &&
+                @printf("\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20s\n", cb, cd, it, σp_i, σv_i, σ_i, "---")
 
         else
             # Compute the RMSE variation.
             Δσ = (σ_i - σ_i_₁) / σ_i_₁
 
-            verbose && @printf("%sPROGRESS:%s %10d %20g %20g %20g %20g %%\n", cb, cd, it, σp_i, σv_i, σ_i, 100 * Δσ)
+            verbose &&
+                @printf("\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20g %%\n", cb, cd, it, σp_i, σv_i, σ_i, 100 * Δσ)
 
             # Check if the RMSE is increasing.
             if σ_i < σ_i_₁
@@ -572,7 +577,8 @@ function fit_sgp4_tle!(
 
     # Update the epoch of the fitted TLE to match the desired one.
     if abs(epoch - mean_elements_epoch) > 0.001 / 86400
-        verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.")
+        verbose &&
+            println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.")
         tle = update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch; verbose = verbose)
     end
 
