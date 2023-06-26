@@ -18,6 +18,8 @@ julia> Pkg.install("SatelliteToolboxSgp4")
 
 ## Usage
 
+### Orbit Propagation
+
 First, we need to initialize the structure that contains the information to propagate the
 orbit using the function `sgp4_init`. Usually, we pass a
 [TLE](https://github.com/JuliaSpace/SatelliteToolboxTle.jl) to initialize the SGP4
@@ -92,6 +94,245 @@ We also have the function `sgp4_init!` that initializes a SGP4 propagator struct
 in-place, avoiding unnecessary allocations in some cases. For more information, see the
 function documentation.
 
+### TLE Fitting
+
+This package also provides a way to fit a TLE for the SGP4 algorithm given a set of
+osculating state vectors through the following function:
+
+``` julia
+function fit_sgp4_tle(vjd::AbstractVector{Tjd}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {T<:Number, Tepoch<:Number, Tjd<:Number, Tv<:AbstractVector}
+```
+
+where the osculating elements are given by a set of position vectors `vr_teme` [km] and a
+set of velocity vectors `vv_teme` [km / s] represented in the True-Equator, Mean-Equinox
+reference frame (TEME) at instants in the array `vjd` [Julian Day].
+
+The algorithm performs a least-square fitting to minimize the residue between the osculating
+elements provided by the SGP4 propagator and the input data. It was based on **[4]**.
+
+This function returns the fitted TLE and the last covariance matrix obtained from the
+least-square algorithm.
+
+> **Note**
+> This algorithm version will allocate a new SGP4 propagator with the default constants
+> `sgp4c_wgs84`. If another set of constants are required or if the user wants to reduce the
+> allocations, use the function `fit_sgp4_tle!` instead.
+
+The following keywords are avaible:
+
+- `atol::Number`: Tolerance for the residue absolute value. If the residue is lower than
+    `atol` at any iteration, the computation loop stops. (**Default** = 2e-4)
+- `rtol::Number`: Tolerance for the relative difference between the residues. If the
+    relative difference between the residues in two consecutive iterations is lower than
+    `rtol`, the computation loop stops. (**Default** = 2e-4)
+- `estimate_bstar::Bool`: If `true`, the algorithm will try to estimate the B* parameter.
+    Otherwise, it will be set to 0 or to the value in initial guess (see section  **Initial
+    Guess**). (**Default** = true)
+- `initial_guess::Union{Nothing, AbstractVector, TLE}`: Initial guess for the TLE fitting
+    process. If it is `nothing`, the algorithm will obtain an initial estimate from the
+    osculating elements in `vr_teme` and `vv_teme`. For more information, see the section
+    **Initial Guess**. (**Default** = nothing)
+- `jacobian_perturbation::Number`: Initial state perturbation to compute the
+    finite-difference when calculating the Jacobian matrix. (**Default** = 1e-3)
+- `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
+    the Jacobian matrix. If the computed perturbation is lower than
+    `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
+    `jacobian_perturbation_tol`. (**Default** = 1e-7)
+- `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
+    (**Default** = 50)
+- `mean_elements_epoch::Number`: Epoch for the fitted TLE. (**Default** = vjd[end])
+- `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
+    (**Default** = true)
+- `weight_vector::AbstractVector`: Vector with the measurements weights for the least-square
+    algorithm. We assemble the weight matrix `W` as a diagonal matrix with the elements in
+    `weight_vector` at its diagonal. (**Default** = `@SVector(ones(Bool, 6))`)
+- `classification::Char`: Satellite classification character for the output TLE.
+    (**Default** = 'U')
+- `element_set_number::Int`: Element set number for the output TLE. (**Default** = 0)
+- `international_designator::String`: International designator string for the output TLE.
+    (**Default** = "999999")
+- `name::String`: Satellite name for the output TLE. (**Default** = "UNDEFINED")
+- `revolution_number::Int`: Revolution number for the output TLE. (**Default** = 0)
+- `satellite_number::Int`: Satellite number for the output TLE. (**Default** = 9999)
+
+#### Initial Guess
+
+This algorithm uses a least-square algorithm to fit a TLE based on a set of osculating state
+vectors. Since the system is chaotic, a good initial guess is paramount for algorithm
+convergence. We can provide an initial guess using the keyword `initial_guess`.
+
+If `initial_guess` is a `TLE`, we update the TLE epoch using the function
+`update_sgp4_tle_epoch!` to the desired one in `mean_elements_epoch`. Afterward, we use this
+new TLE as the initial guess.
+
+If `initial_guess` is an `AbstractVector`, we use this vector as the initial mean state
+vector for the algorithm. It must contain 7 elements as follows:
+
+``` julia
+┌                                    ┐
+│ IDs 1 to 3: Mean position [km]     │
+│ IDs 4 to 6: Mean velocity [km / s] │
+│ ID  7:      Bstar         [1 / er] │
+└                                    ┘
+```
+
+If `initial_guess` is `nothing`, the algorithm takes the closest osculating state vector to
+the `mean_elements_epoch` and uses it as the initial mean state vector. In this case, the
+epoch is set to the same epoch of the osculating data in `vjd`. When the fitted TLE is
+obtained, the algorithm uses the function [`update_sgp4_tle_epoch!`](@ref) to change its
+epoch to `mean_elements_epoch`.
+
+> **Note**
+> If `initial_guess` is not `nothing`, the B* initial estimate is obtained from the TLE or
+> the state vector. Hence, if `estimate_bstar` is `false`, it will be kept constant with
+> this initial value.
+
+#### Example
+
+```julia
+julia> vjd  = [2.46002818657856e6];
+
+julia> vr_teme = [@SVector [-6792.402703741442, 2192.6458461287293, 0.18851758695295118]];
+
+julia> vv_teme = [@SVector [0.3445760107690598, 1.0395135806993514, 7.393686131436984]];
+
+julia> tle, P = fit_sgp4_tle(vjd, vr_teme, vv_teme; estimate_bstar = false)
+ACTION:   Fitting the TLE.
+
+           Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
+                                     [km]             [km / s]                  [ ]
+PROGRESS:          1              15.0608           0.00777352              15.0608                  ---
+PROGRESS:          2              14.5937          2.13019e-05              14.5937             -3.10173 %
+PROGRESS:          3              14.5729          2.13385e-05              14.5729            -0.142184 %
+PROGRESS:          4              14.5501          2.13051e-05              14.5501            -0.156625 %
+PROGRESS:          5               14.525          2.12691e-05               14.525            -0.172558 %
+PROGRESS:          6              14.4974          2.12279e-05              14.4974            -0.190142 %
+PROGRESS:          7               14.467          2.11834e-05               14.467            -0.209555 %
+PROGRESS:          8              14.4336          2.11346e-05              14.4336            -0.230994 %
+PROGRESS:          9              14.3968          2.10803e-05              14.3968            -0.254682 %
+PROGRESS:         10              14.3564          2.10211e-05              14.3564            -0.280866 %
+PROGRESS:         11              14.3119          2.09561e-05              14.3119            -0.309822 %
+PROGRESS:         12               14.263          2.08841e-05               14.263            -0.341864 %
+PROGRESS:         13              14.2091           2.0805e-05              14.2091             -0.37734 %
+PROGRESS:         14              14.1499          2.07184e-05              14.1499            -0.416646 %
+PROGRESS:         15              14.0848          2.06227e-05              14.0848            -0.460228 %
+PROGRESS:         16              14.0132          2.05174e-05              14.0132            -0.508592 %
+PROGRESS:         17              13.9344           2.0402e-05              13.9344            -0.562311 %
+PROGRESS:         18              13.8477          2.02749e-05              13.8477             -0.62204 %
+PROGRESS:         19              13.7524          2.01351e-05              13.7524            -0.688527 %
+PROGRESS:         20              13.6475          1.99812e-05              13.6475             -0.76263 %
+PROGRESS:         21              13.5321          1.98118e-05              13.5321             -0.84534 %
+PROGRESS:         22              13.4052          1.96258e-05              13.4052            -0.937801 %
+PROGRESS:         23              13.2656          1.94209e-05              13.2656             -1.04135 %
+PROGRESS:         24              13.1121          1.91956e-05              13.1121             -1.15754 %
+PROGRESS:         25              12.9432           1.8948e-05              12.9432              -1.2882 %
+PROGRESS:         26              12.7574          1.86754e-05              12.7574             -1.43551 %
+PROGRESS:         27               12.553          1.83757e-05               12.553             -1.60206 %
+PROGRESS:         28              12.3282           1.8046e-05              12.3282             -1.79096 %
+PROGRESS:         29              12.0809          1.76833e-05              12.0809             -2.00598 %
+PROGRESS:         30              11.8088          1.72844e-05              11.8088             -2.25175 %
+PROGRESS:         31              11.5096          1.68458e-05              11.5096             -2.53398 %
+PROGRESS:         32              11.1804          1.63632e-05              11.1804             -2.85985 %
+PROGRESS:         33              10.8184          1.58324e-05              10.8184             -3.23845 %
+PROGRESS:         34              10.4201          1.52487e-05              10.4201             -3.68152 %
+PROGRESS:         35              9.98197          1.46066e-05              9.98197             -4.20446 %
+PROGRESS:         36              9.50005          1.39004e-05              9.50005             -4.82789 %
+PROGRESS:         37              8.96994          1.31237e-05              8.96994             -5.58008 %
+PROGRESS:         38              8.38682          1.22695e-05              8.38682             -6.50083 %
+PROGRESS:         39              7.74539          1.13301e-05              7.74539              -7.6481 %
+PROGRESS:         40              7.03981          1.02969e-05              7.03981             -9.10963 %
+PROGRESS:         41              6.26368          9.16065e-06              6.26368             -11.0249 %
+PROGRESS:         42              5.40993          7.91106e-06              5.40993             -13.6301 %
+PROGRESS:         43              4.47081          6.53689e-06              4.47081             -17.3592 %
+PROGRESS:         44              3.43778          5.02574e-06              3.43778             -23.1061 %
+PROGRESS:         45              2.30145          3.36402e-06              2.30145             -33.0543 %
+PROGRESS:         46              1.05148          1.53677e-06              1.05148             -54.3123 %
+PROGRESS:         47           2.7699e-07           2.5122e-10           2.7699e-07                 -100 %
+
+ACTION:   Updating the epoch of the fitted TLE guess to match the desired one.
+
+(TLE: UNDEFINED (Epoch = 2023-03-24T16:28:40.388), [2.5682204663112826 0.5152694462560151 … -1.2385529801114805 0.0; 0.5152694462560317 4.6021551786709445 … -0.1449556257318217 0.0; … ; -1.2385529801114785 -0.14495562573181023 … 0.999604694355324 0.0; 0.0 0.0 … 0.0 0.0])
+```
+
+### TLE Epoch Update
+
+We can also update SGP4 TLE epoch using the function:
+
+```julia
+function update_sgp4_tle_epoch(tle::TLE, new_epoch::Union{Number, DateTime}; kwargs...)
+```
+
+which returns a new TLE obtained by updating the epoch of `tle` to `new_epoch`.
+
+> **Note**
+> This algorithm version will allocate a new SGP4 propagator with the default constants
+> `sgp4c_wgs84`. If another set of constants are required or if the user wants to reduce the
+> allocations, use the function `update_sgp4_tle_epoch!` instead.
+
+The following keywords are avaible:
+
+- `atol::Number`: Tolerance for the residue absolute value. If, at any iteration, the
+    residue is lower than `atol`, the computation loop stops. (**Default** = 2e-4)
+- `rtol::Number`: Tolerance for the relative difference between the residues. If, at any
+    iteration, the relative difference between the residues in two consecutive iterations is
+    lower than `rtol`, the computation loop stops. (**Default** = 2e-4)
+- `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
+    (**Default** = 50)
+- `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
+    (**Default** = true)
+    
+#### Examples
+
+``` julia
+julia> tle = tle"""
+           AMAZONIA 1
+           1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
+           2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652"""
+TLE:
+                      Name : AMAZONIA 1
+          Satellite number : 47699
+  International designator : 21015A
+        Epoch (Year / Day) : 23 /  83.68657856 (2023-03-24T16:28:40.388)
+        Element set number : 999
+              Eccentricity :   0.00012470
+               Inclination :  98.43040000 deg
+                      RAAN : 162.10970000 deg
+       Argument of perigee : 136.20170000 deg
+              Mean anomaly : 223.92830000 deg
+           Mean motion (n) :  14.40814394 revs / day
+         Revolution number : 10865
+                        B* :      4.3e-05 1 / er
+                     ṅ / 2 :     -4.4e-07 rev / day²
+                     n̈ / 6 :        1e-09 rev / day³
+
+julia> update_sgp4_tle_epoch(tle, DateTime("2023-05-01"))
+ACTION:   Fitting the TLE.
+
+           Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
+                                     [km]             [km / s]                  [ ]
+PROGRESS:          1               8.1461           0.00185857               8.1461                  ---
+PROGRESS:          2          6.78579e-06          2.29683e-08          6.78583e-06             -99.9999 %
+
+ACTION:   Updating the epoch of the fitted TLE guess to match the desired one.
+
+TLE:
+                      Name : AMAZONIA 1
+          Satellite number : 47699
+  International designator : 21015A
+        Epoch (Year / Day) : 23 / 121.00000000 (2023-05-01T00:00:00)
+        Element set number : 999
+              Eccentricity :   0.00012481
+               Inclination :  98.43040000 deg
+                      RAAN : 198.88793445 deg
+       Argument of perigee :  24.20140448 deg
+              Mean anomaly :  86.69370896 deg
+           Mean motion (n) :  14.40824649 revs / day
+         Revolution number : 10865
+                        B* :      4.3e-05 1 / er
+                     ṅ / 2 :            0 rev / day²
+                     n̈ / 6 :            0 rev / day³
+```
+
 ## References
 
 The code in this package was built using the following references:
@@ -102,3 +343,5 @@ The code in this package was built using the following references:
   Spacetrack Report #3: Rev1*. **AIAA**.
 - **[3]** SGP4 Source code of [STRF](https://github.com/cbassa/strf), which the C code was
   converted by Paul. S. Crawford and Andrew R. Brooks.
+- **[4]** Vallado, D. A., Crawford, P (2008). *SGP4 Orbit Determination*. **American Institute
+  of Aeronautics ans Astronautics**.
