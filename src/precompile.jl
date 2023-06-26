@@ -48,16 +48,16 @@ SnoopPrecompile.@precompile_all_calls begin
     redirect_stdout(devnull) do
         fit_sgp4_tle(
             vjd,
-            vr_teme_static,
-            vv_teme_static;
+            vr_teme,
+            vv_teme,
             estimate_bstar = false,
             max_iterations = 1,
         )
 
         fit_sgp4_tle(
             vjd,
-            vr_teme_static,
-            vv_teme_static;
+            vr_teme,
+            vv_teme,
             estimate_bstar = false,
             initial_guess = tle_input,
             max_iterations = 1,
