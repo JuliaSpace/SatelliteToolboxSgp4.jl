@@ -11,6 +11,9 @@ import SnoopPrecompile
 
 SnoopPrecompile.@precompile_all_calls begin
 
+    #                                  Orbit Propagation
+    # ======================================================================================
+
     # We select multiple TLEs to make sure all functions are precompiled.
     tles = tles"""
     #                       # TEME example
@@ -28,5 +31,52 @@ SnoopPrecompile.@precompile_all_calls begin
     for tle in tles
         sgp4(10.0,   tle; sgp4c = sgp4c_wgs84)
         sgp4(10.0f0, tle; sgp4c = sgp4c_wgs84_f32)
+    end
+
+    #                                     TLE Fitting
+    # ======================================================================================
+
+    tle_input = tle"""
+        AMAZONIA 1
+        1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
+        2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652"""
+
+    vjd     = [2.46002818657856e6]
+    vr_teme = [@SVector [-6792.402703741442, 2192.6458461287293, 0.18851758695295118]]
+    vv_teme = [@SVector [0.3445760107690598, 1.0395135806993514, 7.393686131436984]]
+
+    redirect_stdout(devnull) do
+        fit_sgp4_tle(
+            vjd,
+            vr_teme_static,
+            vv_teme_static;
+            estimate_bstar = false,
+            max_iterations = 1,
+        )
+
+        fit_sgp4_tle(
+            vjd,
+            vr_teme_static,
+            vv_teme_static;
+            estimate_bstar = false,
+            initial_guess = tle_input,
+            max_iterations = 1,
+        )
+    end
+
+    #                                   TLE Epoch Update
+    # ======================================================================================
+
+    tle = tle"""
+        AMAZONIA 1
+        1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
+        2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652"""
+
+    redirect_stdout(devnull) do
+        update_sgp4_tle_epoch(
+            tle,
+            2.46002818657856e6 + 1;
+            max_iterations = 1,
+        )
     end
 end
