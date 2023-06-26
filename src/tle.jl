@@ -573,7 +573,7 @@ function fit_sgp4_tle!(
     )
 
     # Update the epoch of the fitted TLE to match the desired one.
-    verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE guess to match the desired one.")
+    verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.")
     verbose && println()
     tle = update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch; verbose = verbose)
 

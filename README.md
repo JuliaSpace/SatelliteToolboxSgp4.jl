@@ -249,7 +249,7 @@ PROGRESS:         45              2.30145          3.36402e-06              2.30
 PROGRESS:         46              1.05148          1.53677e-06              1.05148             -54.3123 %
 PROGRESS:         47           2.7699e-07           2.5122e-10           2.7699e-07                 -100 %
 
-ACTION:   Updating the epoch of the fitted TLE guess to match the desired one.
+ACTION:   Updating the epoch of the fitted TLE to match the desired one.
 
 (TLE: UNDEFINED (Epoch = 2023-03-24T16:28:40.388), [2.5682204663112826 0.5152694462560151 … -1.2385529801114805 0.0; 0.5152694462560317 4.6021551786709445 … -0.1449556257318217 0.0; … ; -1.2385529801114785 -0.14495562573181023 … 0.999604694355324 0.0; 0.0 0.0 … 0.0 0.0])
 ```
@@ -313,7 +313,7 @@ ACTION:   Fitting the TLE.
 PROGRESS:          1               8.1461           0.00185857               8.1461                  ---
 PROGRESS:          2          6.78579e-06          2.29683e-08          6.78583e-06             -99.9999 %
 
-ACTION:   Updating the epoch of the fitted TLE guess to match the desired one.
+ACTION:   Updating the epoch of the fitted TLE to match the desired one.
 
 TLE:
                       Name : AMAZONIA 1
