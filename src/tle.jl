@@ -29,7 +29,7 @@ vectors `vv_teme` [km / s] represented in the True-Equator, Mean-Equinox referen
 
 This algorithm was based on **[1]**.
 
-!!! notes
+!!! note
     This algorithm version will allocate a new SGP4 propagator with the default constants
     `sgp4c_wgs84`. If another set of constants are required, use the function
     [`fit_sgp4_tle!`](@ref) instead.
