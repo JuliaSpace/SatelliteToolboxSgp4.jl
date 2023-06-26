@@ -385,7 +385,6 @@ function fit_sgp4_tle!(
         # The user can provide a TLE or the initial mean state vector.
         if initial_guess isa TLE
             verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the initial TLE guess to match the desired one.")
-            verbose && println()
 
             # If a TLE is provided, we need to update its epoch to match the desired one.
             tle = update_sgp4_tle_epoch!(
@@ -434,7 +433,6 @@ function fit_sgp4_tle!(
 
     # Header.
     verbose && println("$(cy)ACTION:$(cd)   Fitting the TLE.")
-    verbose && println()
     verbose && @printf("          %s%10s %20s %20s %20s %20s%s\n", cy, "Iteration", "Position RMSE", "Velocity RMSE", "Total RMSE", "RMSE Variation", cd)
     verbose && @printf("          %s%10s %20s %20s %20s %20s%s\n", cb, "", "[km]", "[km / s]", "[ ]", "", cd)
 
@@ -573,9 +571,10 @@ function fit_sgp4_tle!(
     )
 
     # Update the epoch of the fitted TLE to match the desired one.
-    verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.")
-    verbose && println()
-    tle = update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch; verbose = verbose)
+    if abs(epoch - mean_elements_epoch) > 0.001 / 86400
+        verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.")
+        tle = update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch; verbose = verbose)
+    end
 
     # Initialize the propagator with the TLE.
     sgp4_init!(sgp4d, tle)
