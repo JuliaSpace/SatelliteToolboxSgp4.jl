@@ -7,7 +7,6 @@ using Reexport
 using Printf
 using StaticArrays
 using SatelliteToolboxBase
-using SnoopPrecompile
 
 @reexport using SatelliteToolboxTle
 
