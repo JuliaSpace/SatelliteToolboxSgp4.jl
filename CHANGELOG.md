@@ -1,6 +1,15 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.1.0
+-------------
+
+- ![Feature][badge-feature] We added the functions `update_sgp4_tle_epoch` and
+  `update_sgp4_tle_epoch!` to update the epoch of a SGP4 TLE.
+- ![Feature][badge-feature] We added the functions `fit_sgp4_tle` and `fit_sgp4_tle!` to fit
+  a SGP4 TLE using a set of osculating state vectors represented in the TEME reference
+  frame.
+
 Version 2.0.0
 -------------
 
