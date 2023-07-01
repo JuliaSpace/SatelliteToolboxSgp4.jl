@@ -1,6 +1,12 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.1.1
+-------------
+
+- ![Enhancement][badge-enhancement] **SnoopPrecompile.jl** was replaced by
+  **PrecompileTools.jl**.
+
 Version 2.1.0
 -------------
 
