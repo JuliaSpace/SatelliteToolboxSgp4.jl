@@ -18,7 +18,7 @@ for the Julia language.
 
 ``` julia
 julia> using Pkg
-julia> Pkg.install("SatelliteToolboxSgp4")
+julia> Pkg.add("SatelliteToolboxSgp4")
 ```
 
 ## Usage
