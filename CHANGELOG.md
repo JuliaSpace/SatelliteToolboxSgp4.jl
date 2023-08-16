@@ -1,6 +1,11 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.1.2
+-------------
+
+- ![Enhancement][badge-enhancement] We updated the dependency compatibility bounds.
+
 Version 2.1.1
 -------------
 
