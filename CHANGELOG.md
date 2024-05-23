@@ -1,6 +1,11 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.1.3
+-------------
+
+- ![Enhancement][badge-enhancement] Minor source-code updates.
+
 Version 2.1.2
 -------------
 
