@@ -1,19 +1,13 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+## Description #############################################################################
 #
-# Description
-# ==========================================================================================
+# Test SGP4 algorithm. All tests are based on [1].
 #
-#   Test SGP4 algorithm. All tests are based on [1].
+## References ##############################################################################
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# [1] Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006). Revisiting Spacetrack
+#     Report #3: Rev1. AIAA.
 #
-# References
-# ==========================================================================================
-#
-#   [1] Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006). Revisiting Spacetrack
-#       Report #3: Rev1. AIAA.
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+############################################################################################
 
 @testset "Constructors" begin
     sgp4ds = SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}(

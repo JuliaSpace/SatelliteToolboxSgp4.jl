@@ -1,11 +1,8 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+## Description #############################################################################
 #
-# Description
-# ==========================================================================================
+# Types and structures of SGP4 model.
 #
-#   Types and structures of SGP4 model.
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+############################################################################################
 
 export Sgp4Constants, Sgp4Propagator
 
@@ -110,8 +107,7 @@ mutable struct Sgp4DeepSpace{T}
     iresfl::Bool
     ilsz::Bool
 
-    # Constructors
-    # ======================================================================================
+    # == Constructors ======================================================================
 
     Sgp4DeepSpace{T}(args...) where T<:Number = new(args...)
     Sgp4DeepSpace{T}() where T<:Number = new()
@@ -174,8 +170,7 @@ mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
     # SGP4 deep space structure.
     sgp4ds::Sgp4DeepSpace{T}
 
-    # Constructors
-    # ======================================================================================
+    # == Constructors ======================================================================
 
     Sgp4Propagator{Tepoch, T}(args...) where {Tepoch<:Number, T<:Number} = new(args...)
     Sgp4Propagator{Tepoch, T}() where {Tepoch<:Number, T<:Number} = new()

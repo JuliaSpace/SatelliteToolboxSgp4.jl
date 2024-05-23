@@ -1,19 +1,15 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+## Description #############################################################################
 #
-# Description
-# ==========================================================================================
+# Test related to the SGP4 TLE.
 #
-#   Test related to the SGP4 TLE.
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+############################################################################################
 
 @testset "Fitting SGP4 TLEs" verbose = true begin
     # We just need to run the SGP4, obtain the osculating elements, convert them to TLE, and
     # compare with the original TLE.
 
     @testset "Without Initial Guess" begin
-        # Scenario 1: Low Earth Orbit
-        # ==================================================================================
+        # == Scenario 1: Low Earth Orbit ===================================================
 
         tle_input = tle"""
             AMAZONIA 1
@@ -63,8 +59,7 @@
         @test tle.raan                ≈  tle_input.raan                atol = 1e-4
         @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
 
-        # Scenario 2: Geostationary Orbit
-        # ==================================================================================
+        # == Scenario 2: Geostationary Orbit ===============================================
 
         tle_input = tle"""
             MOLNIYA 1-83
@@ -114,8 +109,7 @@
         @test tle.raan                ≈  tle_input.raan                atol = 1e-4
         @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
 
-        # Scenario 3: TLE epoch outside the interval
-        # ==================================================================================
+        # == Scenario 3: TLE Epoch Outside the Interval ====================================
 
         tle_input = tle"""
             AMAZONIA 1
@@ -164,8 +158,7 @@
     end
 
     @testset "TLE as Initial Guess" verbose = true begin
-        # Scenario 1: Low Earth Orbit
-        # ==================================================================================
+        # == Scenario 1: Low Earth Orbit ===================================================
 
         tle_input = tle"""
             AMAZONIA 1
@@ -215,8 +208,7 @@
         @test tle.raan                ≈  tle_input.raan                atol = 1e-4
         @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
 
-        # Scenario 2: Geostationary Orbit
-        # ==================================================================================
+        # == Scenario 2: Geostationary Orbit ===============================================
 
         tle_input = tle"""
             MOLNIYA 1-83
@@ -266,8 +258,7 @@
         @test tle.raan                ≈  tle_input.raan                atol = 1e-4
         @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
 
-        # Scenario 3: TLE epoch outside the interval
-        # ==================================================================================
+        # == Scenario 3: TLE Epoch Outside the Interval ====================================
 
         tle_input = tle"""
             AMAZONIA 1
@@ -327,15 +318,13 @@
         vv_teme = last.(ret)
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
-        # Wrong dimensions in the input vectors
-        # ==================================================================================
+        # == Wrong Dimensions in the Input Vectors =========================================
 
         @test_throws ArgumentError fit_sgp4_tle(vjd[1:end-1], vr_teme, vv_teme)
         @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme[1:end-1], vv_teme)
         @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme, vv_teme[1:end-1])
 
-        # Wrong dimensions in the weight vector
-        # ==================================================================================
+        # == Wrong Dimensions in the Weight Vector =========================================
 
         @test_throws ArgumentError fit_sgp4_tle(
             vjd,
@@ -344,8 +333,7 @@
             weight_vector = [1, 2, 3, 4, 5]
         )
 
-        # Wrong dimensions in the initial guess vector
-        # ==================================================================================
+        # == Wrong Dimensions in the Initial Guess Vector ==================================
 
         @test_throws ArgumentError fit_sgp4_tle(
             vjd,

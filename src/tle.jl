@@ -1,19 +1,13 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+## Description #############################################################################
 #
-# Description
-# ==========================================================================================
+# Functions related to SGP4 TLEs.
 #
-#   Functions related to SGP4 TLEs.
+## References ##############################################################################
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# [1] Vallado, D. A., Crawford, P (2008). SGP4 Orbit Determination. American Institute of
+#     Aeronautics ans Astronautics.
 #
-# References
-# ==========================================================================================
-#
-#   [1] Vallado, D. A., Crawford, P (2008). SGP4 Orbit Determination. American Institute of
-#       Aeronautics ans Astronautics.
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+############################################################################################
 
 export fit_sgp4_tle, fit_sgp4_tle!, update_sgp4_tle_epoch, update_sgp4_tle_epoch!
 
@@ -30,6 +24,7 @@ vectors `vv_teme` [km / s] represented in the True-Equator, Mean-Equinox referen
 This algorithm was based on **[1]**.
 
 !!! note
+
     This algorithm version will allocate a new SGP4 propagator with the default constants
     `sgp4c_wgs84`. If another set of constants are required, use the function
     [`fit_sgp4_tle!`](@ref) instead.
@@ -37,39 +32,51 @@ This algorithm was based on **[1]**.
 # Keywords
 
 - `atol::Number`: Tolerance for the residue absolute value. If the residue is lower than
-    `atol` at any iteration, the computation loop stops. (**Default** = 2e-4)
+    `atol` at any iteration, the computation loop stops.
+    (**Default** = 2e-4)
 - `rtol::Number`: Tolerance for the relative difference between the residues. If the
     relative difference between the residues in two consecutive iterations is lower than
-    `rtol`, the computation loop stops. (**Default** = 2e-4)
+    `rtol`, the computation loop stops.
+    (**Default** = 2e-4)
 - `estimate_bstar::Bool`: If `true`, the algorithm will try to estimate the B* parameter.
     Otherwise, it will be set to 0 or to the value in initial guess (see section  **Initial
-    Guess**). (**Default** = true)
+    Guess**).
+    (**Default** = true)
 - `initial_guess::Union{Nothing, AbstractVector, TLE}`: Initial guess for the TLE fitting
     process. If it is `nothing`, the algorithm will obtain an initial estimate from the
     osculating elements in `vr_teme` and `vv_teme`. For more information, see the section
-    **Initial Guess**. (**Default** = nothing)
+    **Initial Guess**.
+    (**Default** = nothing)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
-    finite-difference when calculating the Jacobian matrix. (**Default** = 1e-3)
+    finite-difference when calculating the Jacobian matrix.
+    (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
     `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
-    `jacobian_perturbation_tol`. (**Default** = 1e-7)
+    `jacobian_perturbation_tol`.
+    (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
-- `mean_elements_epoch::Number`: Epoch for the fitted TLE. (**Default** = vjd[end])
+- `mean_elements_epoch::Number`: Epoch for the fitted TLE.
+    (**Default** = vjd[end])
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
     (**Default** = true)
 - `weight_vector::AbstractVector`: Vector with the measurements weights for the least-square
     algorithm. We assemble the weight matrix `W` as a diagonal matrix with the elements in
-    `weight_vector` at its diagonal. (**Default** = `@SVector(ones(Bool, 6))`)
+    `weight_vector` at its diagonal.
+    (**Default** = `@SVector(ones(Bool, 6))`)
 - `classification::Char`: Satellite classification character for the output TLE.
     (**Default** = 'U')
-- `element_set_number::Int`: Element set number for the output TLE. (**Default** = 0)
+- `element_set_number::Int`: Element set number for the output TLE.
+    (**Default** = 0)
 - `international_designator::String`: International designator string for the output TLE.
     (**Default** = "999999")
-- `name::String`: Satellite name for the output TLE. (**Default** = "UNDEFINED")
-- `revolution_number::Int`: Revolution number for the output TLE. (**Default** = 0)
-- `satellite_number::Int`: Satellite number for the output TLE. (**Default** = 9999)
+- `name::String`: Satellite name for the output TLE.
+    (**Default** = "UNDEFINED")
+- `revolution_number::Int`: Revolution number for the output TLE.
+    (**Default** = 0)
+- `satellite_number::Int`: Satellite number for the output TLE.
+    (**Default** = 9999)
 
 # Returns
 
@@ -102,6 +109,7 @@ obtained, the algorithm uses the function [`update_sgp4_tle_epoch!`](@ref) to ch
 epoch to `mean_elements_epoch`.
 
 !!! note
+
     If `initial_guess` is not `nothing`, the B* initial estimate is obtained from the TLE or
     the state vector. Hence, if `estimate_bstar` is `false`, it will be kept constant with
     this initial value.
@@ -181,45 +189,58 @@ frame (TEME) at instants in the array `vjd` [Julian Day].
 This algorithm was based on **[1]**.
 
 !!! notes
+
     The SGP4 orbit propagator `sgp4d` will be initialized with the TLE returned by the
     function.
 
 # Keywords
 
 - `atol::Number`: Tolerance for the residue absolute value. If the residue is lower than
-    `atol` at any iteration, the computation loop stops. (**Default** = 2e-4)
+    `atol` at any iteration, the computation loop stops.
+    (**Default** = 2e-4)
 - `rtol::Number`: Tolerance for the relative difference between the residues. If the
     relative difference between the residues in two consecutive iterations is lower than
-    `rtol`, the computation loop stops. (**Default** = 2e-4)
+    `rtol`, the computation loop stops.
+    (**Default** = 2e-4)
 - `estimate_bstar::Bool`: If `true`, the algorithm will try to estimate the B* parameter.
     Otherwise, it will be set to 0 or to the value in initial guess (see section  **Initial
-    Guess**). (**Default** = true)
+    Guess**).
+    (**Default** = true)
 - `initial_guess::Union{Nothing, AbstractVector, TLE}`: Initial guess for the TLE fitting
     process. If it is `nothing`, the algorithm will obtain an initial estimate from the
     osculating elements in `vr_teme` and `vv_teme`. For more information, see the section
-    **Initial Guess**. (**Default** = nothing)
+    **Initial Guess**.
+    (**Default** = nothing)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
-    finite-difference when calculating the Jacobian matrix. (**Default** = 1e-3)
+    finite-difference when calculating the Jacobian matrix.
+    (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
     `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
-    `jacobian_perturbation_tol`. (**Default** = 1e-7)
+    `jacobian_perturbation_tol`.
+    (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
-- `mean_elements_epoch::Number`: Epoch for the fitted TLE. (**Default** = vjd[end])
+- `mean_elements_epoch::Number`: Epoch for the fitted TLE.
+    (**Default** = vjd[end])
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
     (**Default** = true)
 - `weight_vector::AbstractVector`: Vector with the measurements weights for the least-square
     algorithm. We assemble the weight matrix `W` as a diagonal matrix with the elements in
-    `weight_vector` at its diagonal. (**Default** = `@SVector(ones(Bool, 6))`)
+    `weight_vector` at its diagonal.
+    (**Default** = `@SVector(ones(Bool, 6))`)
 - `classification::Char`: Satellite classification character for the output TLE.
     (**Default** = 'U')
-- `element_set_number::Int`: Element set number for the output TLE. (**Default** = 0)
+- `element_set_number::Int`: Element set number for the output TLE.
+    (**Default** = 0)
 - `international_designator::String`: International designator string for the output TLE.
     (**Default** = "999999")
-- `name::String`: Satellite name for the output TLE. (**Default** = "UNDEFINED")
-- `revolution_number::Int`: Revolution number for the output TLE. (**Default** = 0)
-- `satellite_number::Int`: Satellite number for the output TLE. (**Default** = 9999)
+- `name::String`: Satellite name for the output TLE.
+    (**Default** = "UNDEFINED")
+- `revolution_number::Int`: Revolution number for the output TLE.
+    (**Default** = 0)
+- `satellite_number::Int`: Satellite number for the output TLE.
+    (**Default** = 9999)
 
 # Returns
 
@@ -252,6 +273,7 @@ obtained, the algorithm uses the function [`update_sgp4_tle_epoch!`](@ref) to ch
 epoch to `mean_elements_epoch`.
 
 !!! note
+
     If `initial_guess` is not `nothing`, the B* initial estimate is obtained from the TLE or
     the state vector. Hence, if `estimate_bstar` is `false`, it will be kept constant with
     this initial value.
@@ -597,6 +619,7 @@ Update the `tle` epoch with SGP4 mean elements to `new_epoch`. `new_epoch` can b
 represented by a Julian Day or a `DateTime`.
 
 !!! notes
+
     This algorithm version will allocate a new SGP4 propagator with the default constants
     `sgp4c_wgs84`. If another set of constants are required, use the function
     [`update_sgp4_tle_epoch!`](@ref) instead.
@@ -615,10 +638,12 @@ to it. For more information, see the documentation of [`fit_sgp4_tle!`](@ref).
 # Keywords
 
 - `atol::Number`: Tolerance for the residue absolute value. If, at any iteration, the
-    residue is lower than `atol`, the computation loop stops. (**Default** = 2e-4)
+    residue is lower than `atol`, the computation loop stops.
+    (**Default** = 2e-4)
 - `rtol::Number`: Tolerance for the relative difference between the residues. If, at any
     iteration, the relative difference between the residues in two consecutive iterations is
-    lower than `rtol`, the computation loop stops. (**Default** = 2e-4)
+    lower than `rtol`, the computation loop stops.
+    (**Default** = 2e-4)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
@@ -689,6 +714,7 @@ Update the `tle` epoch with SGP4 mean elements to `new_epoch` using the orbit pr
 `sgp4d`. `new_epoch` can be represented by a Julian Day or a `DateTime`.
 
 !!! notes
+
     The SGP4 orbit propagator `sgp4d` will be initialized with the TLE returned by the
     function.
 
@@ -706,10 +732,12 @@ to it. For more information, see the documentation of [`fit_sgp4_tle!`](@ref).
 # Keywords
 
 - `atol::Number`: Tolerance for the residue absolute value. If, at any iteration, the
-    residue is lower than `atol`, the computation loop stops. (**Default** = 2e-4)
+    residue is lower than `atol`, the computation loop stops.
+    (**Default** = 2e-4)
 - `rtol::Number`: Tolerance for the relative difference between the residues. If, at any
     iteration, the relative difference between the residues in two consecutive iterations is
-    lower than `rtol`, the computation loop stops. (**Default** = 2e-4)
+    lower than `rtol`, the computation loop stops.
+    (**Default** = 2e-4)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
@@ -831,7 +859,7 @@ function update_sgp4_tle_epoch!(
 end
 
 ############################################################################################
-#                                    Private Functions
+#                                    Private Functions                                     #
 ############################################################################################
 
 """
@@ -893,14 +921,20 @@ Create a TLE given the mean state vector `sv`, which must have the following ele
 
 # Keywords
 
-- `sgp4c::Sgp4Constants`: SGP4 propagator constants. (**Default** = sgp4c_wgs84)
-- `classification::Char`: Satellite classification for the TLE. (**Default** = 'U')
-- `element_set_number::Int`: Satellite element set number for the TLE. (**Default** = 0)
+- `sgp4c::Sgp4Constants`: SGP4 propagator constants.
+    (**Default** = sgp4c_wgs84)
+- `classification::Char`: Satellite classification for the TLE.
+    (**Default** = 'U')
+- `element_set_number::Int`: Satellite element set number for the TLE.
+    (**Default** = 0)
 - `international_designator::String`: Satellite international designator for the TLE.
     (**Default** = "999999")
-- `name::String`: Satellite name for the TLE. (**Default** = "UNDEFINED")
-- `revolution_number::Int`: Satellite revolution number for the TLE. (**Default** = 0)
-- `satellite_number::Int`: Satellite number for the TLE. (**Default** = 9999)
+- `name::String`: Satellite name for the TLE.
+    (**Default** = "UNDEFINED")
+- `revolution_number::Int`: Satellite revolution number for the TLE.
+    (**Default** = 0)
+- `satellite_number::Int`: Satellite number for the TLE.
+    (**Default** = 9999)
 """
 function _mean_state_vector_to_tle(
     sv::SVector{7},
@@ -1019,10 +1053,12 @@ result is written to the matrix `J`. Hence:
 # Keywords
 
 - `perturbation::T`: Initial state perturbation to compute the finite-difference:
-    `Δx = x * perturbation`. (**Default** = 1e-3)
+    `Δx = x * perturbation`.
+    (**Default** = 1e-3)
 - `perturbation_tol::T`: Tolerance to accept the perturbation. If the computed perturbation
     is lower than `perturbation_tol`, we increase it until it absolute value is higher than
-    `perturbation_tol`. (**Default** = 1e-7)
+    `perturbation_tol`.
+    (**Default** = 1e-7)
 """
 function _sgp4_jacobian!(
     J::AbstractMatrix{T},

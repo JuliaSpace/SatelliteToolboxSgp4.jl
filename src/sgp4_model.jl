@@ -1,37 +1,30 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+## Description #############################################################################
 #
-# Description
-# ==========================================================================================
+# SGP4 orbit propagator model.
 #
-#   SGP4 orbit propagator model.
+# This is a independent implementation of the algorithm presented in [1].
 #
-#   This is a independent implementation of the algorithm presented in [1].
+## References ##############################################################################
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# [1] Hoots, F. R., Roehrich, R. L (1980). Models for Propagation of NORAD Elements Set.
+#     Spacetrack Report No. 3.
 #
-# References
-# ==========================================================================================
+# [2] Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006). Revisiting Spacetrack
+#     Report #3: Rev1. AIAA.
 #
-#   [1] Hoots, F. R., Roehrich, R. L (1980). Models for Propagation of NORAD Elements Set.
-#       Spacetrack Report No. 3.
+# [3] SGP4 Source code of STRF: https://github.com/cbassa/strf
+#     The SGP4 C code available on STRF was converted by Paul. S. Crawford and Andrew R.
+#     Brooks.
 #
-#   [2] Vallado, D. A., Crawford, P., Hujsak, R., Kelso, T. S (2006). Revisiting Spacetrack
-#       Report #3: Rev1. AIAA.
-#
-#   [3] SGP4 Source code of STRF: https://github.com/cbassa/strf
-#       The SGP4 C code available on STRF was converted by Paul. S. Crawford and Andrew R.
-#       Brooks.
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+############################################################################################
 
 export sgp4c_wgs72, sgp4c_wgs84
 export sgp4c_wgs72_f32, sgp4c_wgs84_f32
 export sgp4_init, sgp4_init!, sgp4, sgp4!
 
 ############################################################################################
-#                                        Constants
+#                                        Constants                                         #
 ############################################################################################
-
 
 # WGS-84 / EGM-08 gravitational constants.
 const sgp4c_wgs84 = Sgp4Constants{Float64}(
@@ -68,7 +61,7 @@ const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
 )
 
 ############################################################################################
-#                                        Functions
+#                                        Functions                                         #
 ############################################################################################
 
 """
@@ -137,6 +130,7 @@ Initialize the SGP4 data structure `sgp4d` with the initial orbit specified by t
 arguments.
 
 !!! warning
+
     The propagation constants `sgp4c::Sgp4PropagatorConstants` in `sgp4d` will not be
     changed. Hence, they must be initialized.
 
@@ -192,8 +186,7 @@ function sgp4_init!(
     J3    = sgp4c.J3
     J4    = sgp4c.J4
 
-    # Constants
-    # ======================================================================================
+    # == Constants =========================================================================
     #
     # Note: [er] = Earth radii.
 
@@ -215,8 +208,7 @@ function sgp4_init!(
     # (q₀ - s)^4 [er]^4
     QOMS2T = (q₀ - s) * (q₀ - s) * (q₀ - s) * (q₀ - s)
 
-    # Auxiliary Variables to Improve the Performance
-    # ======================================================================================
+    # == Auxiliary Variables to Improve the Performance ====================================
 
     e₀² = T(e₀)^2
 
@@ -248,8 +240,7 @@ function sgp4_init!(
     all₀² = all₀  * all₀
     all₀⁴ = all₀² * all₀²
 
-    # Initialization
-    # ======================================================================================
+    # == Initialization ====================================================================
 
     # Compute the orbit perigee [ER].
     perigee = (all₀ * (1 - T(e₀)) - AE) * XKMPER
@@ -486,6 +477,7 @@ Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the 
 [min].
 
 !!! note
+
     The internal values in `sgp4d` will be modified.
 
 # Returns
@@ -568,8 +560,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Auxiliary variables to improve code performance.
     sin_i_k = sin_i₀
 
-    # Secular Effects of Atmospheric Drag and Gravitation
-    # ======================================================================================
+    # == Secular Effects of Atmospheric Drag and Gravitation ===============================
 
     M_k = M₀ + ∂M * Δt
     Ω_k = Ω₀ + ∂Ω * Δt - (21 // 2) * (nll₀ * k₂ * θ) / (all₀^2 * β₀^2) * C1 * Δt^2
@@ -642,8 +633,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     M_k_aux = rem(M_k_aux, T(2π))
     M_k     = rem(M_k_aux - ω_k - Ω_k, T(2π))
 
-    # Lunar-Solar Periodics for Deep Space Orbits
-    # ======================================================================================
+    # == Lunar-Solar Periodics for Deep Space Orbits =======================================
 
     # This is only necessary if we are using SDP4 algorithm.
     if algorithm === :sdp4
@@ -675,8 +665,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Compute the angular velocity [rad/min].
     n_k = XKE / √(a_k^3)
 
-    # Long-Period Periodic Term
-    # ======================================================================================
+    # == Long-Period Periodic Term =========================================================
 
     sin_ω_k, cos_ω_k = sincos(ω_k)
 
@@ -689,8 +678,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     IL_L  = (1 // 2) * a_yNL * a_xN * (3 + 5θ) / (1 + θ)
     IL_T  = IL + IL_L
 
-    # Solve Kepler's Equation for (E + ω)
-    # ======================================================================================
+    # == Solve Kepler's Equation for (E + ω) ===============================================
 
     U = rem(IL_T - Ω_k, T(2π))
 
@@ -718,8 +706,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         abs(ΔE_ω) < 1e-12 && break
     end
 
-    # Short-Term Periodic Terms
-    # ======================================================================================
+    # == Short-Term Periodic Terms =========================================================
 
     # Auxiliary variables.
     # NOTE: the sine and cosine of E + ω was already computed in the previous loop.
@@ -782,11 +769,10 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 end
 
 ############################################################################################
-#                                    Private Functions
+#                                    Private Functions                                     #
 ############################################################################################
 
-#                                   Deep Space Functions
-# ==========================================================================================
+# == Deep Space Functions ==================================================================
 
 """
     _dsinit!(sgp4ds::Sgp4DeepSpace{T}, args...) where {Tepoch<:Number, T<:Number} -> Nothing
@@ -900,8 +886,7 @@ function _dsinit!(
     iresfl = sgp4ds.iresfl
     ilsz   = sgp4ds.ilsz
 
-    #                                      Constants
-    # ======================================================================================
+    # == Constants =========================================================================
 
     ZNS    = T(1.19459E-5)
     C1SS   = T(2.9864797e-6)
@@ -928,8 +913,7 @@ function _dsinit!(
     ROOT54 = T(2.1765803e-9)
     THDT   = T(4.37526908801129966e-3)
 
-    #                                 Auxiliary Variables
-    # ======================================================================================
+    # == Auxiliary Variables ===============================================================
 
     e₀²        = e₀ * e₀
     sqrt_1_e₀² = √(1 - e₀²)
@@ -949,8 +933,7 @@ function _dsinit!(
     cos_i₀² = cos_i₀ * cos_i₀
     xpidot  = ∂ω + ∂Ω
 
-    #                                Initial Configuration
-    # ======================================================================================
+    # == Initial Configuration =============================================================
 
     # Drop terms if inclination is smaller than 3 deg.
     ishq = (i₀ >= 3π / 180) ? true : false
@@ -961,8 +944,7 @@ function _dsinit!(
     # Compute the Greenwich Mean Sidereal Time at epoch.
     gmst = T(jd_to_gmst(epoch))
 
-    #                             Initialize Lunar Solar Terms
-    # ======================================================================================
+    # == Initialize Lunar Solar Terms ======================================================
 
     # `day` is the number of days since Jan 0, 1900 at 12h.
     day = T(epoch - (_JD_1900 - 1))
@@ -986,8 +968,7 @@ function _dsinit!(
     zmol = mod(T(4.7199672) + T(0.22997150)  * day - gam, T(2π))
     zmos = mod(T(6.2565837) + T(0.017201977) * day,       T(2π))
 
-    #                                    Do Solar Terms
-    # ======================================================================================
+    # == Do Solar Terms ====================================================================
 
     zcosg = ZCOSGS
     zsing = ZSINGS
@@ -1070,8 +1051,7 @@ function _dsinit!(
 
         ls == 1 && break
 
-        #                                  Do Lunar Terms
-        # ==================================================================================
+        # == Do Lunar Terms ================================================================
 
         sse   = se
         ssi   = si
@@ -1109,8 +1089,7 @@ function _dsinit!(
     ssh += shdq
 
     if (nll₀ < T(0.0052359877)) && (nll₀ > T(0.0034906585))
-        #                  24h Synchronous Resonance Terms Initialization
-        # ==================================================================================
+        # == 24h Synchronous Resonance Terms Initialization ================================
 
         iresfl = true;
         isynfl = true;
@@ -1132,8 +1111,7 @@ function _dsinit!(
         bfact   = ∂M + xpidot - THDT + ssl + ssg + ssh
 
     elseif (nll₀ >= T(0.00826)) && (nll₀ <= T(0.00924)) && (e₀ >= T(0.5))
-        #             Geopotential Resonance Initialization for 12 Hour Orbits
-        # ==================================================================================
+        # == Geopotential Resonance Initialization for 12 Hour Orbits ======================
 
         iresfl = true
         isynfl = false
@@ -1214,16 +1192,14 @@ function _dsinit!(
         xlamo   = mod(M₀ + 2Ω₀ - 2gmst, T(2π))
         bfact   = ∂M + 2∂Ω - 2THDT + ssl + 2ssh
     else
-        #                               Non Resonant Orbits
-        # ==================================================================================
+        # == Non Resonant Orbits ===========================================================
 
         iresfl = false
         isynfl = false
     end
 
     if iresfl
-        #                            Initialize the Integrator
-        # ==================================================================================
+        # == Initialize the Integrator =====================================================
 
         xfact = bfact - nll₀
         xli   = xlamo
@@ -1232,8 +1208,7 @@ function _dsinit!(
         # TODO: Check if this variable can be removed from Sgp4DeepSpace.
         xni   = nll₀
 
-        # Compute the "dot" Terms
-        # ==================================================================================
+        # == Compute the "dot" Terms =======================================================
 
         if isynfl
             sin_1, cos_1 = sincos(  (xli - fasx2) )
@@ -1357,6 +1332,7 @@ end
 Compute the secular effects.
 
 !!! note
+
     The internal values in `sgp4ds` will be modified.
 
 # Arguments
@@ -1430,8 +1406,7 @@ function _dssec!(
     iresfl = sgp4ds.iresfl
     isynfl = sgp4ds.isynfl
 
-    #                                      Constants
-    # ======================================================================================
+    # == Constants =========================================================================
 
     STEP = T(720.0)
     G22  = T(5.7686396)
@@ -1441,8 +1416,7 @@ function _dssec!(
     G54  = T(4.4108898)
     THDT = T(4.37526908801129966e-3)
 
-    #                                    Initialization
-    # ======================================================================================
+    # == Initialization ====================================================================
 
     M_sec = M_k + ssl * Δt
     e_sec = e₀  + sse * Δt
@@ -1457,11 +1431,9 @@ function _dssec!(
     # If the orbit is not resonant, then nothing more should be computed.
     !iresfl && return nll₀, e_sec, i_sec, Ω_sec, ω_sec, M_sec
 
-    #           Update Resonances using Numerical (Euler-Maclaurin) Integration
-    # ======================================================================================
+    # == Update Resonances using Numerical (Euler-Maclaurin) Integration ===================
 
-    # Epoch restart
-    # --------------------------------------------------------------------------------------
+    # -- Epoch restart ---------------------------------------------------------------------
 
     # This verification is different between Vallado's [2] and [3]. We will use [2] since it
     # seems more recent.
@@ -1471,8 +1443,7 @@ function _dssec!(
         xli   = xlamo
     end
 
-    # Integration
-    # --------------------------------------------------------------------------------------
+    # -- Integration -----------------------------------------------------------------------
 
     ft = Δt - atime
 
@@ -1555,6 +1526,7 @@ end
 Compute the effects caused by Lunar-Solar periodics.
 
 !!! note
+
     The internal values in `sgp4ds` will be modified.
 
 # Arguments
@@ -1615,16 +1587,14 @@ function _dsper!(
     xh2  = sgp4ds.xh2
     xh3  = sgp4ds.xh3
 
-    #                                      Constants
-    # ======================================================================================
+    # == Constants =========================================================================
 
     ZNS  = T(1.19459E-5)
     ZES  = T(0.01675)
     ZNL  = T(1.5835218e-4)
     ZEL  = T(0.05490)
 
-    #                                  Update Solar Terms
-    # ======================================================================================
+    # == Update Solar Terms ================================================================
 
     zm = zmos +  ZNS * Δt
     zf = zm   + 2ZES * sin(zm)
@@ -1639,8 +1609,7 @@ function _dsper!(
     sghs = sgh2 * f2 + sgh3 * f3 + sgh4 * sinzf
     shs  = sh2  * f2 + sh3  * f3
 
-    #                                  Update Lunar Terms
-    # ======================================================================================
+    # == Update Lunar Terms ================================================================
 
     zm    = zmol +  ZNL * Δt
     zf    = zm   + 2ZEL * sin(zm)
@@ -1655,8 +1624,7 @@ function _dsper!(
     sghl = xgh2 * f2 + xgh3 * f3 + xgh4 * sinzf
     shl  = xh2  * f2 + xh3  * f3
 
-    #                                 Save Computed Values
-    # ======================================================================================
+    # == Save Computed Values ==============================================================
 
     pgh  = sghs + sghl
     ph   = shs  + shl
