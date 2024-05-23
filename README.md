@@ -8,6 +8,7 @@
 [![CI](https://github.com/JuliaSpace/SatelliteToolboxSgp4.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaSpace/SatelliteToolboxSgp4.jl/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/JuliaSpace/SatelliteToolboxSgp4.jl/branch/main/graph/badge.svg?token=480UYDX6H5)](https://codecov.io/gh/JuliaSpace/SatelliteToolboxSgp4.jl)
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
+[![DOI](https://zenodo.org/badge/621049698.svg)](https://zenodo.org/doi/10.5281/zenodo.11266935)
 
 This package contains the implementation of the
 [SGP4/SDP4](https://en.wikipedia.org/wiki/Simplified_perturbations_models) orbit propagator
