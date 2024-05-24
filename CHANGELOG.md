@@ -1,6 +1,11 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.1.4
+-------------
+
+- ![Enhancement][badge-enhancement] We reduced the allocations in function `fit_sgp4_tle!`.
+
 Version 2.1.3
 -------------
 
