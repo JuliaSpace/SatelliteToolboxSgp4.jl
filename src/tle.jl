@@ -425,9 +425,23 @@ function fit_sgp4_tle!(
         end
     else
         # In this case, we must find the closest osculating vector to the desired epoch.
-        ~, id = findmin(abs.(vjd .- mean_elements_epoch))
+        id = firstindex(vjd)
+        v  = abs(vjd[1] - mean_elements_epoch)
+
+        for k in eachindex(vjd)
+            vk = abs(vjd[k] - mean_elements_epoch)
+            if vk < v
+                id = k
+                v  = vk
+            end
+        end
+
         epoch = vjd[id]
-        x₁ = SVector{7, T}(vr_teme[id]..., vv_teme[id]..., estimate_bstar ? T(0.00001) : T(0))
+        x₁ = SVector{7, T}(
+            vr_teme[id]...,
+            vv_teme[id]...,
+            estimate_bstar ? T(0.00001) : T(0)
+        )
     end
 
     x₂ = x₁
@@ -435,21 +449,15 @@ function fit_sgp4_tle!(
     # Number of states in the input vector.
     num_states = 7
 
-    # Number of observations in each instant.
-    num_observations = 6
-
     # Covariance matrix.
     P = SMatrix{num_states, num_states, T}(I)
 
     # Variable to store the last residue.
-    σ_i_₁ = nothing
+    local σ_i_₁
 
     # Variable to store how many iterations the residue increased. This is used to account
     # for divergence.
     Δd = 0
-
-    # Allocate the Jacobian matrix.
-    J = zeros(T, num_observations, num_states)
 
     # Header.
     if verbose
@@ -461,10 +469,10 @@ function fit_sgp4_tle!(
 
     # We need a reference to the covariance inverse because we will invert it and return
     # after the iterations.
-    ΣJ′WJ = nothing
+    local ΣJ′WJ
 
     # Loop until the maximum allowed iteration.
-    @inbounds for it in 1:max_iterations
+    @inbounds @views for it in 1:max_iterations
         x₁ = x₂
 
         # Variables to store the summations to compute the least square fitting algorithm.
@@ -494,8 +502,7 @@ function fit_sgp4_tle!(
             b = y - ŷ
 
             # Compute the Jacobian inplace.
-            _sgp4_jacobian!(
-                J,
+            J = _sgp4_jacobian(
                 sgp4d,
                 Δt,
                 x₁,
@@ -504,14 +511,10 @@ function fit_sgp4_tle!(
                 perturbation_tol = jacobian_perturbation_tol
             )
 
-            # Convert the Jacobian matrix to a static matrix, leading to substantial
-            # performance gains in the following computation.
-            Js = SMatrix{num_observations, num_states, T}(J)
-
             # Accumulation.
-            ΣJ′WJ += Js' * W * Js
-            ΣJ′Wb += Js' * W * b
-            σ_i   += b'  * W * b
+            ΣJ′WJ += J' * W * J
+            ΣJ′Wb += J' * W * b
+            σ_i   += b' * W * b
             σp_i  += @views b[1:3]' * b[1:3]
             σv_i  += @views b[4:6]' * b[4:6]
         end
@@ -1040,11 +1043,10 @@ function _tle_to_mean_state_vector(
 end
 
 """
-    _sgp4_jacobian!(J::AbstractMatrix{T}, sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{8, T}, y₁::SVector{7, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> Nothing
+    _sgp4_jacobian(sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{8, T}, y₁::SVector{7, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
 
 Compute the SGP4 Jacobian by finite-differences using the propagator `sgp4d` at instant `Δt`
-considering the input mean elements `x₁` that must provide the output vector `y₁`. The
-result is written to the matrix `J`. Hence:
+considering the input mean elements `x₁` that must provide the output vector `y₁`. Hence:
 
         ∂sgp4(x, Δt) │
     J = ──────────── │
@@ -1060,8 +1062,7 @@ result is written to the matrix `J`. Hence:
     `perturbation_tol`.
     (**Default** = 1e-7)
 """
-function _sgp4_jacobian!(
-    J::AbstractMatrix{T},
+function _sgp4_jacobian(
     sgp4d::Sgp4Propagator{Tepoch, T},
     Δt::Number,
     x₁::SVector{7, T},
@@ -1070,13 +1071,13 @@ function _sgp4_jacobian!(
     perturbation_tol::Number = T(1e-7)
 ) where {T<:Number, Tepoch<:Number}
 
-    num_states = 7
-    dim_obs    = 6
+    # Allocate the `MMatrix` that will have the Jacobian.
+    J = MMatrix{6, 7, T}(undef)
 
     # Auxiliary variables.
     x₂ = x₁
 
-    @inbounds for j in 1:num_states
+    @inbounds for j in 1:7
         # State that will be perturbed.
         α = x₂[j]
 
@@ -1117,5 +1118,8 @@ function _sgp4_jacobian!(
         x₂ = setindex(x₂, x₁[j], j)
     end
 
-    return nothing
+    # Convert the Jacobian to a static matrix to avoid allocations.
+    Js = SMatrix{6, 7, T}(J)
+
+    return Js
 end
