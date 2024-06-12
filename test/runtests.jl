@@ -13,3 +13,7 @@ end
 @testset "SGP4 TLEs" verbose = true begin
     include("./tle.jl")
 end
+
+@testset "Copy Structures" verbose = true begin
+    include("./copy.jl")
+end

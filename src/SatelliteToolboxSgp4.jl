@@ -10,6 +10,8 @@ using SatelliteToolboxBase
 
 @reexport using SatelliteToolboxTle
 
+import Base: copy
+
 ############################################################################################
 #                                          Types                                           #
 ############################################################################################
@@ -32,6 +34,7 @@ const _Y = string(crayon"yellow bold")
 #                                         Includes                                         #
 ############################################################################################
 
+include("copy.jl")
 include("sgp4_model.jl")
 include("tle.jl")
 
