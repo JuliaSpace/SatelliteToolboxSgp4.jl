@@ -1,6 +1,11 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.2.0
+-------------
+
+- ![Feature][badge-feature] We implemented `copy` for all structures.
+
 Version 2.1.4
 -------------
 
