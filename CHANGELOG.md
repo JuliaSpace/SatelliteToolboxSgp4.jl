@@ -1,6 +1,12 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.3.0
+-------------
+
+- ![Info][badge-info] We dropped support for Julia 1.6. This version only supports the
+  current Julia version and v1.10 (LTS).
+
 Version 2.2.0
 -------------
 
