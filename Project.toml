@@ -3,7 +3,7 @@ uuid = "ba14ac17-bfc9-4710-a76f-b32930ef2339"
 license = "MIT"
 desc = "The SGP4/SDP4 orbit propagator for Julia."
 authors = ["Ronan Arraes Jardim Chagas <ronisbr@gmail.com>"]
-version = "2.2.0"
+version = "2.3.0"
 
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
