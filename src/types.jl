@@ -5,6 +5,23 @@
 ############################################################################################
 
 export Sgp4Constants, Sgp4Propagator
+export FiniteDiffJacobian, ForwardDiffJacobian
+
+"""
+    struct FiniteDiffJacobian
+
+Select the finite-difference Jacobian for SGP4 TLE fitting.
+"""
+struct FiniteDiffJacobian end
+
+"""
+    struct ForwardDiffJacobian
+
+Select the ForwardDiff automatic-differentiation Jacobian for SGP4 TLE fitting.
+"""
+struct ForwardDiffJacobian end
+
+const _JACOBIAN_METHOD = Union{FiniteDiffJacobian, ForwardDiffJacobian}
 
 """
     struct Sgp4Constants{T}

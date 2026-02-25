@@ -1,0 +1,8 @@
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+SatelliteToolboxSgp4 = "ba14ac17-bfc9-4710-a76f-b32930ef2339"
+SatelliteToolboxTle = "7ff27aeb-5fff-4337-a9ee-a9fe6b7ed35e"
+
+[sources]
+SatelliteToolboxSgp4 = {path = ".."}

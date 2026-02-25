@@ -2,6 +2,7 @@ module SatelliteToolboxSgp4
 
 using Crayons
 using Dates
+using ForwardDiff
 using LinearAlgebra
 using Reexport
 using Printf

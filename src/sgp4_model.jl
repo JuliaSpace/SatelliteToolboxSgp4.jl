@@ -22,6 +22,7 @@ export sgp4c_wgs72, sgp4c_wgs84
 export sgp4c_wgs72_f32, sgp4c_wgs84_f32
 export sgp4_init, sgp4_init!, sgp4, sgp4!
 
+
 ############################################################################################
 #                                        Constants                                         #
 ############################################################################################
@@ -113,10 +114,14 @@ function sgp4_init(
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where {Tepoch<:Number, T<:Number}
-    # We must initialize the SGP4 propagator structure together with any mutable fields.
-    sgp4d = Sgp4Propagator{Tepoch, T}()
-    sgp4d.sgp4c = sgp4c
-    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
+    Tprom = promote_type(
+        T, typeof(n₀), typeof(e₀), typeof(i₀),
+        typeof(Ω₀), typeof(ω₀), typeof(M₀), typeof(bstar)
+    )
+
+    sgp4d = Sgp4Propagator{Tepoch, Tprom}()
+    sgp4d.sgp4c = Sgp4Constants{Tprom}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+    sgp4d.sgp4ds = Sgp4DeepSpace{Tprom}()
 
     sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
     return sgp4d
@@ -167,16 +172,18 @@ function sgp4_init!(
 end
 
 function sgp4_init!(
-    sgp4d::Sgp4Propagator{Tepoch, T},
-    epoch::Number,
-    n₀::Number,
-    e₀::Number,
-    i₀::Number,
-    Ω₀::Number,
-    ω₀::Number,
-    M₀::Number,
-    bstar::Number
-) where {Tepoch<:Number, T<:Number}
+    sgp4d::Sgp4Propagator{Tepoch, ST},
+    epoch::EpT,
+    n₀::NT,
+    e₀::ET,
+    i₀::IT,
+    Ω₀::OT,
+    ω₀::WT,
+    M₀::MT,
+    bstar::BT
+) where {Tepoch<:Number, EpT<:Number, NT<:Number, ET<:Number, IT<:Number, OT<:Number, WT<:Number, MT<:Number, BT<:Number, ST<:Number}
+
+    T = promote_type(EpT, NT, ET, IT, OT, WT, MT, BT, ST)
 
     # Unpack the gravitational constants to improve code readability.
     sgp4c = sgp4d.sgp4c
@@ -465,7 +472,13 @@ function sgp4(
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where {Tepoch<:Number, T<:Number}
-    sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c = sgp4c)
+    Tprom = promote_type(
+        T, typeof(Δt), typeof(n₀), typeof(e₀), typeof(i₀),
+        typeof(Ω₀), typeof(ω₀), typeof(M₀), typeof(bstar)
+    )
+    sgp4c_p = Sgp4Constants{Tprom}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+
+    sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c = sgp4c_p)
     r_teme, v_teme = sgp4!(sgp4d, Δt)
     return r_teme, v_teme, sgp4d
 end
@@ -628,10 +641,10 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # TODO: Vallado's implementation [2] apply this normalization to the mean anomaly. It is
     # necessary to verify the reason for that.
     M_k_aux = M_k + ω_k + Ω_k
-    Ω_k     = rem(Ω_k, T(2π))
-    ω_k     = rem(ω_k, T(2π))
-    M_k_aux = rem(M_k_aux, T(2π))
-    M_k     = rem(M_k_aux - ω_k - Ω_k, T(2π))
+    Ω_k     = rem2pi(Ω_k, RoundNearest)
+    ω_k     = rem2pi(ω_k, RoundNearest)
+    M_k_aux = rem2pi(M_k_aux, RoundNearest)
+    M_k     = rem2pi(M_k_aux - ω_k - Ω_k, RoundNearest)
 
     # == Lunar-Solar Periodics for Deep Space Orbits =======================================
 
@@ -680,7 +693,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
     # == Solve Kepler's Equation for (E + ω) ===============================================
 
-    U = rem(IL_T - Ω_k, T(2π))
+    U = rem2pi(IL_T - Ω_k, RoundNearest)
 
     E_ω = U
 
@@ -798,19 +811,21 @@ functions `_dsper!` and `_dssec!`.
 - `∂Ω::T`: Time-derivative of the RAAN [rad/min].
 """
 function _dsinit!(
-    sgp4ds::Sgp4DeepSpace{T},
+    sgp4ds::Sgp4DeepSpace{ST},
     epoch::Tepoch,
-    nll₀::T,
-    all₀::T,
-    e₀::T,
-    i₀::T,
-    Ω₀::T,
-    ω₀::T,
-    M₀::T,
-    ∂M::T,
-    ∂ω::T,
-    ∂Ω::T
-) where {Tepoch<:Number, T<:Number}
+    nll₀::NT,
+    all₀::AT,
+    e₀::ET,
+    i₀::IT,
+    Ω₀::OT,
+    ω₀::WT,
+    M₀::MT,
+    ∂M::MT,
+    ∂ω::WT,
+    ∂Ω::OT
+) where {Tepoch<:Number, NT<:Number, AT<:Number, ET<:Number, IT<:Number, OT<:Number, WT<:Number, MT<:Number, ST<:Number}
+
+    T = promote_type(Tepoch, NT, AT, ET, IT, OT, WT, MT, ST)
 
     # Unpack variables.
     atime  = sgp4ds.atime
