@@ -18,10 +18,7 @@ end
     include("./copy.jl")
 end
 
-
 if isempty(VERSION.prerelease)
-    # Add Mooncake and Enzyme to the project if not the nightly version
-    # Adding them via the Project.toml isn't working because it tries to compile them before reaching the gating
     using Pkg
 
     Pkg.add("JET")
@@ -35,6 +32,15 @@ if isempty(VERSION.prerelease)
     @testset "Performance Tests" verbose = true begin
         include("./performance.jl")
     end
+
+
+    Pkg.add("Lux")
+    Pkg.add("Optimisers")
+    Pkg.add("Zygote")
+
+    @testset "Lux Extension (ML-∂SGP4)" verbose = true begin
+        include("./extension.jl")
+    end
 else
-    @warn "Performance checks not guaranteed to work on julia-nightly, skipping tests"
+    @warn "Performance checks and extensions not guaranteed to work on julia-nightly, skipping tests"
 end
