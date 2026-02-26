@@ -36,7 +36,7 @@ import SatelliteToolboxSgp4: ml_dsgp4_init, ml_dsgp4, ml_dsgp4!, ml_dsgp4_train,
 # ==========================================================================================
 
 """
-    MLdSGP4Model{M, Ps, St, Tα<:Number, Tβ<:Number}
+    MLdSGP4Model{C<:MLdSGP4Config, M, Ps, St, Tα<:Number, Tβ<:Number}
 
 Trained correction weights for ML-∂SGP4.  Analogous to `Sgp4Constants`: this holds the
 learned parameters that define **how** corrections are applied, independent of any specific
@@ -46,8 +46,8 @@ Created by [`ml_dsgp4_train`](@ref), saved/loaded by [`ml_dsgp4_save`](@ref) /
 [`ml_dsgp4_load`](@ref), and passed as a keyword to [`ml_dsgp4_init`](@ref) and
 [`ml_dsgp4`](@ref).
 """
-struct MLdSGP4Model{M, Ps, St, Tα<:Number, Tβ<:Number}
-    config::MLdSGP4Config
+struct MLdSGP4Model{C<:MLdSGP4Config, M, Ps, St, Tα<:Number, Tβ<:Number}
+    config::C
     input_net::M
     output_net::M
     input_ps::Ps
@@ -59,20 +59,27 @@ struct MLdSGP4Model{M, Ps, St, Tα<:Number, Tβ<:Number}
 end
 
 """
-    MLdSGP4{M, Ps, St, Tα<:Number, Tβ<:Number}
+    MLdSGP4{C<:MLdSGP4Config, M, Ps, St, SPs, Tα<:Number, Tβ<:Number}
 
 ML-corrected SGP4 propagator.  Analogous to `Sgp4Propagator`: this bundles a trained
 [`MLdSGP4Model`](@ref) together with TLE-specific orbital data and an embedded
 `Sgp4Propagator` workspace.
 
+At construction time the Lux parameters are converted to `SMatrix`/`SVector` so that the
+forward pass through the Lux `Chain` is entirely stack-allocated and allocation-free.
+
 Created by [`ml_dsgp4_init`](@ref), propagated by [`ml_dsgp4!`](@ref).
 """
-struct MLdSGP4{M, Ps, St, Tα<:Number, Tβ<:Number}
-    model::MLdSGP4Model{M, Ps, St, Tα, Tβ}
-    tle_elements::Vector{Float64}
-    bstar::Float64
-    epoch::Float64
-    sgp4d::Sgp4Propagator{Float64, Float64}
+struct MLdSGP4{C<:MLdSGP4Config, TT<:Number, BT<:Number, ET<:Number, SgT<:Number, SgT2<:Number, M, Ps, St, SPs, Tα<:Number, Tβ<:Number}
+    model::MLdSGP4Model{C, M, Ps, St, Tα, Tβ}
+    tle_elements::SVector{6, TT}
+    bstar::BT
+    epoch::ET
+    sgp4d::Sgp4Propagator{SgT, SgT2}
+    input_ps::SPs
+    output_ps::SPs
+    α::SVector{6, Tα}
+    β::SVector{6, Tβ}
 end
 
 # ==========================================================================================
@@ -108,6 +115,15 @@ function _new_sgp4_workspace()
     sgp4d.sgp4ds = SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}()
     return sgp4d
 end
+
+function _staticify_dense_params(lp)
+    w = lp.weight
+    b = lp.bias
+    M, N = size(w)
+    return (weight = SMatrix{M, N}(w), bias = SVector{M}(b))
+end
+
+_staticify_params(ps) = map(_staticify_dense_params, ps)
 
 function _setup_model(config::MLdSGP4Config)
     rng = Random.default_rng()
@@ -170,8 +186,18 @@ When `model` is omitted a zero-correction model is used, so the propagator behav
 identically to plain SGP4.
 """
 function ml_dsgp4_init(tle::TLE; model::MLdSGP4Model = _zero_model())
-    tle_elements, bstar, epoch = _extract_tle_elements(tle)
-    return MLdSGP4(model, tle_elements, bstar, epoch, _new_sgp4_workspace())
+    tle_vec, bstar, epoch = _extract_tle_elements(tle)
+    return MLdSGP4(
+        model,
+        SVector{6}(tle_vec),
+        bstar,
+        epoch,
+        _new_sgp4_workspace(),
+        _staticify_params(model.input_ps),
+        _staticify_params(model.output_ps),
+        SVector{6}(model.α),
+        SVector{6}(model.β),
+    )
 end
 
 # ==========================================================================================
@@ -181,32 +207,43 @@ end
 function _ml_dsgp4_forward(mlsgp4d::MLdSGP4, Δt::Number)
     m   = mlsgp4d.model
     x   = mlsgp4d.tle_elements
-    cfg = m.config
+    α   = mlsgp4d.α
+    β   = mlsgp4d.β
+    nR  = m.config.normalization_R
+    nV  = m.config.normalization_V
 
-    nn_in, _ = m.input_net(x, m.input_ps, m.input_st)
-    δ_in  = m.α .* tanh.(nn_in)
-    x_corr = x .* (1 .+ δ_in)
+    nn_in, _ = m.input_net(x, mlsgp4d.input_ps, m.input_st)
 
-    # x_corr layout: [e₀, ω₀, i₀, M₀, n₀, Ω₀]
+    x_corr = SVector{6}(
+        x[1] * (1 + α[1] * tanh(nn_in[1])),
+        x[2] * (1 + α[2] * tanh(nn_in[2])),
+        x[3] * (1 + α[3] * tanh(nn_in[3])),
+        x[4] * (1 + α[4] * tanh(nn_in[4])),
+        x[5] * (1 + α[5] * tanh(nn_in[5])),
+        x[6] * (1 + α[6] * tanh(nn_in[6])),
+    )
+
     sgp4_init!(mlsgp4d.sgp4d, mlsgp4d.epoch, x_corr[5], x_corr[1], x_corr[3],
                x_corr[6], x_corr[2], x_corr[4], mlsgp4d.bstar)
     r_teme, v_teme = sgp4!(mlsgp4d.sgp4d, Δt)
 
-    y_norm = vcat(
-        collect(r_teme) ./ cfg.normalization_R,
-        collect(v_teme) ./ cfg.normalization_V,
+    y_norm = SVector{6}(
+        r_teme[1] / nR, r_teme[2] / nR, r_teme[3] / nR,
+        v_teme[1] / nV, v_teme[2] / nV, v_teme[3] / nV,
     )
 
-    nn_out, _ = m.output_net(y_norm, m.output_ps, m.output_st)
-    δ_out  = m.β .* tanh.(nn_out)
-    y_corr = y_norm .* (1 .+ δ_out)
+    nn_out, _ = m.output_net(y_norm, mlsgp4d.output_ps, m.output_st)
 
-    r = SVector{3}(y_corr[1] * cfg.normalization_R,
-                    y_corr[2] * cfg.normalization_R,
-                    y_corr[3] * cfg.normalization_R)
-    v = SVector{3}(y_corr[4] * cfg.normalization_V,
-                    y_corr[5] * cfg.normalization_V,
-                    y_corr[6] * cfg.normalization_V)
+    r = SVector{3}(
+        y_norm[1] * (1 + β[1] * tanh(nn_out[1])) * nR,
+        y_norm[2] * (1 + β[2] * tanh(nn_out[2])) * nR,
+        y_norm[3] * (1 + β[3] * tanh(nn_out[3])) * nR,
+    )
+    v = SVector{3}(
+        y_norm[4] * (1 + β[4] * tanh(nn_out[4])) * nV,
+        y_norm[5] * (1 + β[5] * tanh(nn_out[5])) * nV,
+        y_norm[6] * (1 + β[6] * tanh(nn_out[6])) * nV,
+    )
 
     return r, v
 end
@@ -384,7 +421,17 @@ function ml_dsgp4_train(
                 ps.input, ps.output, st.input, st.output,
                 ps.α, ps.β,
             )
-            eval_prop = MLdSGP4(eval_mdl, tle_elements, bstar_val, epoch_jd, sgp4d)
+            eval_prop = MLdSGP4(
+                eval_mdl,
+                SVector{6}(tle_elements),
+                bstar_val,
+                epoch_jd,
+                sgp4d,
+                _staticify_params(ps.input),
+                _staticify_params(ps.output),
+                SVector{6}(ps.α),
+                SVector{6}(ps.β),
+            )
             pos_sse = 0.0
             vel_sse = 0.0
             for k in 1:N

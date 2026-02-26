@@ -12,20 +12,21 @@ ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SatelliteToolboxBase = "9e17983a-0463-41a7-9a16-1682db6d8b66"
 SatelliteToolboxTle = "7ff27aeb-5fff-4337-a9ee-a9fe6b7ed35e"
-Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 
 [weakdeps]
 Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
 Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [extensions]
-SatelliteToolboxSgp4LuxExt = ["Lux", "Optimisers", "Zygote"]
+SatelliteToolboxSgp4LuxExt = ["Lux", "Optimisers", "Random", "Serialization", "Zygote"]
 
 [compat]
 Crayons = "4"

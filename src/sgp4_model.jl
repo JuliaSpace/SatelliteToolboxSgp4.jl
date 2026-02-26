@@ -641,10 +641,10 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # TODO: Vallado's implementation [2] apply this normalization to the mean anomaly. It is
     # necessary to verify the reason for that.
     M_k_aux = M_k + ω_k + Ω_k
-    Ω_k     = rem2pi(Ω_k, RoundNearest)
-    ω_k     = rem2pi(ω_k, RoundNearest)
-    M_k_aux = rem2pi(M_k_aux, RoundNearest)
-    M_k     = rem2pi(M_k_aux - ω_k - Ω_k, RoundNearest)
+    Ω_k     = rem2pi(Ω_k, RoundToZero)
+    ω_k     = rem2pi(ω_k, RoundToZero)
+    M_k_aux = rem2pi(M_k_aux, RoundToZero)
+    M_k     = rem2pi(M_k_aux - ω_k - Ω_k, RoundToZero)
 
     # == Lunar-Solar Periodics for Deep Space Orbits =======================================
 
@@ -693,7 +693,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
     # == Solve Kepler's Equation for (E + ω) ===============================================
 
-    U = rem2pi(IL_T - Ω_k, RoundNearest)
+    U = mod(IL_T - Ω_k, T(2π))
 
     E_ω = U
 
