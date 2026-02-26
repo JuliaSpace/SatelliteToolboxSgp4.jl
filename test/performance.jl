@@ -51,7 +51,6 @@ end
     ) == 0
 
     # -- TLE Fitting: _sgp4_jacobian (FiniteDiffJacobian) ----------------------------------
-    # The MMatrix{6, 7} scratch buffer is the sole expected allocation source.
 
     @test length(
         check_allocs(
@@ -65,8 +64,6 @@ end
     ) == 0
 
     # -- TLE Fitting: _sgp4_fwd_jacobian_eval ----------------------------------------------
-    # With a pre-allocated Dual-typed propagator, the ForwardDiff Jacobian evaluation is
-    # allocation-free — matching the FiniteDiff path (minus the MMatrix scratch buffer).
 
     _D = ForwardDiff.Dual{ForwardDiff.Tag{Nothing, Float64}, Float64, 7}
 
@@ -78,4 +75,60 @@ end
             (Sgp4Propagator{Float64, _D}, Float64, Float64, SVector{7, Float64})
         )
     ) == 0
+
+    # -- TLE Fitting: _sgp4_jacobian (ForwardDiffJacobian) with pre-allocated propagator -----
+
+    @test length(
+        check_allocs(
+            (sgp4d, sgp4d_ad, Δt, x₁, y₁) -> begin
+                SatelliteToolboxSgp4._sgp4_jacobian(
+                    ForwardDiffJacobian(), sgp4d, Δt, x₁, y₁;
+                    sgp4d_ad = sgp4d_ad
+                )
+            end,
+            (Sgp4Propagator{Float64, Float64}, Sgp4Propagator{Float64, _D}, Float64, SVector{7, Float64}, SVector{6, Float64})
+        )
+    ) == 0
+
+    # -- TLE Fitting: fit_sgp4_tle! (FiniteDiffJacobian) -----------------------------------
+    # fit_sgp4_tle! inherently allocates (TLE construction has String fields, pinv, @printf,
+    # error paths, color-code strings). We use a regression bound here.
+
+    @test length(
+        check_allocs(
+            (sgp4d, vjd, vr_teme, vv_teme) -> begin
+                fit_sgp4_tle!(
+                    sgp4d, vjd, vr_teme, vv_teme;
+                    jacobian_method = FiniteDiffJacobian(),
+                    verbose = false,
+                )
+            end,
+            (
+                Sgp4Propagator{Float64, Float64},
+                Vector{Float64},
+                Vector{SVector{3, Float64}},
+                Vector{SVector{3, Float64}},
+            )
+        )
+    ) <= 45
+
+    # -- TLE Fitting: fit_sgp4_tle! (ForwardDiffJacobian) ----------------------------------
+
+    @test length(
+        check_allocs(
+            (sgp4d, vjd, vr_teme, vv_teme) -> begin
+                fit_sgp4_tle!(
+                    sgp4d, vjd, vr_teme, vv_teme;
+                    jacobian_method = ForwardDiffJacobian(),
+                    verbose = false,
+                )
+            end,
+            (
+                Sgp4Propagator{Float64, Float64},
+                Vector{Float64},
+                Vector{SVector{3, Float64}},
+                Vector{SVector{3, Float64}},
+            )
+        )
+    ) <= 47
 end
