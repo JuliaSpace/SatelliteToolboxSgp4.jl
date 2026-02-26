@@ -17,3 +17,24 @@ end
 @testset "Copy Structures" verbose = true begin
     include("./copy.jl")
 end
+
+
+if isempty(VERSION.prerelease)
+    # Add Mooncake and Enzyme to the project if not the nightly version
+    # Adding them via the Project.toml isn't working because it tries to compile them before reaching the gating
+    using Pkg
+
+    Pkg.add("JET")
+    Pkg.add("AllocCheck")
+    Pkg.add("Aqua")
+
+    using JET
+    using AllocCheck
+    using Aqua
+    
+    @testset "Performance Tests" verbose = true begin
+        include("./performance.jl")
+    end
+else
+    @warn "Performance checks not guaranteed to work on julia-nightly, skipping tests"
+end
