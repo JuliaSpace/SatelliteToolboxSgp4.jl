@@ -105,6 +105,30 @@ end
 
 function sgp4_init(
     epoch::Tepoch,
+    n₀::N,
+    e₀::E,
+    i₀::I,
+    Ω₀::O,
+    ω₀::W,
+    M₀::M,
+    bstar::B;
+    sgp4c::Sgp4Constants{T} = sgp4c_wgs84
+) where {
+    Tepoch<:Number,
+    N<:AbstractFloat, E<:AbstractFloat, I<:AbstractFloat,
+    O<:AbstractFloat, W<:AbstractFloat, M<:AbstractFloat, B<:AbstractFloat,
+    T<:Number
+}
+    sgp4d = Sgp4Propagator{Tepoch, T}()
+    sgp4d.sgp4c = Sgp4Constants{T}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
+
+    sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
+    return sgp4d
+end
+
+function sgp4_init(
+    epoch::Tepoch,
     n₀::Number,
     e₀::Number,
     i₀::Number,
@@ -183,7 +207,7 @@ function sgp4_init!(
     bstar::BT
 ) where {Tepoch<:Number, EpT<:Number, NT<:Number, ET<:Number, IT<:Number, OT<:Number, WT<:Number, MT<:Number, BT<:Number, ST<:Number}
 
-    T = promote_type(EpT, NT, ET, IT, OT, WT, MT, BT, ST)
+    T = ST
 
     # Unpack the gravitational constants to improve code readability.
     sgp4c = sgp4d.sgp4c
@@ -458,6 +482,28 @@ function sgp4(Δt::Number, tle::TLE; sgp4c::Sgp4Constants{T} = sgp4c_wgs84) wher
         tle.bstar;
         sgp4c = sgp4c
     )
+end
+
+function sgp4(
+    Δt::D,
+    epoch::Tepoch,
+    n₀::N,
+    e₀::E,
+    i₀::I,
+    Ω₀::O,
+    ω₀::W,
+    M₀::M,
+    bstar::B;
+    sgp4c::Sgp4Constants{T} = sgp4c_wgs84
+) where {
+    Tepoch<:Number,
+    D<:AbstractFloat, N<:AbstractFloat, E<:AbstractFloat, I<:AbstractFloat,
+    O<:AbstractFloat, W<:AbstractFloat, M<:AbstractFloat, B<:AbstractFloat,
+    T<:Number
+}
+    sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c)
+    r_teme, v_teme = sgp4!(sgp4d, Δt)
+    return r_teme, v_teme, sgp4d
 end
 
 function sgp4(
@@ -825,7 +871,7 @@ function _dsinit!(
     ∂Ω::OT
 ) where {Tepoch<:Number, NT<:Number, AT<:Number, ET<:Number, IT<:Number, OT<:Number, WT<:Number, MT<:Number, ST<:Number}
 
-    T = promote_type(Tepoch, NT, AT, ET, IT, OT, WT, MT, ST)
+    T = ST
 
     # Unpack variables.
     atime  = sgp4ds.atime

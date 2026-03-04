@@ -137,23 +137,23 @@ function _build_network(config::MLdSGP4Config)
     return Chain(layers...)
 end
 
-function _extract_tle_elements(tle::TLE)
-    d2r = π / 180
-    n₀ = Float64(tle.mean_motion) * (2π / 1440)
-    e₀ = Float64(tle.eccentricity)
-    i₀ = Float64(tle.inclination) * d2r
-    Ω₀ = Float64(tle.raan) * d2r
-    ω₀ = Float64(tle.argument_of_perigee) * d2r
-    M₀ = Float64(tle.mean_anomaly) * d2r
-    bstar = Float64(tle.bstar)
+function _extract_tle_elements(tle::TLE, ::Type{T} = Float64) where {T<:AbstractFloat}
+    d2r = T(π / 180)
+    n₀ = T(tle.mean_motion) * T(2π / 1440)
+    e₀ = T(tle.eccentricity)
+    i₀ = T(tle.inclination) * d2r
+    Ω₀ = T(tle.raan) * d2r
+    ω₀ = T(tle.argument_of_perigee) * d2r
+    M₀ = T(tle.mean_anomaly) * d2r
+    bstar = T(tle.bstar)
     epoch = Float64(tle_epoch(tle))
-    return [e₀, ω₀, i₀, M₀, n₀, Ω₀], bstar, epoch
+    return T[e₀, ω₀, i₀, M₀, n₀, Ω₀], bstar, epoch
 end
 
-function _new_sgp4_workspace()
-    sgp4d = Sgp4Propagator{Float64, Float64}()
-    sgp4d.sgp4c  = sgp4c_wgs84
-    sgp4d.sgp4ds = SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}()
+function _new_sgp4_workspace(::Type{T} = Float64, sgp4c::Sgp4Constants{T} = sgp4c_wgs84) where {T<:Number}
+    sgp4d = Sgp4Propagator{Float64, T}()
+    sgp4d.sgp4c  = sgp4c
+    sgp4d.sgp4ds = SatelliteToolboxSgp4.Sgp4DeepSpace{T}()
     return sgp4d
 end
 
@@ -176,7 +176,7 @@ end
 
 _nn_forward(x, ps) = _apply_chain(x, values(ps))
 
-function _setup_model(config::MLdSGP4Config)
+function _setup_model(config::MLdSGP4Config, ::Type{T} = Float64) where {T<:AbstractFloat}
     rng = Random.default_rng()
 
     input_net  = _build_network(config)
@@ -185,21 +185,21 @@ function _setup_model(config::MLdSGP4Config)
     input_ps, input_st   = Lux.setup(rng, input_net)
     output_ps, output_st = Lux.setup(rng, output_net)
 
-    input_ps  = Lux.f64(input_ps)
-    output_ps = Lux.f64(output_ps)
-    input_st  = Lux.f64(input_st)
-    output_st = Lux.f64(output_st)
+    _luxfp = T === Float32 ? Lux.f32 : Lux.f64
+    input_ps  = _luxfp(input_ps)
+    output_ps = _luxfp(output_ps)
+    input_st  = _luxfp(input_st)
+    output_st = _luxfp(output_st)
 
     return input_net, output_net, input_ps, output_ps, input_st, output_st
 end
 
-# Random init with nonzero α/β — suitable starting point for training.
-function _create_model(config::MLdSGP4Config)
+function _create_model(config::MLdSGP4Config, ::Type{T} = Float64) where {T<:AbstractFloat}
     input_net, output_net, input_ps, output_ps, input_st, output_st =
-        _setup_model(config)
+        _setup_model(config, T)
 
-    α = fill(Float64(config.input_correction), 6)
-    β = fill(Float64(config.output_correction), 6)
+    α = fill(T(config.input_correction), 6)
+    β = fill(T(config.output_correction), 6)
 
     return MLdSGP4Model(
         config, input_net, output_net,
@@ -208,15 +208,14 @@ function _create_model(config::MLdSGP4Config)
     )
 end
 
-# Zero α/β — corrections vanish so ML-∂SGP4 behaves identically to plain SGP4.
-function _zero_model(config::MLdSGP4Config = MLdSGP4Config())
+function _zero_model(config::MLdSGP4Config = MLdSGP4Config(), ::Type{T} = Float64) where {T<:AbstractFloat}
     input_net, output_net, input_ps, output_ps, input_st, output_st =
-        _setup_model(config)
+        _setup_model(config, T)
 
     return MLdSGP4Model(
         config, input_net, output_net,
         input_ps, output_ps, input_st, output_st,
-        zeros(Float64, 6), zeros(Float64, 6),
+        zeros(T, 6), zeros(T, 6),
     )
 end
 
@@ -227,7 +226,7 @@ const _DEFAULT_FROZEN_ZERO_MODEL = freeze(_zero_model())
 # ==========================================================================================
 
 """
-    ml_dsgp4_init(tle::TLE; model::MLdSGP4Model = _zero_model()) -> MLdSGP4
+    ml_dsgp4_init(tle::TLE; model, sgp4c) -> MLdSGP4
 
 Create and initialize an ML-corrected SGP4 propagator from a TLE.
 
@@ -237,19 +236,33 @@ ML equivalent of `sgp4c` — it provides the learned correction parameters.
 
 When `model` is omitted a zero-correction model is used, so the propagator behaves
 identically to plain SGP4.
+
+The computation type is determined by `sgp4c`.  Pass `sgp4c_wgs84_f32` for Float32.
+
+# Keywords
+
+- `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see `Sgp4Constants`).
+    (**Default** = `sgp4c_wgs84`)
+- `model::MLdSGP4Model`: Trained ML correction weights.
+    (**Default** = zero-correction model matching the precision of `sgp4c`)
 """
-function ml_dsgp4_init(tle::TLE; model::MLdSGP4Model = _zero_model())
-    tle_vec, bstar, epoch = _extract_tle_elements(tle)
+function ml_dsgp4_init(
+    tle::TLE;
+    sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
+    model::Union{MLdSGP4Model, Nothing} = nothing,
+) where {T<:Number}
+    mdl = isnothing(model) ? _zero_model(MLdSGP4Config(), T) : model
+    tle_vec, bstar, epoch = _extract_tle_elements(tle, T)
     return MLdSGP4(
-        model,
+        mdl,
         SVector{6}(tle_vec),
         bstar,
         epoch,
-        _new_sgp4_workspace(),
-        _staticify_params(model.input_ps),
-        _staticify_params(model.output_ps),
-        SVector{6}(model.α),
-        SVector{6}(model.β),
+        _new_sgp4_workspace(T, sgp4c),
+        _staticify_params(mdl.input_ps),
+        _staticify_params(mdl.output_ps),
+        SVector{6}(mdl.α),
+        SVector{6}(mdl.β),
     )
 end
 
@@ -262,8 +275,9 @@ function _ml_dsgp4_forward(mlsgp4d::MLdSGP4, Δt::Number)
     x   = mlsgp4d.tle_elements
     α   = mlsgp4d.α
     β   = mlsgp4d.β
-    nR  = m.config.normalization_R
-    nV  = m.config.normalization_V
+    Tx  = eltype(x)
+    nR  = Tx(m.config.normalization_R)
+    nV  = Tx(m.config.normalization_V)
 
     nn_in, _ = m.input_net(x, mlsgp4d.input_ps, m.input_st)
 
@@ -322,7 +336,7 @@ function ml_dsgp4!(mlsgp4d::MLdSGP4, Δt::Number)
 end
 
 """
-    ml_dsgp4(Δt::Number, tle::TLE; model::MLdSGP4Model = _zero_model()) -> (r_teme, v_teme, mlsgp4d)
+    ml_dsgp4(Δt::Number, tle::TLE; model, sgp4c) -> (r_teme, v_teme, mlsgp4d)
 
 Initialize an ML-corrected SGP4 propagator and propagate to time `Δt` [min].
 
@@ -330,12 +344,12 @@ Mirrors `sgp4(Δt, tle; sgp4c=...)`.
 
 # Returns
 
-- `SVector{3, Float64}`: Position vector [km] in the TEME frame.
-- `SVector{3, Float64}`: Velocity vector [km/s] in the TEME frame.
+- `SVector{3}`: Position vector [km] in the TEME frame.
+- `SVector{3}`: Velocity vector [km/s] in the TEME frame.
 - `MLdSGP4`: The initialized propagator (can be reused with `ml_dsgp4!`).
 """
-function ml_dsgp4(Δt::Number, tle::TLE; model::MLdSGP4Model = _zero_model())
-    mlsgp4d = ml_dsgp4_init(tle; model = model)
+function ml_dsgp4(Δt::Number, tle::TLE; kwargs...)
+    mlsgp4d = ml_dsgp4_init(tle; kwargs...)
     r_teme, v_teme = ml_dsgp4!(mlsgp4d, Δt)
     return r_teme, v_teme, mlsgp4d
 end
