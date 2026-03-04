@@ -13,7 +13,7 @@ import Serialization: serialize, deserialize
 using StaticArrays
 
 import SatelliteToolboxSgp4: ml_dsgp4_init, ml_dsgp4, ml_dsgp4!, ml_dsgp4_train,
-                              ml_dsgp4_save, ml_dsgp4_load
+                              ml_dsgp4_save, ml_dsgp4_load, freeze
 
 # ==========================================================================================
 #                                         Types
@@ -82,6 +82,47 @@ struct MLdSGP4{C<:MLdSGP4Config, TT<:Number, BT<:Number, ET<:Number, SgT<:Number
     β::SVector{6, Tβ}
 end
 
+"""
+    MLdSGP4FrozenModel{C, M, SPs, St, Tα, Tβ}
+
+Fully-immutable snapshot of an [`MLdSGP4Model`](@ref) suitable for AD.
+
+All `Matrix`/`Vector` weight parameters are converted to `SMatrix`/`SVector`, and
+`α`/`β` become `SVector{6}`.  This guarantees that Enzyme (and any other AD backend)
+never encounters mutable array references in function arguments.
+
+Obtain via [`freeze`](@ref).
+"""
+struct MLdSGP4FrozenModel{C<:MLdSGP4Config, M, SPs, St, Tα<:Number, Tβ<:Number}
+    config::C
+    input_net::M
+    output_net::M
+    input_ps::SPs
+    output_ps::SPs
+    input_st::St
+    output_st::St
+    α::SVector{6, Tα}
+    β::SVector{6, Tβ}
+end
+
+"""
+    freeze(model::MLdSGP4Model) -> MLdSGP4FrozenModel
+
+Convert an `MLdSGP4Model` into a fully-immutable `MLdSGP4FrozenModel` by staticifying
+all Lux weight matrices and converting `α`/`β` to `SVector`.
+"""
+function freeze(model::MLdSGP4Model)
+    return MLdSGP4FrozenModel(
+        model.config,
+        model.input_net, model.output_net,
+        model.input_ps, model.output_ps,
+        model.input_st, model.output_st,
+        SVector{6}(model.α), SVector{6}(model.β),
+    )
+end
+
+freeze(model::MLdSGP4FrozenModel) = model
+
 # ==========================================================================================
 #                                    Internal helpers
 # ==========================================================================================
@@ -124,6 +165,16 @@ function _staticify_dense_params(lp)
 end
 
 _staticify_params(ps) = map(_staticify_dense_params, ps)
+
+@inline _apply_chain(x, ::Tuple{}) = x
+@inline function _apply_chain(x, layers::Tuple)
+    lp = first(layers)
+    h = lp.weight * x .+ lp.bias
+    rest = Base.tail(layers)
+    return rest === () ? h : _apply_chain(leakyrelu.(h), rest)
+end
+
+_nn_forward(x, ps) = _apply_chain(x, values(ps))
 
 function _setup_model(config::MLdSGP4Config)
     rng = Random.default_rng()
@@ -168,6 +219,8 @@ function _zero_model(config::MLdSGP4Config = MLdSGP4Config())
         zeros(Float64, 6), zeros(Float64, 6),
     )
 end
+
+const _DEFAULT_FROZEN_ZERO_MODEL = freeze(_zero_model())
 
 # ==========================================================================================
 #                                      ml_dsgp4_init
@@ -285,6 +338,87 @@ function ml_dsgp4(Δt::Number, tle::TLE; model::MLdSGP4Model = _zero_model())
     mlsgp4d = ml_dsgp4_init(tle; model = model)
     r_teme, v_teme = ml_dsgp4!(mlsgp4d, Δt)
     return r_teme, v_teme, mlsgp4d
+end
+
+"""
+    ml_dsgp4(Δt, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; model, sgp4c) -> (r_teme, v_teme, sgp4d)
+
+Raw-elements overload mirroring `sgp4(Δt, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)`.
+
+Accepts an [`MLdSGP4FrozenModel`](@ref) (default: zero-correction).  Because the frozen
+model is fully immutable (all weights are `SMatrix`/`SVector`), this method is compatible
+with every AD backend including Enzyme.
+
+Uses `sgp4_init` + `sgp4!` internally (same pattern as [`sgp4`](@ref)).
+
+All angular inputs are in **radians**, `n₀` in **rad/min**, `Δt` in **minutes**.
+"""
+function ml_dsgp4(
+    Δt::Number,
+    epoch::Number,
+    n₀::Number,
+    e₀::Number,
+    i₀::Number,
+    Ω₀::Number,
+    ω₀::Number,
+    M₀::Number,
+    bstar::Number;
+    model::Union{MLdSGP4Model, MLdSGP4FrozenModel} = _DEFAULT_FROZEN_ZERO_MODEL,
+    sgp4c::Sgp4Constants{Tsgp4} = sgp4c_wgs84,
+) where {Tsgp4<:Number}
+    fm = freeze(model)
+
+    T = promote_type(
+        Tsgp4, typeof(Δt), typeof(epoch), typeof(n₀), typeof(e₀),
+        typeof(i₀), typeof(Ω₀), typeof(ω₀), typeof(M₀), typeof(bstar),
+    )
+
+    nR = fm.config.normalization_R
+    nV = fm.config.normalization_V
+    α  = fm.α
+    β  = fm.β
+
+    # -- Input correction --
+    # _nn_forward bypasses Lux internals (make_abstract_matrix / matrix_to_array)
+    # whose StaticArrays tangent types break Zygote/Mooncake backward passes.
+    # Plain SMatrix * SVector + elementwise leakyrelu has correct ChainRules
+    # for every backend and compiles fast with ForwardDiff Dual numbers.
+    x = SVector{6}(e₀, ω₀, i₀, M₀, n₀, Ω₀)
+    nn_in = _nn_forward(x, fm.input_ps)
+    x_corr = SVector{6}(
+        x[1] * (1 + α[1] * tanh(nn_in[1])),
+        x[2] * (1 + α[2] * tanh(nn_in[2])),
+        x[3] * (1 + α[3] * tanh(nn_in[3])),
+        x[4] * (1 + α[4] * tanh(nn_in[4])),
+        x[5] * (1 + α[5] * tanh(nn_in[5])),
+        x[6] * (1 + α[6] * tanh(nn_in[6])),
+    )
+
+    # -- SGP4 propagation (same pattern as sgp4()) --
+    sgp4c_p = Sgp4Constants{T}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+    sgp4d = sgp4_init(epoch, x_corr[5], x_corr[1], x_corr[3],
+                      x_corr[6], x_corr[2], x_corr[4], bstar; sgp4c=sgp4c_p)
+    r_teme, v_teme = sgp4!(sgp4d, Δt)
+
+    # -- Output correction --
+    y_norm = SVector{6}(
+        r_teme[1] / nR, r_teme[2] / nR, r_teme[3] / nR,
+        v_teme[1] / nV, v_teme[2] / nV, v_teme[3] / nV,
+    )
+    nn_out = _nn_forward(y_norm, fm.output_ps)
+
+    r = SVector{3}(
+        y_norm[1] * (1 + β[1] * tanh(nn_out[1])) * nR,
+        y_norm[2] * (1 + β[2] * tanh(nn_out[2])) * nR,
+        y_norm[3] * (1 + β[3] * tanh(nn_out[3])) * nR,
+    )
+    v = SVector{3}(
+        y_norm[4] * (1 + β[4] * tanh(nn_out[4])) * nV,
+        y_norm[5] * (1 + β[5] * tanh(nn_out[5])) * nV,
+        y_norm[6] * (1 + β[6] * tanh(nn_out[6])) * nV,
+    )
+
+    return r, v, sgp4d
 end
 
 # ==========================================================================================

@@ -13,6 +13,7 @@
 
 export MLdSGP4Config
 export ml_dsgp4_init, ml_dsgp4, ml_dsgp4!, ml_dsgp4_train, ml_dsgp4_save, ml_dsgp4_load
+export freeze
 
 # ------------------------------------------------------------------------------------------
 #                                     MLdSGP4Config
@@ -77,3 +78,4 @@ function ml_dsgp4! end
 function ml_dsgp4_train end
 function ml_dsgp4_save end
 function ml_dsgp4_load end
+function freeze end
