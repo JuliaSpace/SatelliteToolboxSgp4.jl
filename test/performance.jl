@@ -4,9 +4,6 @@
 #
 ############################################################################################
 
-using ForwardDiff
-using StaticArrays
-
 @testset "Aqua.jl" begin
     Aqua.test_all(
         SatelliteToolboxSgp4;
