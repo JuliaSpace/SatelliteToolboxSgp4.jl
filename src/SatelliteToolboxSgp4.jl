@@ -38,7 +38,6 @@ const _Y = string(crayon"yellow bold")
 include("copy.jl")
 include("sgp4_model.jl")
 include("tle.jl")
-include("ml_dsgp4.jl")
 
 include("precompile.jl")
 
