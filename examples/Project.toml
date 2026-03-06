@@ -1,0 +1,11 @@
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+SatelliteToolboxSgp4 = "ba14ac17-bfc9-4710-a76f-b32930ef2339"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[sources]
+SatelliteToolboxSgp4 = {path = ".."}

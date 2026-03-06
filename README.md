@@ -141,13 +141,19 @@ The following keywords are avaible:
     osculating elements in `vr_teme` and `vv_teme`. For more information, see the section
     **Initial Guess**.
     (**Default** = nothing)
+- `jacobian_method::Union{FiniteDiffJacobian, ForwardDiffJacobian}`: Method used to compute
+    the Jacobian matrix. Use `FiniteDiffJacobian()` for finite differences or
+    `ForwardDiffJacobian()` for ForwardDiff.jl automatic differentiation. The AD path is
+    exact and typically faster for repeated iterations.
+    (**Default** = `FiniteDiffJacobian()`)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
-    finite-difference when calculating the Jacobian matrix.
+    finite-difference when calculating the Jacobian matrix. Only used with
+    `FiniteDiffJacobian()`.
     (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
     `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
-    `jacobian_perturbation_tol`.
+    `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)

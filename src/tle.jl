@@ -47,13 +47,18 @@ This algorithm was based on **[1]**.
     osculating elements in `vr_teme` and `vv_teme`. For more information, see the section
     **Initial Guess**.
     (**Default** = nothing)
+- `jacobian_method::Union{FiniteDiffJacobian, ForwardDiffJacobian}`: Method used to compute
+    the Jacobian matrix. Use `FiniteDiffJacobian()` for finite differences or
+    `ForwardDiffJacobian()` for `ForwardDiff.jl` automatic differentiation.
+    (**Default** = `FiniteDiffJacobian()`)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
-    finite-difference when calculating the Jacobian matrix.
+    finite-difference when calculating the Jacobian matrix. Only used with
+    `FiniteDiffJacobian()`.
     (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
     `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
-    `jacobian_perturbation_tol`.
+    `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
@@ -211,13 +216,18 @@ This algorithm was based on **[1]**.
     osculating elements in `vr_teme` and `vv_teme`. For more information, see the section
     **Initial Guess**.
     (**Default** = nothing)
+- `jacobian_method::Union{FiniteDiffJacobian, ForwardDiffJacobian}`: Method used to compute
+    the Jacobian matrix. Use `FiniteDiffJacobian()` for finite differences or
+    `ForwardDiffJacobian()` for `ForwardDiff.jl` automatic differentiation.
+    (**Default** = `FiniteDiffJacobian()`)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
-    finite-difference when calculating the Jacobian matrix.
+    finite-difference when calculating the Jacobian matrix. Only used with
+    `FiniteDiffJacobian()`.
     (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
     `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
-    `jacobian_perturbation_tol`.
+    `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
@@ -343,6 +353,7 @@ function fit_sgp4_tle!(
     rtol::Number                      = 2e-4,
     estimate_bstar::Bool              = true,
     initial_guess::_INITIAL_GUESS_T   = nothing,
+    jacobian_method::_JACOBIAN_METHOD = FiniteDiffJacobian(),
     jacobian_perturbation::Number     = 1e-3,
     jacobian_perturbation_tol::Number = 1e-7,
     max_iterations::Int               = 50,
@@ -471,6 +482,10 @@ function fit_sgp4_tle!(
     # after the iterations.
     local ΣJ′WJ
 
+    # Pre-allocate the Dual-typed propagator for ForwardDiff Jacobian computation so it is
+    # reused across all iterations instead of being heap-allocated on every call.
+    sgp4d_ad = jacobian_method isa ForwardDiffJacobian ? _create_ad_propagator(sgp4d) : nothing
+
     # Loop until the maximum allowed iteration.
     @inbounds @views for it in 1:max_iterations
         x₁ = x₂
@@ -501,15 +516,19 @@ function fit_sgp4_tle!(
             # Compute the residue.
             b = y - ŷ
 
-            # Compute the Jacobian inplace.
+
+            # Compute the Jacobian.
             J = _sgp4_jacobian(
+                jacobian_method,
                 sgp4d,
                 Δt,
                 x₁,
-                ŷ;
+                ŷ;
                 perturbation     = jacobian_perturbation,
-                perturbation_tol = jacobian_perturbation_tol
+                perturbation_tol = jacobian_perturbation_tol,
+                sgp4d_ad         = sgp4d_ad
             )
+
 
             # Accumulation.
             ΣJ′WJ += J' * W * J
@@ -1043,7 +1062,28 @@ function _tle_to_mean_state_vector(
 end
 
 """
-    _sgp4_jacobian(sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{8, T}, y₁::SVector{7, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
+    _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T} -> Sgp4Propagator
+
+Create a Dual-typed SGP4 propagator for use with `ForwardDiffJacobian`. The returned
+propagator can be passed via the `sgp4d_ad` keyword in [`_sgp4_jacobian`](@ref) to avoid
+per-call heap allocations.
+"""
+function _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T}
+    tag   = ForwardDiff.Tag{Nothing, T}
+    D     = ForwardDiff.Dual{tag, T, 7}
+    sgp4c = sgp4d.sgp4c
+
+    ad = Sgp4Propagator{Tepoch, D}()
+    ad.sgp4c = Sgp4Constants{D}(
+        D(sgp4c.R0), D(sgp4c.XKE), D(sgp4c.J2), D(sgp4c.J3), D(sgp4c.J4)
+    )
+    ad.sgp4ds = Sgp4DeepSpace{D}()
+
+    return ad
+end
+
+"""
+    _sgp4_jacobian(::FiniteDiffJacobian, sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{8, T}, y₁::SVector{7, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
 
 Compute the SGP4 Jacobian by finite-differences using the propagator `sgp4d` at instant `Δt`
 considering the input mean elements `x₁` that must provide the output vector `y₁`. Hence:
@@ -1063,12 +1103,14 @@ considering the input mean elements `x₁` that must provide the output vector `
     (**Default** = 1e-7)
 """
 function _sgp4_jacobian(
+    ::FiniteDiffJacobian,
     sgp4d::Sgp4Propagator{Tepoch, T},
     Δt::Number,
     x₁::SVector{7, T},
     y₁::SVector{6, T};
     perturbation::Number = T(1e-3),
-    perturbation_tol::Number = T(1e-7)
+    perturbation_tol::Number = T(1e-7),
+    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing
 ) where {T<:Number, Tepoch<:Number}
 
     # Allocate the `MMatrix` that will have the Jacobian.
@@ -1122,4 +1164,64 @@ function _sgp4_jacobian(
     Js = SMatrix{6, 7, T}(J)
 
     return Js
+end
+
+"""
+    _sgp4_jacobian(::ForwardDiffJacobian, sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{7, T}, y₁::SVector{6, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
+
+Compute the SGP4 Jacobian via ForwardDiff automatic differentiation using the propagator
+`sgp4d` at instant `Δt` considering the input mean elements `x₁`. Hence:
+
+        ∂sgp4(x, Δt) │
+    J = ──────────── │
+             ∂x      │ x = x₁
+
+A Dual-typed propagator can be pre-allocated with [`_create_ad_propagator`](@ref) and passed
+via the `sgp4d_ad` keyword to eliminate per-call heap allocations.
+
+# Keywords
+
+- `sgp4d_ad::Union{Nothing, Sgp4Propagator}`: Pre-allocated Dual-typed propagator for AD
+    evaluation. If `nothing`, one is created internally.
+    (**Default** = `nothing`)
+"""
+function _sgp4_jacobian(
+    ::ForwardDiffJacobian,
+    sgp4d::Sgp4Propagator{Tepoch, T},
+    Δt::Number,
+    x₁::SVector{7, T},
+    y₁::SVector{6, T};
+    perturbation::Number = T(1e-3),
+    perturbation_tol::Number = T(1e-7),
+    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing
+) where {T<:Number, Tepoch<:Number}
+    epoch = sgp4d.epoch
+
+    N   = 7
+    tag = ForwardDiff.Tag{Nothing, T}
+    D   = ForwardDiff.Dual{tag, T, N}
+
+    if isnothing(sgp4d_ad)
+        sgp4d_ad = _create_ad_propagator(sgp4d)
+    end
+
+    return _sgp4_fwd_jacobian_eval(sgp4d_ad, epoch, Δt, x₁)
+end
+
+function _sgp4_fwd_jacobian_eval(
+    sgp4d_ad::Sgp4Propagator{Tepoch, D},
+    epoch::Number,
+    Δt::Number,
+    x₁::SVector{N, T}
+) where {Tepoch, D<:ForwardDiff.Dual, N, T}
+    seeds  = ntuple(i -> ForwardDiff.Partials(ntuple(j -> T(i == j), Val(N))), Val(N))
+    x_dual = SVector{N, D}(ntuple(i -> D(x₁[i], seeds[i]), Val(N)))
+
+    _init_sgp4_with_state_vector!(sgp4d_ad, x_dual, epoch)
+    r, v   = sgp4!(sgp4d_ad, Δt)
+    y_dual = vcat(r, v)
+
+    return SMatrix{6, N, T}(
+        ntuple(k -> ForwardDiff.partials(y_dual[mod1(k, 6)], cld(k, 6)), Val(6 * N))
+    )
 end
