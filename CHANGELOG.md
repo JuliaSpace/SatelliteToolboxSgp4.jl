@@ -1,6 +1,12 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.4.0
+-------------
+
+- ![Feature][badge-feature] The SGP4 propagator now supports differentiability. Hence, the
+  user can now also uses **ForwardDiff.jl** to compute the Jacobian in `fit_sgp4_tle`.
+
 Version 2.3.0
 -------------
 
