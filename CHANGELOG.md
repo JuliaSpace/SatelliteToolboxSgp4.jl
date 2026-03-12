@@ -1,6 +1,12 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.4.1
+-------------
+
+- ![Enhancement][badge-enhancement] Use the types related to the Jacobian definition from
+  **SatelliteToolboxBase.jl**.
+
 Version 2.4.0
 -------------
 
