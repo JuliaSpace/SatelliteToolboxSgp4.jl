@@ -9,6 +9,7 @@ using Printf
 using StaticArrays
 using SatelliteToolboxBase
 
+@reexport using SatelliteToolboxBase
 @reexport using SatelliteToolboxTle
 
 import Base: copy
