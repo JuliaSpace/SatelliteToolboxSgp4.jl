@@ -359,7 +359,7 @@ function fit_sgp4_tle!(
     max_iterations::Int                     = 50,
     mean_elements_epoch::Number             = vjd[end],
     verbose::Bool                           = true,
-    weight_vector::AbstractVector           = @SVector(ones(Bool, 6)),
+    weight_vector::AbstractVector           = SVector{6, Bool}(true, true, true, true, true, true),
     # Keywords with the fields of the output TLE.
     classification::Char                    = 'U',
     element_set_number::Int                 = 0,
@@ -395,17 +395,15 @@ function fit_sgp4_tle!(
     cb = has_color ? _B : ""
     cy = has_color ? _Y : ""
 
-    # Assemble the weight matrix.
-    W = Diagonal(
-        @SVector T[
-            weight_vector[1],
-            weight_vector[2],
-            weight_vector[3],
-            weight_vector[4],
-            weight_vector[5],
-            weight_vector[6]
-        ]
-    )
+    # Assemble the weight vector (diagonal of the weight matrix).
+    W = @SVector T[
+        weight_vector[1],
+        weight_vector[2],
+        weight_vector[3],
+        weight_vector[4],
+        weight_vector[5],
+        weight_vector[6]
+    ]
 
     # Initial guess of the mean elements.
     #
@@ -531,11 +529,11 @@ function fit_sgp4_tle!(
 
 
             # Accumulation.
-            ΣJ′WJ += J' * W * J
-            ΣJ′Wb += J' * W * b
-            σ_i   += b' * W * b
-            σp_i  += @views b[1:3]' * b[1:3]
-            σv_i  += @views b[4:6]' * b[4:6]
+            ΣJ′WJ += J' * (W .* J)
+            ΣJ′Wb += J' * (W .* b)
+            σ_i   += dot(W .* b, b)
+            σp_i  += dot(b[1:3], b[1:3])
+            σv_i  += dot(b[4:6], b[4:6])
         end
 
         # Normalize and compute the RMS errors.
@@ -829,7 +827,7 @@ function update_sgp4_tle_epoch!(
     new_epoch::Number;
     atol::Number           = 2e-4,
     rtol::Number           = 2e-4,
-    max_iterations::Number = 50,
+    max_iterations::Int    = 50,
     verbose::Bool          = true
 )
     # First, we need to initialize the SGP4 propagator with the initial TLE.
