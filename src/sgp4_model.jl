@@ -81,11 +81,11 @@ Create and initialize the data structure of SGP4 orbit propagator.
 - `ω₀::Number`: "Mean" argument of perigee at epoch [rad].
 - `M₀::Number`: "Mean" mean anomaly at epoch [rad].
 - `bstar::Number`: Drag parameter (B*).
-- `tle::TLE`: TLE to initialize the SPG4 (see `TLE`).
+- `tle::TLE`: TLE to initialize the SGP4 (see `TLE`).
 
 # Keywords
 
-- `spg4_gc::Sgp4Constants`: SPG4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
+- `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
     (**Default** = `sgp4c_wgs84`)
 
 # Returns
@@ -455,11 +455,11 @@ Initialize the SGP4 structure and propagate the orbit until the time Δt [min].
 - `ω₀::Number`: "Mean" argument of perigee at epoch [rad].
 - `M₀::Number`: "Mean" mean anomaly at epoch [rad].
 - `bstar::Number`: Drag parameter (B*).
-- `tle::TLE`: TLE to initialize the SPG4 (see `TLE`).
+- `tle::TLE`: TLE to initialize the SGP4 (see `TLE`).
 
 # Keywords
 
-- `spg4_gc::Sgp4Constants`: SPG4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
+- `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
     (**Default** = `sgp4c_wgs84`)
 
 # Returns
@@ -541,8 +541,8 @@ Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the 
 
 # Returns
 
-- `SVector{T, 3}`: The position vector represented in TEME frame at time `t` [km].
-- `SVector{T, 3}`: The velocity vector represented in TEME frame at time `t` [km/s].
+- `SVector{3, T}`: The position vector represented in TEME frame at time `t` [km].
+- `SVector{3, T}`: The velocity vector represented in TEME frame at time `t` [km/s].
 """
 function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Unpack variables.
@@ -849,9 +849,9 @@ functions `_dsper!` and `_dssec!`.
 - `all₀::T`: Initial semi-major axis [ER].
 - `e₀::T`: Initial eccentricity.
 - `i₀::T`: Initial inclination [rad].
-- `Ω₀::T`: Initial right ascencion of the ascending node [rad].
+- `Ω₀::T`: Initial right ascension of the ascending node [rad].
 - `ω₀::T`: Initial argument of perigee [rad].
-- `M₀::T`: Initial mean motion [rad].
+- `M₀::T`: Initial mean anomaly [rad].
 - `∂M::T`: Time-derivative of the mean motion [rad/min].
 - `∂ω::T`: Time-derivative of the argument of perigee [rad/min].
 - `∂Ω::T`: Time-derivative of the RAAN [rad/min].

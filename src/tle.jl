@@ -5,7 +5,7 @@
 ## References ##############################################################################
 #
 # [1] Vallado, D. A., Crawford, P (2008). SGP4 Orbit Determination. American Institute of
-#     Aeronautics ans Astronautics.
+#     Aeronautics and Astronautics.
 #
 ############################################################################################
 
@@ -167,7 +167,7 @@ TLE:
 # References
 
 - **[1]** Vallado, D. A., Crawford, P (2008). SGP4 Orbit Determination. American Institute
-    of Aeronautics ans Astronautics.
+    of Aeronautics and Astronautics.
 """
 function fit_sgp4_tle(
     vjd::AbstractVector{Tjd},
@@ -342,7 +342,7 @@ TLE:
 # References
 
 - **[1]** Vallado, D. A., Crawford, P (2008). SGP4 Orbit Determination. American Institute
-    of Aeronautics ans Astronautics.
+    of Aeronautics and Astronautics.
 """
 function fit_sgp4_tle!(
     sgp4d::Sgp4Propagator{Tepoch, T},
