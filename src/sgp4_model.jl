@@ -253,7 +253,7 @@ function sgp4_init!(
     # Recover the original mean motion (nll₀) and semi-major axis (all₀) from the input
     # elements.
     aux = (3θ² - 1) / √((1 - e₀²)^3)
-    a₁  = (XKE / T(n₀))^(T(2 / 3))
+    a₁  = (XKE / T(n₀))^(2 // 3)
     δ₁  = (3 // 2) * k₂ / (a₁ * a₁)* aux
     a₀  = a₁ * @evalpoly(δ₁, 1, -(1 // 3), -1, -(134 // 81))
     δ₀  = (3 // 2) * k₂ / (T(a₀) * T(a₀)) * aux
@@ -325,7 +325,7 @@ function sgp4_init!(
     C1³ = C1² * C1
     C1⁴ = C1² * C1²
 
-    C3 = T(e₀) > 1e-4 ? QOMS2T * ξ⁵ * A₃₀ * nll₀ * AE * sin_i₀ / (k₂ * T(e₀)) : T(0)
+    C3 = T(e₀) > T(1e-4) ? QOMS2T * ξ⁵ * A₃₀ * nll₀ * AE * sin_i₀ / (k₂ * T(e₀)) : T(0)
 
     C4 = 2nll₀ * QOMS2T * aux2 * (
         2η * (1 + T(e₀) * η) + (1 // 2) * (T(e₀) + η³) -
@@ -626,7 +626,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     ω_k = ω₀ + ∂ω * Δt
 
     # Check if we need to use SDP4 (deep space) algorithm.
-    if algorithm == :sdp4
+    if algorithm === :sdp4
         # Compute the elements perturbed by the secular effects.
         n_k, e_k, i_k, Ω_k, ω_k, M_k = _dssec!(
             sgp4ds,
@@ -653,7 +653,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
         # TODO: sin(M_k) and cos(M_k) can be computed faster here.
 
-        δM  = (e₀ > 1e-4) ?
+        δM  = (e₀ > T(1e-4)) ?
             -(2 // 3) * QOMS2T * bstar * ξ^4 * AE / (e₀ * η) * (
                 (1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3
             ) : T(0)
@@ -755,14 +755,14 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
                (1 - a_yN * sin_E_ω - a_xN * cos_E_ω)
 
         # Vallado proposes to limit the maximum increment.
-        abs(ΔE_ω) >= 0.95 && (ΔE_ω = sign(ΔE_ω) * T(0.95))
+        abs(ΔE_ω) >= T(0.95) && (ΔE_ω = sign(ΔE_ω) * T(0.95))
 
         E_ω += ΔE_ω
 
         # If the increment is less than a threshold, break the loop.
         #
         # Vallado proposes a threshold of 10^-12 instead of 10^-6.
-        abs(ΔE_ω) < 1e-12 && break
+        abs(ΔE_ω) < T(1e-12) && break
     end
 
     # == Short-Term Periodic Terms =========================================================
@@ -1709,8 +1709,7 @@ function _dsper!(
         Ω_per  = Ω_k + tmp_ph;
         M_per  = M_k + pl;
     else
-        sinok = sin(Ω_k)
-        cosok = cos(Ω_k)
+        sinok, cosok = sincos(Ω_k)
 
         #                     |----------    dalf     ----------|
         alfdp = sinis * sinok + ph * cosok + pinc * cosis * sinok
