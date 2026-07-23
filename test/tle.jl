@@ -42,22 +42,22 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 2: Geostationary Orbit ===============================================
 
@@ -68,7 +68,7 @@
             """
 
         # Generate the osculating elements (TEME).
-        sgp4d   = sgp4_init(tle_input )
+        sgp4d   = sgp4_init(tle_input)
         ret     = map(t -> sgp4!(sgp4d, t), 0:10:2880)
         vr_teme = first.(ret)
         vv_teme = last.(ret)
@@ -92,22 +92,22 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 3: TLE Epoch Outside the Interval ====================================
 
@@ -142,19 +142,19 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar        ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity ≈  tle_input.eccentricity        atol = 1e-6
-        @test tle.epoch_day    ≈  tle_input.epoch_day - 1       atol = 1e-8
-        @test tle.inclination  ≈  tle_input.inclination         atol = 1e-4
-        @test tle.raan         ≈  tle_input.raan - 0.9856002605 atol = 7e-3
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-6
+        @test tle.epoch_day ≈ tle_input.epoch_day - 1 atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.raan ≈ tle_input.raan - 0.9856002605 atol = 7e-3
     end
 
     @testset "TLE as Initial Guess" verbose = true begin
@@ -190,23 +190,23 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_day                ≈  tle_input.epoch_day atol = 1e-8
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 2: Geostationary Orbit ===============================================
 
@@ -217,7 +217,7 @@
             """
 
         # Generate the osculating elements (TEME).
-        sgp4d   = sgp4_init(tle_input )
+        sgp4d   = sgp4_init(tle_input)
         ret     = map(t -> sgp4!(sgp4d, t), 0:10:2880)
         vr_teme = first.(ret)
         vv_teme = last.(ret)
@@ -240,23 +240,23 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_day                ≈  tle_input.epoch_day atol = 1e-8
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 3: TLE Epoch Outside the Interval ====================================
 
@@ -290,19 +290,19 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-6
-        @test tle.epoch_day           ≈  tle_input.epoch_day - 1       atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.raan                ≈  tle_input.raan - 0.9856002605 atol = 7e-3
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-6
+        @test tle.epoch_day ≈ tle_input.epoch_day - 1 atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.raan ≈ tle_input.raan - 0.9856002605 atol = 7e-3
     end
 
     @testset "Without Initial Guess (ForwardDiffJacobian)" begin
@@ -340,22 +340,22 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 2: Geostationary Orbit ===============================================
 
@@ -366,7 +366,7 @@
             """
 
         # Generate the osculating elements (TEME).
-        sgp4d   = sgp4_init(tle_input )
+        sgp4d   = sgp4_init(tle_input)
         ret     = map(t -> sgp4!(sgp4d, t), 0:10:2880)
         vr_teme = first.(ret)
         vv_teme = last.(ret)
@@ -391,22 +391,22 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 3: TLE Epoch Outside the Interval ====================================
 
@@ -442,19 +442,19 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar        ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity ≈  tle_input.eccentricity        atol = 1e-6
-        @test tle.epoch_day    ≈  tle_input.epoch_day - 1       atol = 1e-8
-        @test tle.inclination  ≈  tle_input.inclination         atol = 1e-4
-        @test tle.raan         ≈  tle_input.raan - 0.9856002605 atol = 7e-3
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-6
+        @test tle.epoch_day ≈ tle_input.epoch_day - 1 atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.raan ≈ tle_input.raan - 0.9856002605 atol = 7e-3
     end
 
     @testset "TLE as Initial Guess (ForwardDiffJacobian)" verbose = true begin
@@ -491,23 +491,23 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_day                ≈  tle_input.epoch_day atol = 1e-8
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 2: Geostationary Orbit ===============================================
 
@@ -518,7 +518,7 @@
             """
 
         # Generate the osculating elements (TEME).
-        sgp4d   = sgp4_init(tle_input )
+        sgp4d   = sgp4_init(tle_input)
         ret     = map(t -> sgp4!(sgp4d, t), 0:10:2880)
         vr_teme = first.(ret)
         vv_teme = last.(ret)
@@ -542,23 +542,23 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_day                ≈  tle_input.epoch_day atol = 1e-8
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 1e-6
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-7
-        @test tle.epoch_day           ≈  tle_input.epoch_day           atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.mean_anomaly        ≈  tle_input.mean_anomaly        atol = 1e-4
-        @test tle.mean_motion         ≈  tle_input.mean_motion         atol = 1e-7
-        @test tle.raan                ≈  tle_input.raan                atol = 1e-4
-        @test tle.argument_of_perigee ≈  tle_input.argument_of_perigee atol = 1e-4
+        @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-7
+        @test tle.epoch_day ≈ tle_input.epoch_day atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.mean_anomaly ≈ tle_input.mean_anomaly atol = 1e-4
+        @test tle.mean_motion ≈ tle_input.mean_motion atol = 1e-7
+        @test tle.raan ≈ tle_input.raan atol = 1e-4
+        @test tle.argument_of_perigee ≈ tle_input.argument_of_perigee atol = 1e-4
 
         # == Scenario 3: TLE Epoch Outside the Interval ====================================
 
@@ -593,19 +593,19 @@
         )
 
         # Compare.
-        @test tle.classification           == tle_input.classification
-        @test tle.element_set_number       == tle_input.element_set_number
-        @test tle.epoch_year               == tle_input.epoch_year
+        @test tle.classification == tle_input.classification
+        @test tle.element_set_number == tle_input.element_set_number
+        @test tle.epoch_year == tle_input.epoch_year
         @test tle.international_designator == tle_input.international_designator
-        @test tle.name                     == tle_input.name
-        @test tle.revolution_number        == tle_input.revolution_number
-        @test tle.satellite_number         == tle_input.satellite_number
+        @test tle.name == tle_input.name
+        @test tle.revolution_number == tle_input.revolution_number
+        @test tle.satellite_number == tle_input.satellite_number
 
-        @test tle.bstar               ≈  tle_input.bstar               atol = 5e-5
-        @test tle.eccentricity        ≈  tle_input.eccentricity        atol = 1e-6
-        @test tle.epoch_day           ≈  tle_input.epoch_day - 1       atol = 1e-8
-        @test tle.inclination         ≈  tle_input.inclination         atol = 1e-4
-        @test tle.raan                ≈  tle_input.raan - 0.9856002605 atol = 7e-3
+        @test tle.bstar ≈ tle_input.bstar atol = 5e-5
+        @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-6
+        @test tle.epoch_day ≈ tle_input.epoch_day - 1 atol = 1e-8
+        @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+        @test tle.raan ≈ tle_input.raan - 0.9856002605 atol = 7e-3
     end
 
     @testset "Errors" begin
@@ -623,26 +623,20 @@
 
         # == Wrong Dimensions in the Input Vectors =========================================
 
-        @test_throws ArgumentError fit_sgp4_tle(vjd[1:end-1], vr_teme, vv_teme)
-        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme[1:end-1], vv_teme)
-        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme, vv_teme[1:end-1])
+        @test_throws ArgumentError fit_sgp4_tle(vjd[1:(end - 1)], vr_teme, vv_teme)
+        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme[1:(end - 1)], vv_teme)
+        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme, vv_teme[1:(end - 1)])
 
         # == Wrong Dimensions in the Weight Vector =========================================
 
         @test_throws ArgumentError fit_sgp4_tle(
-            vjd,
-            vr_teme,
-            vv_teme;
-            weight_vector = [1, 2, 3, 4, 5]
+            vjd, vr_teme, vv_teme; weight_vector = [1, 2, 3, 4, 5]
         )
 
         # == Wrong Dimensions in the Initial Guess Vector ==================================
 
         @test_throws ArgumentError fit_sgp4_tle(
-            vjd,
-            vr_teme,
-            vv_teme;
-            initial_guess = [1, 2, 3, 4, 5, 6]
+            vjd, vr_teme, vv_teme; initial_guess = [1, 2, 3, 4, 5, 6]
         )
     end
 end
@@ -655,23 +649,21 @@ end
         """
 
     tle = update_sgp4_tle_epoch(
-        tle_input,
-        DateTime("2021-09-28T11:40:12.955");
-        verbose = false
+        tle_input, DateTime("2021-09-28T11:40:12.955"); verbose = false
     )
 
     # Compare.
-    @test tle.classification           == tle_input.classification
-    @test tle.element_set_number       == tle_input.element_set_number
-    @test tle.epoch_year               == tle_input.epoch_year
+    @test tle.classification == tle_input.classification
+    @test tle.element_set_number == tle_input.element_set_number
+    @test tle.epoch_year == tle_input.epoch_year
     @test tle.international_designator == tle_input.international_designator
-    @test tle.name                     == tle_input.name
-    @test tle.revolution_number        == tle_input.revolution_number
-    @test tle.satellite_number         == tle_input.satellite_number
+    @test tle.name == tle_input.name
+    @test tle.revolution_number == tle_input.revolution_number
+    @test tle.satellite_number == tle_input.satellite_number
 
-    @test tle.bstar        ≈  tle_input.bstar               atol = 1e-6
-    @test tle.eccentricity ≈  tle_input.eccentricity        atol = 1e-6
-    @test tle.epoch_day    ≈  tle_input.epoch_day + 1       atol = 1e-8
-    @test tle.inclination  ≈  tle_input.inclination         atol = 1e-4
-    @test tle.raan         ≈  tle_input.raan + 0.9856002605 atol = 7e-3
+    @test tle.bstar ≈ tle_input.bstar atol = 1e-6
+    @test tle.eccentricity ≈ tle_input.eccentricity atol = 1e-6
+    @test tle.epoch_day ≈ tle_input.epoch_day + 1 atol = 1e-8
+    @test tle.inclination ≈ tle_input.inclination atol = 1e-4
+    @test tle.raan ≈ tle_input.raan + 0.9856002605 atol = 7e-3
 end

@@ -25,7 +25,7 @@ PrecompileTools.@compile_workload begin
     """
 
     for tle in tles
-        sgp4(10.0,   tle; sgp4c = sgp4c_wgs84)
+        sgp4(10.0, tle; sgp4c = sgp4c_wgs84)
         sgp4(10.0f0, tle; sgp4c = sgp4c_wgs84_f32)
     end
 
@@ -41,13 +41,7 @@ PrecompileTools.@compile_workload begin
     vv_teme = [@SVector [0.3445760107690598, 1.0395135806993514, 7.393686131436984]]
 
     redirect_stdout(devnull) do
-        fit_sgp4_tle(
-            vjd,
-            vr_teme,
-            vv_teme,
-            estimate_bstar = false,
-            max_iterations = 1,
-        )
+        fit_sgp4_tle(vjd, vr_teme, vv_teme, estimate_bstar = false, max_iterations = 1)
 
         fit_sgp4_tle(
             vjd,
@@ -67,11 +61,7 @@ PrecompileTools.@compile_workload begin
         2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652"""
 
     redirect_stdout(devnull) do
-        update_sgp4_tle_epoch(
-            tle,
-            2.46002818657856e6 + 1;
-            max_iterations = 1,
-        )
+        update_sgp4_tle_epoch(tle, 2.46002818657856e6 + 1; max_iterations = 1)
     end
 
     # == Structure Copying =================================================================
@@ -81,7 +71,7 @@ PrecompileTools.@compile_workload begin
         AMAZONIA 1
         1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
         2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652""";
-        sgp4c = sgp4c_wgs84
+        sgp4c = sgp4c_wgs84,
     )
     copy(sgp4d)
 
@@ -90,7 +80,7 @@ PrecompileTools.@compile_workload begin
         AMAZONIA 1
         1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
         2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652""";
-        sgp4c = sgp4c_wgs84_f32
+        sgp4c = sgp4c_wgs84_f32,
     )
     copy(sgp4d_f32)
 end

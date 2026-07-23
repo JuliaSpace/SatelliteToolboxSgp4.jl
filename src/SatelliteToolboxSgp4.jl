@@ -28,7 +28,7 @@ include("types.jl")
 const _JD_1900 = DateTime(1900, 1, 1, 12, 0, 0) |> datetime2julian
 
 # Escape sequences related to the crayons.
-const _D = string(Crayon(reset = true))
+const _D = string(Crayon(; reset = true))
 const _B = string(crayon"bold")
 const _Y = string(crayon"yellow bold")
 

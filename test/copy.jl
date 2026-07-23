@@ -6,13 +6,12 @@
 
 @testset "Sgp4Propagator and Spg4DeepSpace" begin
     for sgp4c in (sgp4c_wgs84, sgp4c_wgs84_f32)
-
         sgp4d = sgp4_init(
             tle"""
             1 24208U 96044A   06177.04061740 -.00000094  00000-0  10000-3 0  1600
             2 24208   3.8536  80.0121 0026640 311.0977  48.3000  1.00778054 36119
             """;
-            sgp4c = sgp4c
+            sgp4c = sgp4c,
         )
 
         # We need to propagate the orbit to initialize all the internal terms related to the

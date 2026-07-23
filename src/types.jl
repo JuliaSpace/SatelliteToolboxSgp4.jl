@@ -109,8 +109,8 @@ mutable struct Sgp4DeepSpace{T}
 
     # == Constructors ======================================================================
 
-    Sgp4DeepSpace{T}(args...) where T<:Number = new(args...)
-    Sgp4DeepSpace{T}() where T<:Number = new()
+    Sgp4DeepSpace{T}(args...) where {T <: Number} = new(args...)
+    Sgp4DeepSpace{T}() where {T <: Number} = new()
 end
 
 """
@@ -118,7 +118,7 @@ end
 
 Low-level SGP4 propagator structure.
 """
-mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
+mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
     # TLE parameters.
     epoch::Tepoch
     n₀::T
@@ -172,6 +172,6 @@ mutable struct Sgp4Propagator{Tepoch<:Number, T<:Number}
 
     # == Constructors ======================================================================
 
-    Sgp4Propagator{Tepoch, T}(args...) where {Tepoch<:Number, T<:Number} = new(args...)
-    Sgp4Propagator{Tepoch, T}() where {Tepoch<:Number, T<:Number} = new()
+    Sgp4Propagator{Tepoch, T}(args...) where {Tepoch <: Number, T <: Number} = new(args...)
+    Sgp4Propagator{Tepoch, T}() where {Tepoch <: Number, T <: Number} = new()
 end

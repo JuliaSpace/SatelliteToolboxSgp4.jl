@@ -6,7 +6,6 @@ using Printf
 using SatelliteToolboxTle
 using SatelliteToolboxSgp4
 
-
 @testset "SGP4 Propagator" verbose = true begin
     include("./sgp4.jl")
 end
@@ -32,7 +31,7 @@ if isempty(VERSION.prerelease)
 
     using ForwardDiff
     using StaticArrays
-    
+
     @testset "Performance Tests" verbose = true begin
         include("./performance.jl")
     end

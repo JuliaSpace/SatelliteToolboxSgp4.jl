@@ -173,8 +173,8 @@ function fit_sgp4_tle(
     vjd::AbstractVector{Tjd},
     vr_teme::AbstractVector{Tv},
     vv_teme::AbstractVector{Tv};
-    kwargs...
-) where {Tjd<:Number, Tv<:AbstractVector}
+    kwargs...,
+) where {Tjd <: Number, Tv <: AbstractVector}
     # We must initialize the SGP4 propagator structure together with any mutable fields.
     sgp4d = Sgp4Propagator{Float64, Float64}()
     sgp4d.sgp4c = sgp4c_wgs84
@@ -361,13 +361,13 @@ function fit_sgp4_tle!(
     verbose::Bool                           = true,
     weight_vector::AbstractVector           = SVector{6, Bool}(true, true, true, true, true, true),
     # Keywords with the fields of the output TLE.
-    classification::Char                    = 'U',
-    element_set_number::Int                 = 0,
-    international_designator::String        = "999999",
-    name::String                            = "UNDEFINED",
-    revolution_number::Int                  = 0,
-    satellite_number::Int                   = 9999,
-) where {T<:Number, Tepoch<:Number, Tjd<:Number, Tv<:AbstractVector}
+    classification::Char             = 'U',
+    element_set_number::Int          = 0,
+    international_designator::String = "999999",
+    name::String                     = "UNDEFINED",
+    revolution_number::Int           = 0,
+    satellite_number::Int            = 9999,
+) where {T <: Number, Tepoch <: Number, Tjd <: Number, Tv <: AbstractVector}
     # Unpack.
     sgp4c = sgp4d.sgp4c
 
@@ -375,11 +375,13 @@ function fit_sgp4_tle!(
     num_measurements = length(vjd)
 
     # Check the inputs.
-    length(vr_teme) != num_measurements &&
-        throw(ArgumentError("The number of elements in `vjd` and `vr_teme` must be the same."))
+    length(vr_teme) != num_measurements && throw(
+        ArgumentError("The number of elements in `vjd` and `vr_teme` must be the same.")
+    )
 
-    length(vv_teme) != num_measurements &&
-        throw(ArgumentError("The number of elements in `vjd` and `vv_teme` must be the same."))
+    length(vv_teme) != num_measurements && throw(
+        ArgumentError("The number of elements in `vjd` and `vv_teme` must be the same.")
+    )
 
     if length(weight_vector) != 6
         throw(ArgumentError("The weight vector must have 6 elements."))
@@ -402,7 +404,7 @@ function fit_sgp4_tle!(
         weight_vector[3],
         weight_vector[4],
         weight_vector[5],
-        weight_vector[6]
+        weight_vector[6],
     ]
 
     # Initial guess of the mean elements.
@@ -413,15 +415,12 @@ function fit_sgp4_tle!(
 
         # The user can provide a TLE or the initial mean state vector.
         if initial_guess isa TLE
-            verbose && println("$(cy)ACTION:$(cd)   Updating the epoch of the initial TLE guess to match the desired one.")
+            verbose && println(
+                "$(cy)ACTION:$(cd)   Updating the epoch of the initial TLE guess to match the desired one.",
+            )
 
             # If a TLE is provided, we need to update its epoch to match the desired one.
-            tle = update_sgp4_tle_epoch!(
-                sgp4d,
-                initial_guess,
-                epoch;
-                verbose = verbose
-            )
+            tle = update_sgp4_tle_epoch!(sgp4d, initial_guess, epoch; verbose = verbose)
 
             # Now, we can convert the TLE to the mean state vector.
             x₁ = _tle_to_mean_state_vector(tle; sgp4c = sgp4c)
@@ -430,7 +429,6 @@ function fit_sgp4_tle!(
             # In this case, the user must ensure that the provided mean elements are related
             # to the selected `mean_elements_epoch`.
             x₁ = SVector{7, T}(initial_guess...)
-
         end
     else
         # In this case, we must find the closest osculating vector to the desired epoch.
@@ -447,9 +445,7 @@ function fit_sgp4_tle!(
 
         epoch = vjd[id]
         x₁ = SVector{7, T}(
-            vr_teme[id]...,
-            vv_teme[id]...,
-            estimate_bstar ? T(0.00001) : T(0)
+            vr_teme[id]..., vv_teme[id]..., estimate_bstar ? T(0.00001) : T(0)
         )
     end
 
@@ -471,8 +467,26 @@ function fit_sgp4_tle!(
     # Header.
     if verbose
         println("$(cy)ACTION:$(cd)   Fitting the TLE.")
-        @printf("          %s%10s %20s %20s %20s %20s%s\n", cy, "Iteration", "Position RMSE", "Velocity RMSE", "Total RMSE", "RMSE Variation", cd)
-        @printf("          %s%10s %20s %20s %20s %20s%s\n", cb, "", "[km]", "[km / s]", "[ ]", "", cd)
+        @printf(
+            "          %s%10s %20s %20s %20s %20s%s\n",
+            cy,
+            "Iteration",
+            "Position RMSE",
+            "Velocity RMSE",
+            "Total RMSE",
+            "RMSE Variation",
+            cd
+        )
+        @printf(
+            "          %s%10s %20s %20s %20s %20s%s\n",
+            cb,
+            "",
+            "[km]",
+            "[km / s]",
+            "[ ]",
+            "",
+            cd
+        )
         println()
     end
 
@@ -482,7 +496,8 @@ function fit_sgp4_tle!(
 
     # Pre-allocate the Dual-typed propagator for ForwardDiff Jacobian computation so it is
     # reused across all iterations instead of being heap-allocated on every call.
-    sgp4d_ad = jacobian_method isa ForwardDiffJacobian ? _create_ad_propagator(sgp4d) : nothing
+    sgp4d_ad =
+        jacobian_method isa ForwardDiffJacobian ? _create_ad_propagator(sgp4d) : nothing
 
     # Loop until the maximum allowed iteration.
     @inbounds @views for it in 1:max_iterations
@@ -514,7 +529,6 @@ function fit_sgp4_tle!(
             # Compute the residue.
             b = y - ŷ
 
-
             # Compute the Jacobian.
             J = _sgp4_jacobian(
                 jacobian_method,
@@ -524,9 +538,8 @@ function fit_sgp4_tle!(
                 ŷ;
                 perturbation     = jacobian_perturbation,
                 perturbation_tol = jacobian_perturbation_tol,
-                sgp4d_ad         = sgp4d_ad
+                sgp4d_ad         = sgp4d_ad,
             )
-
 
             # Accumulation.
             ΣJ′WJ += J' * (W .* J)
@@ -537,7 +550,7 @@ function fit_sgp4_tle!(
         end
 
         # Normalize and compute the RMS errors.
-        σ_i  = √(σ_i  / num_measurements)
+        σ_i  = √(σ_i / num_measurements)
         σp_i = √(σp_i / num_measurements)
         σv_i = √(σv_i / num_measurements)
 
@@ -549,14 +562,8 @@ function fit_sgp4_tle!(
             ΣJ′Wb_sub = SVector{6, T}(ΣJ′Wb[1:6])
             δx_sub    = ΣJ′WJ_sub \ ΣJ′Wb_sub
 
-            δx  = SVector{7, T}(
-                δx_sub[1],
-                δx_sub[2],
-                δx_sub[3],
-                δx_sub[4],
-                δx_sub[5],
-                δx_sub[6],
-                0
+            δx = SVector{7, T}(
+                δx_sub[1], δx_sub[2], δx_sub[3], δx_sub[4], δx_sub[5], δx_sub[6], 0
             )
         end
 
@@ -572,15 +579,31 @@ function fit_sgp4_tle!(
 
         # We cannot compute the RMSE variation in the first iteration.
         if it == 1
-            verbose &&
-                @printf("\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20s\n", cb, cd, it, σp_i, σv_i, σ_i, "---")
+            verbose && @printf(
+                "\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20s\n",
+                cb,
+                cd,
+                it,
+                σp_i,
+                σv_i,
+                σ_i,
+                "---"
+            )
 
         else
             # Compute the RMSE variation.
             Δσ = (σ_i - σ_i_₁) / σ_i_₁
 
-            verbose &&
-                @printf("\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20g %%\n", cb, cd, it, σp_i, σv_i, σ_i, 100 * Δσ)
+            verbose && @printf(
+                "\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20g %%\n",
+                cb,
+                cd,
+                it,
+                σp_i,
+                σv_i,
+                σ_i,
+                100 * Δσ
+            )
 
             # Check if the RMSE is increasing.
             if σ_i < σ_i_₁
@@ -617,8 +640,9 @@ function fit_sgp4_tle!(
 
     # Update the epoch of the fitted TLE to match the desired one.
     if abs(epoch - mean_elements_epoch) > 0.001 / 86400
-        verbose &&
-            println("$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.")
+        verbose && println(
+            "$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.",
+        )
         tle = update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch; verbose = verbose)
     end
 
@@ -816,7 +840,9 @@ TLE:
                      n̈ / 6 :            0 rev / day³
 ```
 """
-function update_sgp4_tle_epoch!(sgp4d::Sgp4Propagator, tle::TLE, new_epoch::DateTime; kwargs...)
+function update_sgp4_tle_epoch!(
+    sgp4d::Sgp4Propagator, tle::TLE, new_epoch::DateTime; kwargs...
+)
     dt = datetime2julian(new_epoch)
     return update_sgp4_tle_epoch!(sgp4d, tle, dt; kwargs...)
 end
@@ -825,10 +851,10 @@ function update_sgp4_tle_epoch!(
     sgp4d::Sgp4Propagator,
     tle::TLE,
     new_epoch::Number;
-    atol::Number           = 2e-4,
-    rtol::Number           = 2e-4,
-    max_iterations::Int    = 50,
-    verbose::Bool          = true
+    atol::Number        = 2e-4,
+    rtol::Number        = 2e-4,
+    max_iterations::Int = 50,
+    verbose::Bool       = true,
 )
     # First, we need to initialize the SGP4 propagator with the initial TLE.
     sgp4_init!(sgp4d, tle)
@@ -872,7 +898,7 @@ function update_sgp4_tle_epoch!(
         international_designator = tle.international_designator,
         name                     = tle.name,
         revolution_number        = tle.revolution_number,
-        satellite_number         = tle.satellite_number
+        satellite_number         = tle.satellite_number,
     )
 
     return tle
@@ -896,11 +922,7 @@ the following elements:
 
 and be defined for the `epoch` [Julian Day].
 """
-function _init_sgp4_with_state_vector!(
-    sgp4d::Sgp4Propagator,
-    sv::SVector{7},
-    epoch::Number,
-)
+function _init_sgp4_with_state_vector!(sgp4d::Sgp4Propagator, sv::SVector{7}, epoch::Number)
     # Unpack.
     sgp4c = sgp4d.sgp4c
 
@@ -967,7 +989,6 @@ function _mean_state_vector_to_tle(
     revolution_number::Int = 0,
     satellite_number::Int = 9999,
 )
-
     r_teme   = @SVector [1000sv[1], 1000sv[2], 1000sv[3]]
     v_teme   = @SVector [1000sv[4], 1000sv[5], 1000sv[6]]
     bstar    = sv[7]
@@ -1010,7 +1031,7 @@ function _mean_state_vector_to_tle(
         ω₀,
         M₀,
         720n₀ / π,
-        revolution_number
+        revolution_number,
     )
 
     return tle
@@ -1029,9 +1050,8 @@ has the following structure:
     └                                    ┘
 """
 function _tle_to_mean_state_vector(
-    tle::TLE;
-    sgp4c::Sgp4Constants{T} = sgp4c_wgs84
-) where T<:Number
+    tle::TLE; sgp4c::Sgp4Constants{T} = sgp4c_wgs84
+) where {T <: Number}
     # Unpack information.
     n = tle.mean_motion * π / 720
     a = (1000 * sgp4c.R0) * (sgp4c.XKE / n)^(2 / 3)
@@ -1053,7 +1073,7 @@ function _tle_to_mean_state_vector(
         v_i[1] / 1000,
         v_i[2] / 1000,
         v_i[3] / 1000,
-        tle.bstar
+        tle.bstar,
     )
 
     return sv
@@ -1108,8 +1128,8 @@ function _sgp4_jacobian(
     y₁::SVector{6, T};
     perturbation::Number = T(1e-3),
     perturbation_tol::Number = T(1e-7),
-    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing
-) where {T<:Number, Tepoch<:Number}
+    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing,
+) where {T <: Number, Tepoch <: Number}
 
     # Allocate the `MMatrix` that will have the Jacobian.
     J = MMatrix{6, 7, T}(undef)
@@ -1143,14 +1163,7 @@ function _sgp4_jacobian(
         # Obtain the Jacobian by finite differentiation.
         _init_sgp4_with_state_vector!(sgp4d, x₂, sgp4d.epoch)
         r_teme, v_teme = sgp4!(sgp4d, Δt)
-        y₂ = @SVector [
-            r_teme[1],
-            r_teme[2],
-            r_teme[3],
-            v_teme[1],
-            v_teme[2],
-            v_teme[3],
-        ]
+        y₂ = @SVector [r_teme[1], r_teme[2], r_teme[3], v_teme[1], v_teme[2], v_teme[3]]
 
         J[:, j] .= (y₂ .- y₁) ./ ϵ
 
@@ -1191,8 +1204,8 @@ function _sgp4_jacobian(
     y₁::SVector{6, T};
     perturbation::Number = T(1e-3),
     perturbation_tol::Number = T(1e-7),
-    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing
-) where {T<:Number, Tepoch<:Number}
+    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing,
+) where {T <: Number, Tepoch <: Number}
     epoch = sgp4d.epoch
 
     N   = 7
@@ -1207,11 +1220,8 @@ function _sgp4_jacobian(
 end
 
 function _sgp4_fwd_jacobian_eval(
-    sgp4d_ad::Sgp4Propagator{Tepoch, D},
-    epoch::Number,
-    Δt::Number,
-    x₁::SVector{N, T}
-) where {Tepoch, D<:ForwardDiff.Dual, N, T}
+    sgp4d_ad::Sgp4Propagator{Tepoch, D}, epoch::Number, Δt::Number, x₁::SVector{N, T}
+) where {Tepoch, D <: ForwardDiff.Dual, N, T}
     seeds  = ntuple(i -> ForwardDiff.Partials(ntuple(j -> T(i == j), Val(N))), Val(N))
     x_dual = SVector{N, D}(ntuple(i -> D(x₁[i], seeds[i]), Val(N)))
 
