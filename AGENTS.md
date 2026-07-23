@@ -1,36 +1,61 @@
-# Repository Guide
+# AGENTS.md
+
+Instructions for coding agents working in this repository. `CLAUDE.md` imports this file via `@AGENTS.md`.
 
 ## Package Structure
 
-- Single Julia package (`SatelliteToolboxSgp4`): the SGP4/SDP4 orbit propagator. Requires Julia 1.10 or newer (`[compat] julia = "1.10, 1.11, 1.12"`).
-- `src/SatelliteToolboxSgp4.jl` is the module entrypoint and controls source include order: `types.jl` → `copy.jl` → `sgp4_model.jl` → `tle.jl` → `precompile.jl`. New code must respect this order when referencing symbols across files.
-- `@reexport using SatelliteToolboxBase` and `@reexport using SatelliteToolboxTle` re-export those packages' public API, so their symbols are part of this package's public surface.
-- `src/precompile.jl` holds a `PrecompileTools.@compile_workload` covering orbit propagation, TLE fitting, TLE epoch update, and structure copying (Float64 and Float32); update it when the precompiled public API changes.
-- Tests are wired from `test/runtests.jl`, which `include`s `sgp4.jl`, `tle.jl`, and `copy.jl` unconditionally, then `performance.jl` only on non-prerelease Julia. `src/types.jl` and `src/precompile.jl` have no dedicated test file; `test/performance.jl` has no `src/` counterpart.
-- Test-only dependencies are declared via `[extras]` + `[targets]` in `Project.toml` (Test, DelimitedFiles, Pkg, Printf — all stdlibs). There is no `test/Project.toml`.
-- No `Manifest.toml` is committed; the dependency tree is not pinned.
-- No package extensions (`[weakdeps]`/`[extensions]` absent; no `ext/`).
+`SatelliteToolboxSgp4` is a pure-Julia implementation of the SGP4/SDP4 orbit propagator. It is part of the SatelliteToolbox ecosystem and re-exports `SatelliteToolboxBase` and `SatelliteToolboxTle`.
+
+- **Julia compat:** `[compat] julia = "1.10, 1.11, 1.12"` — supported on Julia 1.10, 1.11, and 1.12 only (not an open `^1.10` range; do not assume 1.13+ works). Nightly is exercised in CI but is not a supported target.
+- **Module entrypoint:** `src/SatelliteToolboxSgp4.jl`. Include order is fixed and load-order-sensitive: `types.jl` → `copy.jl` → `sgp4_model.jl` → `tle.jl` → `precompile.jl`. New code must respect this order; symbols defined in an earlier file are visible to later ones, not vice versa.
+- **Re-exports:** `@reexport using SatelliteToolboxBase` and `@reexport using SatelliteToolboxTle` — public API of those packages is part of this package's public surface.
+- **Runtime deps (`[deps]`):** Crayons, Dates, ForwardDiff, LinearAlgebra, PrecompileTools, Printf, Reexport, SatelliteToolboxBase, SatelliteToolboxTle, StaticArrays. `PrecompileTools` is used for precompile workloads in `src/precompile.jl`.
+- **No package extensions:** no `[weakdeps]`, `[extensions]`, or `ext/` directory.
+- **No build script:** no `deps/build.jl`; `Pkg.build()` is a no-op.
+- **Test deps:** declared via `[extras]` + `[targets] test = ["Test", "DelimitedFiles", "Pkg", "Printf"]` (no `test/Project.toml`). The performance test additionally `Pkg.add`s `JET`, `AllocCheck`, and `Aqua` at runtime inside `test/runtests.jl`, so a first test run on a non-prerelease Julia will hit the network.
+- **Test wiring (`test/runtests.jl`):** three unconditional `@testset`s include `sgp4.jl`, `tle.jl`, `copy.jl`. A fourth "Performance Tests" `@testset` includes `performance.jl` only when `isempty(VERSION.prerelease)` (i.e. skipped on nightly); it runs Aqua, JET (skipped on Julia 1.12+), and AllocCheck (skipped on Julia 1.12+).
+- **Test ↔ src mapping:** `test/copy.jl` ↔ `src/copy.jl`; `test/sgp4.jl` ↔ `src/sgp4_model.jl`; `test/tle.jl` ↔ `src/tle.jl`. `src/types.jl` and `src/precompile.jl` have no dedicated test file (covered indirectly). Test fixtures live in `test/sgp4_tests/` (AIAA 2006-6753 reference TLEs and expected results).
+- **Examples:** `examples/` is a separate environment with its own `Project.toml` (`[sources] SatelliteToolboxSgp4 = {path = ".."}`); run scripts there with `julia --project=examples`.
+- **Manifest:** `Manifest.toml` is gitignored and not committed.
 
 ## Commands
 
-- Instantiate: `julia --project=. -e 'using Pkg; Pkg.instantiate()'`
-- Full test suite: `julia --project=. -e 'using Pkg; Pkg.test()'`. A first run precompiles dependencies and can take minutes while printing little; use generous timeouts and do not assume a hang.
-- Focused test file (core tests): `julia --project=. -e 'using SatelliteToolboxSgp4, SatelliteToolboxTle, Test, Dates, DelimitedFiles, Printf; include("test/sgp4.jl")'` — swap the path for `test/tle.jl` or `test/copy.jl`. The `using` list mirrors `test/runtests.jl`; the included test files rely on those names being in scope.
-- `test/performance.jl` is not runnable via a focused include: `runtests.jl` `Pkg.add`s JET, AllocCheck, and Aqua at runtime and gates the whole block on non-prerelease Julia. Run it through the full `Pkg.test()`.
-- There is no test-name selector; `runtests.jl` does not read `ARGS` and does not use TestItemRunner/ReTestItems.
-- CI (`.github/workflows/ci.yml`) tests Julia 1.10 (oldest supported) and latest stable 1.x on Ubuntu (x64), macOS (arm64), and Windows (x64); it builds via `julia-actions/julia-buildpkg` before `julia-actions/julia-runtest`, then uploads coverage to Codecov. `ci-nightly.yml` repeats the matrix on Julia nightly. `Pkg.build()` is a no-op (no `deps/build.jl`). CompatHelper and TagBot workflows also run.
+- **Instantiate:** `julia --project=. -e 'using Pkg; Pkg.instantiate()'`
+- **Full test suite (CI-equivalent):** `julia --project=. -e 'using Pkg; Pkg.test()'` — this is the canonical command; CI runs `julia-buildpkg` then `julia-runtest`, which is equivalent. Use generous timeouts: first run triggers precompilation and the performance test `Pkg.add`s three packages, so it can take several minutes with little output. Slow startup is precompilation, not a hang.
+- **Focused test file:** `julia --project=. -e 'using SatelliteToolboxSgp4, Test, Dates, DelimitedFiles, Printf, SatelliteToolboxTle; include("test/<file>.jl")'` — extend the `using` list with any extra deps the target file needs (e.g. `ForwardDiff, StaticArrays` for `performance.jl`). There is no `@testitem`/test-name selector; `Pkg.test(test_args=...)` is not read by `runtests.jl`.
+- **Examples:** `julia --project=examples examples/<script>.jl` (instantiate first: `julia --project=examples -e 'using Pkg; Pkg.instantiate()'`).
+- **Format check (no `--project=.`):** `julia -e 'using JuliaFormatter; format(".")'` then `git diff --exit-code` — `format(".")` returns `true` when nothing changed. JuliaFormatter must be installed in the default env or a shared env like `@format`.
 
 ## Code Style
 
-- No formatter is configured (no `.JuliaFormatter.toml`); CI does not run a format check. Do not invent a formatting step.
+- **Formatter:** JuliaFormatter with `style = "blue"` plus alignment options in `.JuliaFormatter.toml`. This is the source of truth for formatting; run `format(".")` and match its output.
+- **CI does not enforce formatting:** no format-check job exists in `.github/workflows/`. Formatting is a convention only; still apply it before committing.
+- **No linter is configured** beyond what `performance.jl` runs (Aqua/JET/AllocCheck) inside the test suite.
 
 ## Behavioral Constraints
 
-- SGP4/SDP4 propagation correctness is validated against Vallado et al., "Revisiting Spacetrack Report #3" (see the `test/sgp4.jl` header). Preserve numerical fidelity when touching the algorithm in `src/sgp4_model.jl`.
-- Hot paths are allocation-checked in `test/performance.jl`: `sgp4!`, `sgp4_init!`, and the internal TLE-fitting Jacobian functions (`_init_sgp4_with_state_vector!`, `_sgp4_jacobian`, `_sgp4_fwd_jacobian_eval`) must allocate zero. `fit_sgp4_tle!` has explicit regression bounds (≤45 allocs with `FiniteDiffJacobian`, ≤47 with `ForwardDiffJacobian`). Do not introduce allocations in those paths.
-- JET and AllocCheck tests are skipped on Julia 1.12+ (see `test/performance.jl`); Aqua always runs on non-prerelease Julia.
-- New tests follow the `@testset "Name" verbose = true begin ... end` pattern used in `test/runtests.jl`; match it when adding coverage.
+- Preserve the `src/` include order in `src/SatelliteToolboxSgp4.jl`; do not reorder includes or move symbols between files without checking load dependencies.
+- `SatelliteToolboxBase` and `SatelliteToolboxTle` are re-exported — changes to their public types (e.g. `Orbit`, TLE structures) propagate into this package's public API. Treat them as part of the surface, not internal.
+- The SGP4/SDP4 numerics in `src/sgp4_model.jl` follow Vallado et al., *Revisiting Spacetrack Report #3* (AIAA 2006-6753). Test fixtures in `test/sgp4_tests/aiaa-2006-6753/` are the regression baseline; do not modify expected-result files. If numerics change, expect those fixtures to flag it.
+- Match the existing `@testset "..." verbose = true begin ... end` convention (see `test/runtests.jl`, `test/tle.jl`) when adding tests.
+- The performance `@testset` is skipped on prerelease builds (`isempty(VERSION.prerelease)` guard) and JET/AllocCheck are additionally skipped on Julia 1.12+. Keep those guards when editing `test/performance.jl`.
+- `Manifest.toml` is gitignored — never commit it.
+
+## CI
+
+`.github/workflows/ci.yml` — matrix: Julia `1.10` and `1` (latest stable 1.x), on `ubuntu-latest` / `macos-latest` / `windows-latest`, arch `x64` / `arm64`, with exclusions (no `ubuntu-latest/arm64`, no `macos-latest/x64`, no `windows-latest/arm64`). Steps: `julia-buildpkg` → `julia-runtest` → `julia-processcoverage` → `codecov`. No format-check or docs job.
+
+`.github/workflows/ci-nightly.yml` — Julia `nightly`, same OS/arch matrix, `julia-buildpkg` → `julia-runtest` only (no coverage).
+
+`CompatHelper.yml` and `TagBot.yml` run on schedule for compat bumps and release tagging.
 
 ## Not Configured
 
-- No formatter, linter, pre-commit hooks, or generated docs are configured; do not invent them from README badges or Julia convention.
+State these explicitly so they are not invented:
+- **No Documenter docs build:** `docs/` exists but contains only `src/assets/logo.png`; there is no `docs/make.jl` or `docs/Project.toml`. Do not add a docs build pipeline without explicit request.
+- **No format-check in CI.**
+- **No `deps/build.jl`** — `Pkg.build()` is a no-op; `Pkg.test()` alone reproduces CI.
+- **No package extensions / weakdeps.**
+- **No `test/Project.toml`** — test deps come from `[extras]`/`[targets]`.
+- **No `.pre-commit-config.yaml`.**
+- **No committed `Manifest.toml`.**
