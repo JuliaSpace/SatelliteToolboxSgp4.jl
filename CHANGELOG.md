@@ -1,6 +1,24 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 2.5.0
+-------------
+
+- ![Enhancement][badge-enhancement] Remove the unused fields `xnq`, `omegaq`, `omgdt`,
+  `ilsz`, `pgh0`, `ph0`, `pe0`, `pinc0`, and `pl0` from the internal structure
+  `Sgp4DeepSpace`.
+- ![Enhancement][badge-enhancement] Reduce allocations in `fit_sgp4_tle!` by converting the
+  measurements to static vectors before the least-square iterations.
+- ![Bugfix][badge-bugfix] Fix the TLE epoch year computed in `fit_sgp4_tle!`, which was
+  negative for epochs between 1980 and 1999.
+- ![Bugfix][badge-bugfix] Fix the correction limiting algorithm in `fit_sgp4_tle!`, which
+  froze any state component that was exactly zero.
+- ![Bugfix][badge-bugfix] Fix the Kepler solver exit tolerance in `sgp4!`, which was
+  unreachable for types with lower precision than `Float64`, causing the solver to always
+  run all iterations when using `Float32`.
+- ![Bugfix][badge-bugfix] Fix an access to undefined fields in the deep space
+  initialization, which threw `UndefRefError` when using non-isbits number types.
+
 Version 2.4.2
 -------------
 
