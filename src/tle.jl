@@ -570,7 +570,7 @@ function fit_sgp4_tle!(
         # Limit the correction to avoid divergence, but it should not be applied to B*.
         for i in 1:6
             threshold = T(0.1)
-            if abs(δx[i] / x₁[i]) > threshold
+            if !iszero(x₁[i]) && (abs(δx[i] / x₁[i]) > threshold)
                 δx = setindex(δx, threshold * abs(x₁[i]) * sign(δx[i]), i)
             end
         end
