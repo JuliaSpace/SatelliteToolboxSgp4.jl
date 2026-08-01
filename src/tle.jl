@@ -999,7 +999,7 @@ function _mean_state_vector_to_tle(
     dt₀ = DateTime(Year(dt))
 
     dt_year    = year(dt)
-    epoch_year = dt_year < 1980 ? dt_year - 1900 : dt_year - 2000
+    epoch_year = dt_year < 2000 ? dt_year - 1900 : dt_year - 2000
     epoch_day  = (dt - dt₀).value / 1000 / 86400 + 1
 
     # Obtain the Keplerian elements with the correct units for the TLE.
