@@ -454,9 +454,6 @@ function fit_sgp4_tle!(
     # Number of states in the input vector.
     num_states = 7
 
-    # Covariance matrix.
-    P = SMatrix{num_states, num_states, T}(I)
-
     # Variable to store the last residue.
     local σ_i_₁
 
@@ -1208,10 +1205,6 @@ function _sgp4_jacobian(
     sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing,
 ) where {T <: Number, Tepoch <: Number}
     epoch = sgp4d.epoch
-
-    N   = 7
-    tag = ForwardDiff.Tag{Nothing, T}
-    D   = ForwardDiff.Dual{tag, T, N}
 
     if isnothing(sgp4d_ad)
         sgp4d_ad = _create_ad_propagator(sgp4d)
