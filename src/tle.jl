@@ -193,7 +193,7 @@ frame (TEME) at instants in the array `vjd` [Julian Day].
 
 This algorithm was based on **[1]**.
 
-!!! notes
+!!! note
 
     The SGP4 orbit propagator `sgp4d` will be initialized with the TLE returned by the
     function.
@@ -662,7 +662,7 @@ end
 Update the `tle` epoch with SGP4 mean elements to `new_epoch`. `new_epoch` can be
 represented by a Julian Day or a `DateTime`.
 
-!!! notes
+!!! note
 
     This algorithm version will allocate a new SGP4 propagator with the default constants
     `sgp4c_wgs84`. If another set of constants is required, use the function
@@ -757,7 +757,7 @@ end
 Update the `tle` epoch with SGP4 mean elements to `new_epoch` using the orbit propagator
 `sgp4d`. `new_epoch` can be represented by a Julian Day or a `DateTime`.
 
-!!! notes
+!!! note
 
     The SGP4 orbit propagator `sgp4d` will be initialized with the TLE returned by the
     function.
@@ -909,7 +909,7 @@ end
 ############################################################################################
 
 """
-    _init_sgp4_with_state_vector!(sgp4d::Sgp4Propagator, sv::SVector{8}, epoch::Number) -> Nothing
+    _init_sgp4_with_state_vector!(sgp4d::Sgp4Propagator, sv::SVector{7}, epoch::Number) -> Nothing
 
 Initialize the SGP4 orbit propagator `sgp4d` using the state vector `sv`, which must have
 the following elements:
@@ -951,9 +951,10 @@ function _init_sgp4_with_state_vector!(sgp4d::Sgp4Propagator, sv::SVector{7}, ep
 end
 
 """
-    _mean_state_vector_to_tle(sv::SVector{8}; kwargs...) -> TLE
+    _mean_state_vector_to_tle(sv::SVector{7}, epoch::Number; kwargs...) -> TLE
 
-Create a TLE given the mean state vector `sv`, which must have the following elements:
+Create a TLE for the `epoch` [Julian Day] given the mean state vector `sv`, which must have
+the following elements:
 
     ┌                                    ┐
     │ IDs 1 to 3: Mean position [km]     │
@@ -1101,7 +1102,7 @@ function _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, 
 end
 
 """
-    _sgp4_jacobian(::FiniteDiffJacobian, sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{8, T}, y₁::SVector{7, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
+    _sgp4_jacobian(::FiniteDiffJacobian, sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{7, T}, y₁::SVector{6, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
 
 Compute the SGP4 Jacobian by finite-differences using the propagator `sgp4d` at instant `Δt`
 considering the input mean elements `x₁` that must provide the output vector `y₁`. Hence:

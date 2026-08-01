@@ -1645,7 +1645,7 @@ function _dssec!(
 end
 
 """
-    _dsper!(sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt:Number) where T<:Number
+    _dsper!(sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt::Number) where T<:Number
 
 Compute the effects caused by Lunar-Solar periodics.
 
