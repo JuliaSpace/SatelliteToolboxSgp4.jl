@@ -451,6 +451,19 @@ function fit_sgp4_tle!(
 
     x₂ = x₁
 
+    # Convert the measurements to static vectors to avoid allocations inside the fitting
+    # loop when the user provides dynamic vectors.
+    vy = [
+        SVector{6, T}(
+            vr_teme[k][1],
+            vr_teme[k][2],
+            vr_teme[k][3],
+            vv_teme[k][1],
+            vv_teme[k][2],
+            vv_teme[k][3],
+        ) for k in 1:num_measurements
+    ]
+
     # Number of states in the input vector.
     num_states = 7
 
@@ -511,7 +524,7 @@ function fit_sgp4_tle!(
 
         for k in 1:num_measurements
             # Obtain the measured ephemerides.
-            y = vcat(vr_teme[k], vv_teme[k])
+            y = vy[k]
 
             # Initialize the SGP4 with the current estimated mean elements.
             _init_sgp4_with_state_vector!(sgp4d, x₁, epoch)
@@ -542,8 +555,8 @@ function fit_sgp4_tle!(
             ΣJ′WJ += J' * (W .* J)
             ΣJ′Wb += J' * (W .* b)
             σ_i   += dot(W .* b, b)
-            σp_i  += dot(b[1:3], b[1:3])
-            σv_i  += dot(b[4:6], b[4:6])
+            σp_i  += b[1]^2 + b[2]^2 + b[3]^2
+            σv_i  += b[4]^2 + b[5]^2 + b[6]^2
         end
 
         # Normalize and compute the RMS errors.
