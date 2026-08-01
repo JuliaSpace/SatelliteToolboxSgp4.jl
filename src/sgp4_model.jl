@@ -788,8 +788,10 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
         # If the increment is less than a threshold, break the loop.
         #
-        # Vallado proposes a threshold of 10^-12 instead of 10^-6.
-        abs(ΔE_ω) < T(1e-12) && break
+        # Vallado proposes a threshold of 10^-12 instead of 10^-6. However, this threshold
+        # is unreachable for types with lower precision than `Float64` (e.g. `Float32`).
+        # Hence, we limit the threshold to a small multiple of the machine epsilon.
+        abs(ΔE_ω) < max(T(1e-12), 10 * eps(T)) && break
     end
 
     # == Short-Term Periodic Terms =========================================================
