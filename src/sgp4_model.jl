@@ -2,7 +2,7 @@
 #
 # SGP4 orbit propagator model.
 #
-# This is a independent implementation of the algorithm presented in [1].
+# This is an independent implementation of the algorithm presented in [1].
 #
 ## References ##############################################################################
 #
@@ -170,7 +170,7 @@ arguments.
 
 !!! warning
 
-    The propagation constants `sgp4c::Sgp4PropagatorConstants` in `sgp4d` will not be
+    The propagation constants `sgp4c::Sgp4Constants` in `sgp4d` will not be
     changed. Hence, they must be initialized.
 
 # Arguments
@@ -183,7 +183,7 @@ arguments.
 - `ω₀::Number`: "Mean" argument of perigee at epoch [rad].
 - `M₀::Number`: "Mean" mean anomaly at epoch [rad].
 - `bstar::Number`: Drag parameter (B*).
-- `tle::TLE`: TLE to initialize the SPG4 (see `TLE`).
+- `tle::TLE`: TLE to initialize the SGP4 (see `TLE`).
 """
 function sgp4_init!(
     sgp4d::Sgp4Propagator{Tepoch, T}, tle::TLE

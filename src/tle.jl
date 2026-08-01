@@ -26,7 +26,7 @@ This algorithm was based on **[1]**.
 !!! note
 
     This algorithm version will allocate a new SGP4 propagator with the default constants
-    `sgp4c_wgs84`. If another set of constants are required, use the function
+    `sgp4c_wgs84`. If another set of constants is required, use the function
     [`fit_sgp4_tle!`](@ref) instead.
 
 # Keywords
@@ -57,7 +57,7 @@ This algorithm was based on **[1]**.
     (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
-    `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
+    `jacobian_perturbation_tol`, we increase it until its absolute value is higher than
     `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
@@ -226,7 +226,7 @@ This algorithm was based on **[1]**.
     (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
-    `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
+    `jacobian_perturbation_tol`, we increase it until its absolute value is higher than
     `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
@@ -665,7 +665,7 @@ represented by a Julian Day or a `DateTime`.
 !!! notes
 
     This algorithm version will allocate a new SGP4 propagator with the default constants
-    `sgp4c_wgs84`. If another set of constants are required, use the function
+    `sgp4c_wgs84`. If another set of constants is required, use the function
     [`update_sgp4_tle_epoch!`](@ref) instead.
 
 This function uses the following algorithm to update the TLE epoch:
@@ -1116,7 +1116,7 @@ considering the input mean elements `x₁` that must provide the output vector `
     `Δx = x * perturbation`.
     (**Default** = 1e-3)
 - `perturbation_tol::T`: Tolerance to accept the perturbation. If the computed perturbation
-    is lower than `perturbation_tol`, we increase it until it absolute value is higher than
+    is lower than `perturbation_tol`, we increase it until its absolute value is higher than
     `perturbation_tol`.
     (**Default** = 1e-7)
 """
