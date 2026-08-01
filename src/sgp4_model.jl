@@ -1126,8 +1126,8 @@ function _dsinit!(
         shdq = zero(T)
 
         if ishq
-            sh   = -zn * s2 * (z21 + z23);
-            shdq = sh / sin_i₀;
+            sh   = -zn * s2 * (z21 + z23)
+            shdq = sh / sin_i₀
         end
 
         ee2  = +2s1 * s6
@@ -1185,8 +1185,8 @@ function _dsinit!(
     if (nll₀ < T(0.0052359877)) && (nll₀ > T(0.0034906585))
         # == 24h Synchronous Resonance Terms Initialization ================================
 
-        iresfl = true;
-        isynfl = true;
+        iresfl = true
+        isynfl = true
 
         g200  = e₀² * (T(0.8125) * e₀² - T(2.5)) + 1
         g310  = 2e₀² + 1
@@ -1740,10 +1740,10 @@ function _dsper!(
     # perturbed inclination to select this. It is mentioned that this is the behavior
     # selected in GSFC source code.
     if i_per >= T(0.2)
-        tmp_ph = ph / sinis;
-        ω_per  = ω_k + pgh - cosis * tmp_ph;
-        Ω_per  = Ω_k + tmp_ph;
-        M_per  = M_k + pl;
+        tmp_ph = ph / sinis
+        ω_per  = ω_k + pgh - cosis * tmp_ph
+        Ω_per  = Ω_k + tmp_ph
+        M_per  = M_k + pl
     else
         sinok, cosok = sincos(Ω_k)
 
@@ -1765,7 +1765,7 @@ function _dsper!(
             Ω_per = (Ω_per < Ω_aux) ? Ω_per + T(2π) : Ω_per - T(2π)
         end
 
-        M_per = M_k + pl;
+        M_per = M_k + pl
         ω_per = xls - M_per - cosis * Ω_per
     end
 
