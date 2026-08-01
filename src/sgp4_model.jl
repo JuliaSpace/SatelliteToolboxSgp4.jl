@@ -919,7 +919,6 @@ function _dsinit!(
     atime  = T(0)
     xli    = T(0)
     xni    = T(0)
-    xnq    = T(0)
     xfact  = T(0)
     ssl    = T(0)
     ssg    = T(0)
@@ -927,8 +926,6 @@ function _dsinit!(
     sse    = T(0)
     ssi    = T(0)
     xlamo  = T(0)
-    omegaq = T(0)
-    omgdt  = T(0)
     gmst   = T(0)
     del1   = T(0)
     del2   = T(0)
@@ -980,14 +977,8 @@ function _dsinit!(
     pgh    = T(0)
     ph     = T(0)
     pl     = T(0)
-    pgh0   = T(0)
-    ph0    = T(0)
-    pe0    = T(0)
-    pinc0  = T(0)
-    pl0    = T(0)
     isynfl = false
     iresfl = false
-    ilsz   = false
 
     # == Constants =========================================================================
 
@@ -1360,14 +1351,10 @@ function _dsinit!(
         xnddt *= xldot
     end
 
-    # Set up for original mode (LS terms at epoch non-zero).
-    pgh0 = ph0 = pe0 = pinc0 = pl0 = T(0)
-
     # Pack variables.
     sgp4ds.atime  = atime
     sgp4ds.xli    = xli
     sgp4ds.xni    = xni
-    sgp4ds.xnq    = xnq
     sgp4ds.xfact  = xfact
     sgp4ds.ssl    = ssl
     sgp4ds.ssg    = ssg
@@ -1375,8 +1362,6 @@ function _dsinit!(
     sgp4ds.sse    = sse
     sgp4ds.ssi    = ssi
     sgp4ds.xlamo  = xlamo
-    sgp4ds.omegaq = omegaq
-    sgp4ds.omgdt  = omgdt
     sgp4ds.gmst   = gmst
     sgp4ds.del1   = del1
     sgp4ds.del2   = del2
@@ -1428,14 +1413,8 @@ function _dsinit!(
     sgp4ds.pgh    = pgh
     sgp4ds.ph     = ph
     sgp4ds.pl     = pl
-    sgp4ds.pgh0   = pgh0
-    sgp4ds.ph0    = ph0
-    sgp4ds.pe0    = pe0
-    sgp4ds.pinc0  = pinc0
-    sgp4ds.pl0    = pl0
     sgp4ds.isynfl = isynfl
     sgp4ds.iresfl = iresfl
-    sgp4ds.ilsz   = ilsz
 
     return nothing
 end

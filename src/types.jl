@@ -36,7 +36,6 @@ mutable struct Sgp4DeepSpace{T}
     atime::T
     xli::T
     xni::T
-    xnq::T
     xfact::T
     ssl::T
     ssg::T
@@ -44,8 +43,6 @@ mutable struct Sgp4DeepSpace{T}
     sse::T
     ssi::T
     xlamo::T
-    omegaq::T
-    omgdt::T
     gmst::T
     del1::T
     del2::T
@@ -97,15 +94,9 @@ mutable struct Sgp4DeepSpace{T}
     pgh::T
     ph::T
     pl::T
-    pgh0::T
-    ph0::T
-    pe0::T
-    pinc0::T
-    pl0::T
 
     isynfl::Bool
     iresfl::Bool
-    ilsz::Bool
 
     # == Constructors ======================================================================
 
