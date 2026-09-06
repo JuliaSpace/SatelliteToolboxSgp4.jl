@@ -119,7 +119,8 @@ the following function:
 fit_sgp4_mean_elements(::Type{S}, vjd::AbstractVector{Tjd}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {S <: Union{TLE, OrbitMeanElementsMessage}, Tjd <: Number, Tv <: AbstractVector} -> S, SMatrix{7, 7, Float64}
 ```
 
-where `S` selects the representation of the output, and the osculating elements are given
+where `S` selects the representation of the output (if it is omitted, the mean elements are
+returned as an `OrbitMeanElementsMessage`), and the osculating elements are given
 by a set of position vectors `vr_teme` [km] and a set of velocity vectors `vv_teme` [km / s]
 represented in the True-Equator, Mean-Equinox reference frame (TEME) at instants in the
 array `vjd` [Julian Day].

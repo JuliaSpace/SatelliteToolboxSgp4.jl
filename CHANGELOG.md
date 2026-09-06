@@ -28,7 +28,8 @@ Version 3.0.0
   `update_sgp4_tle_epoch`, and `update_sgp4_tle_epoch!` by `fit_sgp4_mean_elements`,
   `fit_sgp4_mean_elements!`, `update_sgp4_mean_elements_epoch`, and
   `update_sgp4_mean_elements_epoch!`, which select the representation of the mean elements
-  through a sink type that can be `TLE` or `OrbitMeanElementsMessage`. The metadata of the
+  through a sink type that can be `TLE` or `OrbitMeanElementsMessage`, defaulting to the
+  latter when the sink type is omitted. The metadata of the
   output is now copied from the new keyword `template` instead of the six TLE-specific
   keywords. When the output is an OMM, the position and velocity block of the fit
   covariance is stored in the covariance matrix section of the message, unless the new
