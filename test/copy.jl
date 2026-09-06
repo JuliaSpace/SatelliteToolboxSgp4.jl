@@ -23,24 +23,14 @@
         @test typeof(new_sgp4d) == typeof(sgp4d)
 
         for f in fieldnames(typeof(sgp4d))
-            if f != :sgp4ds
-                @test getfield(new_sgp4d, f) == getfield(sgp4d, f)
-            end
-        end
-
-        for f in fieldnames(typeof(sgp4d.sgp4ds))
-            # Some fields in the deep space structure can be `NaN` because they was not
-            # initialized for this orbit. We should skip them.
-            if !isnan(getfield(sgp4d.sgp4ds, f))
-                @test getfield(new_sgp4d.sgp4ds, f) == getfield(sgp4d.sgp4ds, f)
-            end
+            @test getfield(new_sgp4d, f) == getfield(sgp4d, f)
         end
 
         # Test if both structures does not share the same memory region.
         new_sgp4d.epoch = 100
         @test new_sgp4d.epoch != sgp4d.epoch
 
-        new_sgp4d.sgp4ds.atime = 123
-        @test new_sgp4d.sgp4ds.atime != sgp4d.sgp4ds.atime
+        new_sgp4d.atime = 123
+        @test new_sgp4d.atime != sgp4d.atime
     end
 end

@@ -61,14 +61,14 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
         false,
         false,
     )
 
     sgp4c = Sgp4Propagator{Float64, Float64}(
+        0,
+        0,
+        0,
         0,
         0,
         0,
@@ -119,6 +119,20 @@
     @test sgp4c.∂M == 0.0
     @test sgp4c.algorithm == :sdp4
     @test sgp4c.sgp4ds == sgp4ds
+
+    # The zero constructor of the deep space structure must match the positional one.
+    @test SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}() == sgp4ds
+
+    # Constructor that only sets the gravitational constants.
+    sgp4d = Sgp4Propagator{Float64}(sgp4c_wgs72)
+
+    @test sgp4d isa Sgp4Propagator{Float64, Float64}
+    @test sgp4d.sgp4c === sgp4c_wgs72
+    @test sgp4d.sgp4ds == SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}()
+
+    sgp4d = Sgp4Propagator{Float32}(Sgp4Constants{Float32}(sgp4c_wgs72))
+
+    @test sgp4d isa Sgp4Propagator{Float32, Float32}
 end
 
 @testset "Tests from the Paper AIAA 2006-6753" verbose = true begin

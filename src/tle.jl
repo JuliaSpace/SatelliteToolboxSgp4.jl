@@ -180,10 +180,7 @@ function fit_sgp4_tle(
     vv_teme::AbstractVector{Tv};
     kwargs...,
 ) where {Tjd <: Number, Tv <: AbstractVector}
-    # We must initialize the SGP4 propagator structure together with any mutable fields.
-    sgp4d = Sgp4Propagator{Float64, Float64}()
-    sgp4d.sgp4c = sgp4c_wgs84
-    sgp4d.sgp4ds = Sgp4DeepSpace{Float64}()
+    sgp4d = Sgp4Propagator{Float64}(sgp4c_wgs84)
 
     return fit_sgp4_tle!(sgp4d, vjd, vr_teme, vv_teme; kwargs...)
 end
@@ -740,10 +737,7 @@ TLE:
 ```
 """
 function update_sgp4_tle_epoch(tle::TLE, new_epoch::Union{Number, DateTime}; kwargs...)
-    # We must initialize the SGP4 propagator structure together with any mutable fields.
-    sgp4d = Sgp4Propagator{Float64, Float64}()
-    sgp4d.sgp4c = sgp4c_wgs84
-    sgp4d.sgp4ds = Sgp4DeepSpace{Float64}()
+    sgp4d = Sgp4Propagator{Float64}(sgp4c_wgs84)
 
     return update_sgp4_tle_epoch!(sgp4d, tle, new_epoch; kwargs...)
 end
@@ -1100,11 +1094,7 @@ function _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, 
     D     = ForwardDiff.Dual{tag, T, 7}
     sgp4c = sgp4d.sgp4c
 
-    ad = Sgp4Propagator{Tepoch, D}()
-    ad.sgp4c = Sgp4Constants{D}(sgp4c)
-    ad.sgp4ds = Sgp4DeepSpace{D}()
-
-    return ad
+    return Sgp4Propagator{Tepoch}(Sgp4Constants{D}(sgp4c))
 end
 
 """

@@ -39,12 +39,14 @@ end
 """
     struct Sgp4DeepSpace{T}
 
-Store the internal SGP4 variables to account for deep space perturbations.
+Store the constants of the SGP4 deep space (SDP4) algorithm computed during the propagator
+initialization. The structure is immutable and is created by `_dsinit`. The state of the
+resonance integrator is stored in the propagator structure `Sgp4Propagator`.
+
+The constructor `Sgp4DeepSpace{T}()` returns a structure with all fields set to zero, which
+is used when the orbit does not require the deep space algorithm.
 """
-mutable struct Sgp4DeepSpace{T}
-    atime::T
-    xli::T
-    xni::T
+struct Sgp4DeepSpace{T}
     xfact::T
     ssl::T
     ssg::T
@@ -98,17 +100,26 @@ mutable struct Sgp4DeepSpace{T}
 
     isynfl::Bool
     iresfl::Bool
+end
 
-    # == Constructors ======================================================================
-
-    Sgp4DeepSpace{T}(args...) where {T <: Number} = new(args...)
-    Sgp4DeepSpace{T}() where {T <: Number} = new()
+# The zero constructor is generated with one explicit argument per numeric field so that it
+# does not splat a tuple at runtime, which would allocate.
+let zeros = fill(:(zero(T)), fieldcount(Sgp4DeepSpace) - 2)
+    @eval function Sgp4DeepSpace{T}() where {T <: Number}
+        return Sgp4DeepSpace{T}($(zeros...), false, false)
+    end
 end
 
 """
-    Sgp4Propagator{Tepoch, T}
+    mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
 
-Low-level SGP4 propagator structure.
+Low-level SGP4 propagator structure, in which `Tepoch` is the number type of the epoch and
+`T` is the number type used in the propagation.
+
+The constructor `Sgp4Propagator{Tepoch}(sgp4c::Sgp4Constants{T})` returns a structure with
+the gravitational constants `sgp4c` set and the deep space structure zeroed, ready to be
+initialized by [`sgp4_init!`](@ref). The constructor `Sgp4Propagator{Tepoch, T}()` returns
+a structure with all fields uninitialized.
 """
 mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
     # TLE parameters.
@@ -155,6 +166,10 @@ mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
     ∂M::T
     ∂ω::T
     ∂Ω::T
+    # State of the deep space resonance integrator.
+    atime::T
+    xli::T
+    xni::T
     # Selected algorithm.
     algorithm::Symbol
     # SGP4 gravitational constants.
@@ -166,4 +181,13 @@ mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
 
     Sgp4Propagator{Tepoch, T}(args...) where {Tepoch <: Number, T <: Number} = new(args...)
     Sgp4Propagator{Tepoch, T}() where {Tepoch <: Number, T <: Number} = new()
+
+    function Sgp4Propagator{Tepoch}(
+        sgp4c::Sgp4Constants{T}
+    ) where {Tepoch <: Number, T <: Number}
+        sgp4d = new{Tepoch, T}()
+        sgp4d.sgp4c = sgp4c
+        sgp4d.sgp4ds = Sgp4DeepSpace{T}()
+        return sgp4d
+    end
 end

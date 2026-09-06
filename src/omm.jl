@@ -60,11 +60,7 @@ julia> r_teme, v_teme = sgp4!(sgp4d, 10)
 function sgp4_init(
     omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = sgp4c_wgs84
 ) where {T <: Number}
-    # We must initialize the SGP4 propagator structure together with any mutable fields.
-    sgp4d = Sgp4Propagator{Float64, T}()
-    sgp4d.sgp4c = sgp4c
-    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
-
+    sgp4d = Sgp4Propagator{Float64}(sgp4c)
     sgp4_init!(sgp4d, omm)
     return sgp4d
 end

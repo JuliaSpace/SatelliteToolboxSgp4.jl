@@ -110,12 +110,7 @@ propagation.
 - [`Sgp4Propagator`](@ref): The structure with the initialized parameters.
 """
 function sgp4_init(tle::TLE; sgp4c::Sgp4Constants{T} = sgp4c_wgs84) where {T <: Number}
-    # We must initialize the SGP4 propagator structure together with any mutable fields.
-    Tepoch = typeof(tle_epoch(tle))
-    sgp4d = Sgp4Propagator{Tepoch, T}()
-    sgp4d.sgp4c = sgp4c
-    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
-
+    sgp4d = Sgp4Propagator{typeof(tle_epoch(tle))}(sgp4c)
     sgp4_init!(sgp4d, tle)
     return sgp4d
 end
@@ -131,10 +126,7 @@ function sgp4_init(
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
 ) where {Tepoch <: Number, T <: Number}
-    sgp4d = Sgp4Propagator{Tepoch, T}()
-    sgp4d.sgp4c = sgp4c
-    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
-
+    sgp4d = Sgp4Propagator{Tepoch}(sgp4c)
     sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
     return sgp4d
 end
@@ -161,8 +153,9 @@ arguments.
 
 !!! warning
 
-    The propagation constants `sgp4c::Sgp4Constants` in `sgp4d` will not be
-    changed. Hence, they must be initialized.
+    The propagation constants `sgp4c::Sgp4Constants` in `sgp4d` will not be changed.
+    Hence, they must be initialized, e.g. by creating the structure with the constructor
+    `Sgp4Propagator{Tepoch}(sgp4c)`.
 
 # Arguments
 
@@ -388,7 +381,9 @@ function sgp4_init!(
         (3k₂² * (4θ - 19θ³) / (2all₀⁴ * β₀⁸) + 5k₄ * (3θ - 7θ³) / (2all₀⁴ * β₀⁸)) * nll₀
 
     # If the orbit period is higher than 225 min., then we must consider the deep space
-    # perturbations. This is indicated by selecting the algorithm `:sdp4`.
+    # perturbations. This is indicated by selecting the algorithm `:sdp4`. The deep space
+    # structure is only written in this case. Otherwise, it is not used and the current
+    # value is kept, which avoids copying its many fields.
     #
     # NOTE: Vallado's implementation [2] evaluates the period using the mean motion after
     # removing the Kozai correction (`nll₀`), whereas the driver of the original SGP4
@@ -397,19 +392,8 @@ function sgp4_init!(
         algorithm = :sdp4
 
         # Initialize the values for the SDP4 (deep space) algorithm.
-        _dsinit!(
-            sgp4d.sgp4ds,
-            Tepoch(epoch),
-            nll₀,
-            all₀,
-            T(e₀),
-            T(i₀),
-            T(Ω₀),
-            T(ω₀),
-            T(M₀),
-            ∂M,
-            ∂ω,
-            ∂Ω,
+        sgp4d.sgp4ds = _dsinit(
+            Tepoch(epoch), nll₀, all₀, T(e₀), T(i₀), T(Ω₀), T(ω₀), T(M₀), ∂M, ∂ω, ∂Ω
         )
     else
         # For perigee lower than 220 km, the equations are truncated to a linear variation
@@ -461,6 +445,9 @@ function sgp4_init!(
     sgp4d.∂M        = ∂M
     sgp4d.∂ω        = ∂ω
     sgp4d.∂Ω        = ∂Ω
+    sgp4d.atime     = 0
+    sgp4d.xli       = 0
+    sgp4d.xni       = 0
     sgp4d.algorithm = algorithm
 
     return nothing
@@ -598,9 +585,11 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     ∂M        = sgp4d.∂M
     ∂ω        = sgp4d.∂ω
     ∂Ω        = sgp4d.∂Ω
+    atime     = sgp4d.atime
+    xli       = sgp4d.xli
+    xni       = sgp4d.xni
     algorithm = sgp4d.algorithm
     sgp4c     = sgp4d.sgp4c
-    sgp4ds    = sgp4d.sgp4ds
 
     R0  = sgp4c.R0
     XKE = sgp4c.XKE
@@ -638,9 +627,14 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # Check if we need to use SDP4 (deep space) algorithm.
     if algorithm === :sdp4
         # Compute the elements perturbed by the secular effects.
-        n_k, e_k, i_k, Ω_k, ω_k, M_k = _dssec!(
-            sgp4ds, nll₀, e₀, i₀, ω₀, Ω_k, ω_k, M_k, ∂ω, Δt
+        n_k, e_k, i_k, Ω_k, ω_k, M_k, atime, xli, xni = _dssec(
+            sgp4d.sgp4ds, atime, xli, xni, nll₀, e₀, i₀, ω₀, Ω_k, ω_k, M_k, ∂ω, Δt
         )
+
+        # Store the state of the resonance integrator for the next call.
+        sgp4d.atime = atime
+        sgp4d.xli   = xli
+        sgp4d.xni   = xni
 
         a_k = cbrt(XKE / n_k)^2 * (1 - C1 * Δt)^2
         e_k += -bstar * C4 * Δt
@@ -693,7 +687,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # This is only necessary if we are using SDP4 algorithm.
     if algorithm === :sdp4
         # Compute the elements perturbed by the Lunar-Solar periodics.
-        e_k, i_k, Ω_k, ω_k, M_k = _dsper(sgp4ds, e_k, i_k, Ω_k, ω_k, M_k, Δt)
+        e_k, i_k, Ω_k, ω_k, M_k = _dsper(sgp4d.sgp4ds, e_k, i_k, Ω_k, ω_k, M_k, Δt)
 
         IL = M_k + ω_k + Ω_k
 
@@ -840,30 +834,27 @@ end
 # == Deep Space Functions ==================================================================
 
 """
-    _dsinit!(
-        sgp4ds::Sgp4DeepSpace{T},
+    _dsinit(
         epoch::Number,
-        nll₀::Number,
-        all₀::Number,
-        e₀::Number,
-        i₀::Number,
-        Ω₀::Number,
-        ω₀::Number,
-        M₀::Number,
-        ∂M::Number,
-        ∂ω::Number,
-        ∂Ω::Number,
-    ) where {T <: Number} -> Nothing
+        nll₀::T,
+        all₀::T,
+        e₀::T,
+        i₀::T,
+        Ω₀::T,
+        ω₀::T,
+        M₀::T,
+        ∂M::T,
+        ∂ω::T,
+        ∂Ω::T,
+    ) where {T <: Number} -> Sgp4DeepSpace{T}
 
-Initialize the deep space structure `sgp4ds` using the parameters in `args...`.
+Create the deep space structure with the constants computed from the initial orbit.
 
-This function computes several parameters in `sgp4ds` that will be used when calling the
-functions `_dsper` and `_dssec!`.
+The returned structure is used when calling the functions `_dsper` and `_dssec`.
 
 # Arguments
 
-- `sgp4ds::Sgp4DeepSpace`: Structure that will be initialized.
-- `epoch::Tepoch`: Epoch of the initial orbit [Julian Day].
+- `epoch::Number`: Epoch of the initial orbit [Julian Day].
 - `nll₀::T`: Initial mean motion [rad/min].
 - `all₀::T`: Initial semi-major axis [ER].
 - `e₀::T`: Initial eccentricity.
@@ -875,29 +866,13 @@ functions `_dsper` and `_dssec!`.
 - `∂ω::T`: Time-derivative of the argument of perigee [rad/min].
 - `∂Ω::T`: Time-derivative of the RAAN [rad/min].
 """
-function _dsinit!(
-    sgp4ds::Sgp4DeepSpace{T},
-    epoch::Number,
-    nll₀::Number,
-    all₀::Number,
-    e₀::Number,
-    i₀::Number,
-    Ω₀::Number,
-    ω₀::Number,
-    M₀::Number,
-    ∂M::Number,
-    ∂ω::Number,
-    ∂Ω::Number,
+# The function is inlined into `sgp4_init!`, its only caller, so that the deep space
+# structure is built directly in the propagator instead of being copied from a temporary.
+@inline function _dsinit(
+    epoch::Number, nll₀::T, all₀::T, e₀::T, i₀::T, Ω₀::T, ω₀::T, M₀::T, ∂M::T, ∂ω::T, ∂Ω::T
 ) where {T <: Number}
 
-    # Initialize the variables that will be stored in `sgp4ds`.
-    #
-    # NOTE: We must not unpack the fields of `sgp4ds` here because this structure has not
-    # been initialized yet. Reading its fields would access undefined values, which also
-    # throws `UndefRefError` for non-isbits types.
-    atime  = T(0)
-    xli    = T(0)
-    xni    = T(0)
+    # Initialize the variables that will be stored in the deep space structure.
     xfact  = T(0)
     ssl    = T(0)
     ssg    = T(0)
@@ -1263,77 +1238,72 @@ function _dsinit!(
         isynfl = false
     end
 
-    # Initialize the integrator if the orbit is resonant.
-    if iresfl
-        xfact = bfact - nll₀
-        xli   = xlamo
-        xni   = nll₀
-        atime = T(0)
-    end
+    # Initialize the integrator if the orbit is resonant. Its state is stored in the
+    # propagator structure and reset by `_dssec` in the first propagation.
+    iresfl && (xfact = bfact - nll₀)
 
-    # Pack variables.
-    sgp4ds.atime  = atime
-    sgp4ds.xli    = xli
-    sgp4ds.xni    = xni
-    sgp4ds.xfact  = xfact
-    sgp4ds.ssl    = ssl
-    sgp4ds.ssg    = ssg
-    sgp4ds.ssh    = ssh
-    sgp4ds.sse    = sse
-    sgp4ds.ssi    = ssi
-    sgp4ds.xlamo  = xlamo
-    sgp4ds.gmst   = gmst
-    sgp4ds.del1   = del1
-    sgp4ds.del2   = del2
-    sgp4ds.del3   = del3
-    sgp4ds.fasx2  = fasx2
-    sgp4ds.fasx4  = fasx4
-    sgp4ds.fasx6  = fasx6
-    sgp4ds.d2201  = d2201
-    sgp4ds.d2211  = d2211
-    sgp4ds.d3210  = d3210
-    sgp4ds.d3222  = d3222
-    sgp4ds.d4410  = d4410
-    sgp4ds.d4422  = d4422
-    sgp4ds.d5220  = d5220
-    sgp4ds.d5232  = d5232
-    sgp4ds.d5421  = d5421
-    sgp4ds.d5433  = d5433
-    sgp4ds.zmos   = zmos
-    sgp4ds.se2    = se2
-    sgp4ds.se3    = se3
-    sgp4ds.si2    = si2
-    sgp4ds.si3    = si3
-    sgp4ds.sl2    = sl2
-    sgp4ds.sl3    = sl3
-    sgp4ds.sl4    = sl4
-    sgp4ds.sgh2   = sgh2
-    sgp4ds.sgh3   = sgh3
-    sgp4ds.sgh4   = sgh4
-    sgp4ds.sh2    = sh2
-    sgp4ds.sh3    = sh3
-    sgp4ds.zmol   = zmol
-    sgp4ds.ee2    = ee2
-    sgp4ds.e3     = e3
-    sgp4ds.xi2    = xi2
-    sgp4ds.xi3    = xi3
-    sgp4ds.xl2    = xl2
-    sgp4ds.xl3    = xl3
-    sgp4ds.xl4    = xl4
-    sgp4ds.xgh2   = xgh2
-    sgp4ds.xgh3   = xgh3
-    sgp4ds.xgh4   = xgh4
-    sgp4ds.xh2    = xh2
-    sgp4ds.xh3    = xh3
-    sgp4ds.isynfl = isynfl
-    sgp4ds.iresfl = iresfl
-
-    return nothing
+    return Sgp4DeepSpace{T}(
+        xfact,
+        ssl,
+        ssg,
+        ssh,
+        sse,
+        ssi,
+        xlamo,
+        gmst,
+        del1,
+        del2,
+        del3,
+        fasx2,
+        fasx4,
+        fasx6,
+        d2201,
+        d2211,
+        d3210,
+        d3222,
+        d4410,
+        d4422,
+        d5220,
+        d5232,
+        d5421,
+        d5433,
+        zmos,
+        se2,
+        se3,
+        si2,
+        si3,
+        sl2,
+        sl3,
+        sl4,
+        sgh2,
+        sgh3,
+        sgh4,
+        sh2,
+        sh3,
+        zmol,
+        ee2,
+        e3,
+        xi2,
+        xi3,
+        xl2,
+        xl3,
+        xl4,
+        xgh2,
+        xgh3,
+        xgh4,
+        xh2,
+        xh3,
+        isynfl,
+        iresfl,
+    )
 end
 
 """
-    _dssec!(
+    _dssec(
         sgp4ds::Sgp4DeepSpace{T},
+        atime::T,
+        xli::T,
+        xni::T,
         nll₀::T,
         e₀::T,
         i₀::T,
@@ -1343,17 +1313,16 @@ end
         M_k::T,
         ∂ω::T,
         Δt::Number,
-    ) where {T <: Number} -> T, T, T, T, T, T
+    ) where {T <: Number} -> T, T, T, T, T, T, T, T, T
 
 Compute the secular effects.
-
-!!! note
-
-    The internal values in `sgp4ds` will be modified.
 
 # Arguments
 
 - `sgp4ds::Sgp4DeepSpace`: Deep space structure (see [`Sgp4DeepSpace`](@ref)).
+- `atime::Number`: Time of the last resonance integrator step [min].
+- `xli::Number`: Resonance integrator state (mean longitude) [rad].
+- `xni::Number`: Resonance integrator state (mean motion) [rad/min].
 - `nll₀::Number`: Initial mean motion [rad/min].
 - `e₀::Number`: Initial eccentricity.
 - `i₀::Number`: Initial inclination [rad].
@@ -1374,9 +1343,20 @@ The following elements perturbed by the secular effects:
 - `T`: Right ascension of the ascending node [rad].
 - `T`: Argument of perigee [rad].
 - `T`: Mean anomaly [rad].
+
+And the updated state of the resonance integrator:
+
+- `T`: Time of the last integrator step [min].
+- `T`: Integrator state (mean longitude) [rad].
+- `T`: Integrator state (mean motion) [rad/min].
 """
-function _dssec!(
+# The function is inlined into `sgp4!`, its only caller, so that the deep space structure
+# is read in place instead of being copied to the stack before the call.
+@inline function _dssec(
     sgp4ds::Sgp4DeepSpace{T},
+    atime::T,
+    xli::T,
+    xni::T,
     nll₀::T,
     e₀::T,
     i₀::T,
@@ -1389,9 +1369,6 @@ function _dssec!(
 ) where {T <: Number}
 
     # Unpack variables.
-    atime  = sgp4ds.atime
-    xli    = sgp4ds.xli
-    xni    = sgp4ds.xni
     xfact  = sgp4ds.xfact
     ssl    = sgp4ds.ssl
     ssg    = sgp4ds.ssg
@@ -1442,7 +1419,7 @@ function _dssec!(
     θ = mod(gmst + THDT * Δt, T(2π))
 
     # If the orbit is not resonant, then nothing more should be computed.
-    !iresfl && return nll₀, e_sec, i_sec, Ω_sec, ω_sec, M_sec
+    !iresfl && return nll₀, e_sec, i_sec, Ω_sec, ω_sec, M_sec, atime, xli, xni
 
     # == Update Resonances using Numerical (Euler-Maclaurin) Integration ===================
 
@@ -1537,12 +1514,7 @@ function _dssec!(
     n_sec = xni + ft * (xndot + ft * xnddt / 2)
     M_sec = !isynfl ? xl - 2Ω_sec + 2θ : xl - Ω_sec - ω_sec + θ
 
-    # Pack variables.
-    sgp4ds.atime = atime
-    sgp4ds.xni   = xni
-    sgp4ds.xli   = xli
-
-    return n_sec, e_sec, i_sec, Ω_sec, ω_sec, M_sec
+    return n_sec, e_sec, i_sec, Ω_sec, ω_sec, M_sec, atime, xli, xni
 end
 
 """
@@ -1578,7 +1550,9 @@ The following elements perturbed by lunar-solar periodics.
 - `T`: Argument of perigee [rad].
 - `T`: Mean anomaly [rad].
 """
-function _dsper(
+# The function is inlined into `sgp4!`, its only caller, so that the deep space structure
+# is read in place instead of being copied to the stack before the call.
+@inline function _dsper(
     sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt::Number
 ) where {T <: Number}
 
