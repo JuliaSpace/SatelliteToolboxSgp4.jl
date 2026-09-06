@@ -34,7 +34,8 @@ Version 3.0.0
   with keywords of its constructor, instead of the six TLE-specific keywords. When the
   output is an OMM, the position and velocity block of the fit covariance is stored in the
   covariance matrix section of the message, unless the new keyword `include_covariance` is
-  `false`. The initial guess can also be an OMM.
+  `false`. The initial guess can also be an OMM. The fitting now throws the new exception
+  `Sgp4FitDivergenceError` instead of an `ErrorException` when the iterations diverge.
 - ![BREAKING][badge-breaking] Remove the fields `AE`, `θ²`, and `k₄` from
   `Sgp4Propagator` and the fields `xnddt`, `xndot`, `xldot`, `pe`, `pinc`, `pgh`, `ph`,
   and `pl` from the internal structure `Sgp4DeepSpace`, since they were never read after
@@ -45,6 +46,16 @@ Version 3.0.0
   Mean-Elements Message (OMM) from **SatelliteToolboxOrbitDataMessages.jl** through the
   new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`. The
   package **SatelliteToolboxOrbitDataMessages.jl** is now re-exported.
+- ![Feature][badge-feature] Add `show` methods to `Sgp4Propagator`, which print the
+  algorithm, the epoch, and the initial mean elements instead of every internal field.
+- ![Enhancement][badge-enhancement] The mean elements fitting initializes the propagator
+  once per mean state vector and propagates it to all measurements, instead of
+  initializing it for every measurement, since the initialization is more expensive than
+  the propagation. Measured with BenchmarkTools.jl on an Apple M-series CPU (Julia
+  1.12.6), fitting 1001 osculating state vectors of a LEO satellite took 147 ms instead of
+  340 ms with `FiniteDiffJacobian()` and 80 ms instead of 159 ms with
+  `ForwardDiffJacobian()`. The Jacobians of all measurements are now stored in a buffer
+  allocated once per fit (336 KiB for 1001 measurements).
 - ![Enhancement][badge-enhancement] Replace **Crayons.jl** with **StyledStrings.jl** to
   decorate the output of the TLE fitting algorithm.
 - ![Enhancement][badge-enhancement] The progress line of the TLE fitting algorithm is
