@@ -312,25 +312,43 @@ end
 
     # == Multi-line ========================================================================
 
+    expected = join(
+        (
+            "Sgp4Propagator{Float64, Float64} (SGP4):",
+            "  Epoch            : 2.46003e6 (2023-03-24T16:28:40.388)",
+            "  Last Propagation : 10.0 min",
+            "  ├─ Mean Elements",
+            "  │    Semi-Major Axis    : 7133.946314 km",
+            "  │    Mean Motion        : 14.40814394 rev/day",
+            "  │    Eccentricity       : 0.0001247",
+            "  │    Inclination        : 98.4304°",
+            "  │    RA of Asc. Node    : 162.1097°",
+            "  │    Arg. of Pericenter : 136.2017°",
+            "  │    Mean Anomaly       : 223.9283°",
+            "  │    B*                 : 4.3e-5 1/er",
+            "  └─ Constants",
+            "       R₀  : 6378.137 km",
+            "       XKE : 0.07436685317 er^(3/2)/min",
+            "       J₂  : 0.001082629989",
+            "       J₃  : -2.53215306e-6",
+            "       J₄  : -1.61098761e-6",
+        ),
+        '\n',
+    )
+
     str = sprint(show, MIME("text/plain"), sgp4d)
+    @test str == expected
 
-    @test occursin("Sgp4Propagator{Float64, Float64} (SGP4):", str)
-    @test occursin("Epoch :    2.46003e6 (2023-03-24T16:28:40.388)", str)
-    @test occursin("R₀ : 6378.14       km", str)
-    @test occursin("XKE :    0.0743669  er^(3/2) / min", str)
-    @test occursin("J₂ :    0.00108263", str)
-    @test occursin("J₄ :   -1.61099e-6", str)
-    @test occursin("Semi-major axis : 7133.94631434 km", str)
-    @test occursin("Eccentricity :    0.00012470", str)
-    @test occursin("Inclination :   98.43040000 °", str)
-    @test occursin("Mean motion :   14.40814394 rev / day", str)
-    @test occursin("B* :    4.3e-5     1 / er", str)
-    @test occursin("Last propagation :   10.0        min", str)
+    # The body can be printed under another header.
+    str = sprint(SatelliteToolboxBase.print_tree_body, sgp4d)
+    @test str == expected[(length("Sgp4Propagator{Float64, Float64} (SGP4):\n") + 1):end]
 
-    # The labels must be highlighted when the output supports colors.
+    # The decorations must not change the text when the output supports colors.
     str_color = sprint(show, MIME("text/plain"), sgp4d; context = :color => true)
 
     @test occursin("\e[1m", str_color)
+    @test occursin("\e[90mkm\e[39m", str_color)
+    @test replace(str_color, r"\e\[[0-9;]*m" => "") == expected
 
     # == Other Algorithms ==================================================================
 
@@ -351,5 +369,6 @@ end
     sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
 
     @test repr(sgp4d) == "Sgp4Propagator{Float64, Float64} (not initialized)"
-    @test occursin("Status : not initialized", sprint(show, MIME("text/plain"), sgp4d))
+    expected = "Sgp4Propagator{Float64, Float64}:\n  Status : not initialized"
+    @test sprint(show, MIME("text/plain"), sgp4d) == expected
 end

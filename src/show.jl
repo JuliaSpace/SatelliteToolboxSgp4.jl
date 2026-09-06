@@ -2,6 +2,11 @@
 #
 # Functions to print the structures related to the SGP4 propagator.
 #
+# The representations follow the layout of SatelliteToolboxBase.jl: the compact form prints
+# the type with its parameters and the epoch, whereas the rich form is a tree with the epoch
+# and the last propagation instant at the top level, followed by the sections with the mean
+# elements and the gravitational constants.
+#
 ############################################################################################
 
 function Base.show(io::IO, sgp4d::Sgp4Propagator)
@@ -18,70 +23,53 @@ function Base.show(io::IO, sgp4d::Sgp4Propagator)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", sgp4d::Sgp4Propagator)
+    SatelliteToolboxBase.print_tree(io, _sgp4_propagator_name(sgp4d), sgp4d)
+    return nothing
+end
+
+# The body of the rich representation is overloaded so that the wrappers of the propagator
+# can print it under their own header.
+function SatelliteToolboxBase.print_tree_body(io::IO, sgp4d::Sgp4Propagator)
     if !isdefined(sgp4d, :algorithm)
-        println(io, _sgp4_propagator_name(sgp4d), ":")
-        SatelliteToolboxBase.print_field(io, "  Status : ", "not initialized")
+        fields   = SatelliteToolboxBase.PrintedField[("Status", "not initialized", "")]
+        sections = SatelliteToolboxBase.PrintedSection[]
+        SatelliteToolboxBase.print_tree_body(io, fields, sections)
         return nothing
     end
 
     sgp4c = sgp4d.sgp4c
 
-    labels = (
-        "R₀",
-        "XKE",
-        "J₂",
-        "J₃",
-        "J₄",
-        "Semi-major axis",
-        "Eccentricity",
-        "Inclination",
-        "RAAN",
-        "Arg. of perigee",
-        "Mean anomaly",
-        "Mean motion",
-        "B*",
-        "Last propagation",
-    )
+    format_value = SatelliteToolboxBase.format_value
 
-    # The semi-major axis is recovered from the mean motion as in the SGP4 theory, and it is
-    # printed in the same position as in the other propagators of the ecosystem.
-    values = (
-        SatelliteToolboxBase.compact_string(io, sgp4c.R0),
-        SatelliteToolboxBase.compact_string(io, sgp4c.XKE),
-        SatelliteToolboxBase.compact_string(io, sgp4c.J2),
-        SatelliteToolboxBase.compact_string(io, sgp4c.J3),
-        SatelliteToolboxBase.compact_string(io, sgp4c.J4),
-        _sgp4_show_number((sgp4c.XKE / sgp4d.n₀)^(2 // 3) * sgp4c.R0),
-        _sgp4_show_number(sgp4d.e₀),
-        _sgp4_show_number(rad2deg(sgp4d.i₀)),
-        _sgp4_show_number(rad2deg(sgp4d.Ω₀)),
-        _sgp4_show_number(rad2deg(sgp4d.ω₀)),
-        _sgp4_show_number(rad2deg(sgp4d.M₀)),
-        _sgp4_show_number(720 * sgp4d.n₀ / π),
-        SatelliteToolboxBase.compact_string(io, sgp4d.bstar),
-        SatelliteToolboxBase.compact_string(io, sgp4d.Δt),
-    )
+    fields = SatelliteToolboxBase.PrintedField[
+        ("Epoch",            SatelliteToolboxBase.epoch_string(sgp4d.epoch), ""),
+        ("Last Propagation", format_value(sgp4d.Δt),                         "min"),
+    ]
 
-    units = (
-        "km",
-        "er^(3/2) / min",
-        "",
-        "",
-        "",
-        "km",
-        "",
-        "°",
-        "°",
-        "°",
-        "°",
-        "rev / day",
-        "1 / er",
-        "min",
-    )
+    # The semi-major axis is recovered from the mean motion as in the SGP4 theory.
+    semi_major_axis = (sgp4c.XKE / sgp4d.n₀)^(2 // 3) * sgp4c.R0
 
-    SatelliteToolboxBase.print_elements(
-        io, _sgp4_propagator_name(sgp4d), sgp4d.epoch, labels, values, units
-    )
+    sections = SatelliteToolboxBase.PrintedSection[
+        "Mean Elements" => [
+            ("Semi-Major Axis",    format_value(semi_major_axis),    "km"),
+            ("Mean Motion",        format_value(720 * sgp4d.n₀ / π), "rev/day"),
+            ("Eccentricity",       format_value(sgp4d.e₀),           ""),
+            ("Inclination",        format_value(rad2deg(sgp4d.i₀)),  "°"),
+            ("RA of Asc. Node",    format_value(rad2deg(sgp4d.Ω₀)),  "°"),
+            ("Arg. of Pericenter", format_value(rad2deg(sgp4d.ω₀)),  "°"),
+            ("Mean Anomaly",       format_value(rad2deg(sgp4d.M₀)),  "°"),
+            ("B*",                 format_value(sgp4d.bstar),        "1/er"),
+        ],
+        "Constants" => [
+            ("R₀",  format_value(sgp4c.R0),  "km"),
+            ("XKE", format_value(sgp4c.XKE), "er^(3/2)/min"),
+            ("J₂",  format_value(sgp4c.J2),  ""),
+            ("J₃",  format_value(sgp4c.J3),  ""),
+            ("J₄",  format_value(sgp4c.J4),  ""),
+        ],
+    ]
+
+    SatelliteToolboxBase.print_tree_body(io, fields, sections)
 
     return nothing
 end
@@ -114,12 +102,3 @@ function _sgp4_propagator_name(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, 
     isdefined(sgp4d, :algorithm) || return name
     return string(name, " (", _sgp4_algorithm_name(sgp4d.algorithm), ")")
 end
-
-"""
-    _sgp4_show_number(x::Number) -> String
-
-Format the number `x` to be printed with 8 decimal digits if it is a floating-point number.
-Otherwise, e.g. for dual numbers, it is printed as is.
-"""
-_sgp4_show_number(x::AbstractFloat) = @sprintf("%.8f", x)
-_sgp4_show_number(x::Number) = string(x)
