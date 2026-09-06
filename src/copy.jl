@@ -11,11 +11,6 @@ let
     expressions = [:(new_sgp4d.$f = sgp4d.$f) for f in fields]
 
     @eval begin
-        """
-            Base.copy(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch <: Number, T <: Number} -> Sgp4Propagator{Tepoch, T}
-
-        Create an independent copy of the SGP4 propagator structure `sgp4d`.
-        """
         function Base.copy(
             sgp4d::Sgp4Propagator{Tepoch, T}
         ) where {Tepoch <: Number, T <: Number}
