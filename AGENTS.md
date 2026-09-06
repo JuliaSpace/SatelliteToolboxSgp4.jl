@@ -12,9 +12,10 @@ Instructions for coding agents working in this repository. `CLAUDE.md` imports t
 - **Runtime deps (`[deps]`):** Dates, ForwardDiff, LinearAlgebra, PrecompileTools, Printf, Reexport, SatelliteToolboxBase, SatelliteToolboxOrbitDataMessages, SatelliteToolboxTle, StaticArrays, StyledStrings. `PrecompileTools` is used for precompile workloads in `src/precompile.jl`. `StyledStrings` (stdlib on Julia ≥ 1.11, registered package on 1.10; compat `"1.0, 1.11"`) renders the decorated tags of the TLE fitting output once at load time in `src/SatelliteToolboxSgp4.jl`. Crayons is no longer used.
 - **No package extensions:** no `[weakdeps]`, `[extensions]`, or `ext/` directory.
 - **No build script:** no `deps/build.jl`; `Pkg.build()` is a no-op.
-- **Test deps:** declared via `[extras]` + `[targets] test = ["Test", "DelimitedFiles", "Pkg", "Printf"]` (no `test/Project.toml`). The performance test additionally `Pkg.add`s `JET`, `AllocCheck`, and `Aqua` at runtime inside `test/runtests.jl`, so a first test run on a non-prerelease Julia will hit the network.
-- **Test wiring (`test/runtests.jl`):** four unconditional `@testset`s include `sgp4.jl`, `tle.jl`, `omm.jl`, `copy.jl`. A fifth "Performance Tests" `@testset` includes `performance.jl` only when `isempty(VERSION.prerelease)` (i.e. skipped on nightly); it runs Aqua, JET (skipped on Julia 1.12+), and AllocCheck (skipped on Julia 1.12+). Hence, JET and AllocCheck only run when the suite is executed on Julia 1.10 or 1.11 (e.g. `julia +1.10 --project=. -e 'using Pkg; Pkg.test()'`).
-- **Test ↔ src mapping:** `test/copy.jl` ↔ `src/copy.jl`; `test/sgp4.jl` ↔ `src/sgp4_model.jl`; `test/tle.jl` ↔ `src/tle.jl`; `test/omm.jl` ↔ `src/omm.jl`. `src/types.jl` and `src/precompile.jl` have no dedicated test file (covered indirectly). Test fixtures live in `test/sgp4_tests/` (AIAA 2006-6753 reference TLEs and expected results) and `test/omm_tests/` (a public Space-Track OMM in XML).
+- **Test deps:** declared via `[extras]` + `[targets] test = ["Aqua", "DelimitedFiles", "JET", "Pkg", "Printf", "Test"]` (no `test/Project.toml`), all with compat bounds (Aqua checks them). The performance test additionally `Pkg.add`s `AllocCheck` at runtime inside `test/runtests.jl`, so a first test run on a non-prerelease Julia will hit the network.
+- **Test wiring (`test/runtests.jl`):** five unconditional `@testset`s include `sgp4.jl`, `tle.jl`, `omm.jl`, `copy.jl`, and `quality.jl`. A sixth "Performance Tests" `@testset` includes `performance.jl` only when `isempty(VERSION.prerelease)` (i.e. skipped on nightly); it runs AllocCheck (skipped on Julia 1.12+ because it falsely flags `rem2pi` internals). Hence, AllocCheck only runs when the suite is executed on Julia 1.10 or 1.11 (e.g. `julia +1.10 --project=. -e 'using Pkg; Pkg.test()'`).
+- **Quality tests (`test/quality.jl`):** `Aqua.test_all` (always) and JET (skipped on prerelease Julia): `JET.test_package` for runtime errors plus `@test_opt` on `sgp4_init!`/`sgp4!` for `Float64` and `Float32` in the SGP4 and SDP4 paths, so the propagation kernel must stay free of dynamic dispatch. Pkg resolves JET v0.9 on Julia 1.10 and v0.12 on 1.12; both are covered by the compat `"0.9, 0.10, 0.11, 0.12"`.
+- **Test ↔ src mapping:** `test/copy.jl` ↔ `src/copy.jl`; `test/sgp4.jl` ↔ `src/sgp4_model.jl`; `test/tle.jl` ↔ `src/tle.jl`; `test/omm.jl` ↔ `src/omm.jl`; `test/quality.jl` and `test/performance.jl` cover the whole package. `src/types.jl` and `src/precompile.jl` have no dedicated test file (covered indirectly). Test fixtures live in `test/sgp4_tests/` (AIAA 2006-6753 reference TLEs and expected results) and `test/omm_tests/` (a public Space-Track OMM in XML).
 - **Examples:** `examples/` is a separate environment with its own `Project.toml` (`[sources] SatelliteToolboxSgp4 = {path = ".."}`); run scripts there with `julia --project=examples`.
 - **Manifest:** `Manifest.toml` is gitignored and not committed.
 
@@ -30,7 +31,7 @@ Instructions for coding agents working in this repository. `CLAUDE.md` imports t
 
 - **Formatter:** JuliaFormatter with `style = "blue"` plus alignment options in `.JuliaFormatter.toml`. This is the source of truth for formatting; run `format(".")` and match its output.
 - **CI does not enforce formatting:** no format-check job exists in `.github/workflows/`. Formatting is a convention only; still apply it before committing.
-- **No linter is configured** beyond what `performance.jl` runs (Aqua/JET/AllocCheck) inside the test suite.
+- **No linter is configured** beyond what `quality.jl` (Aqua/JET) and `performance.jl` (AllocCheck) run inside the test suite.
 
 ## Behavioral Constraints
 
@@ -38,7 +39,7 @@ Instructions for coding agents working in this repository. `CLAUDE.md` imports t
 - `SatelliteToolboxBase` and `SatelliteToolboxTle` are re-exported — changes to their public types (e.g. `Orbit`, TLE structures) propagate into this package's public API. Treat them as part of the surface, not internal.
 - The SGP4/SDP4 numerics in `src/sgp4_model.jl` follow Vallado et al., *Revisiting Spacetrack Report #3* (AIAA 2006-6753). Test fixtures in `test/sgp4_tests/aiaa-2006-6753/` are the regression baseline; do not modify expected-result files. If numerics change, expect those fixtures to flag it.
 - Match the existing `@testset "..." verbose = true begin ... end` convention (see `test/runtests.jl`, `test/tle.jl`) when adding tests.
-- The performance `@testset` is skipped on prerelease builds (`isempty(VERSION.prerelease)` guard) and JET/AllocCheck are additionally skipped on Julia 1.12+. Keep those guards when editing `test/performance.jl`.
+- The performance `@testset` is skipped on prerelease builds (`isempty(VERSION.prerelease)` guard) and AllocCheck is additionally skipped on Julia 1.12+; JET in `test/quality.jl` is skipped on prerelease builds. Keep those guards when editing `test/performance.jl` and `test/quality.jl`.
 - `Manifest.toml` is gitignored — never commit it.
 
 ## CI

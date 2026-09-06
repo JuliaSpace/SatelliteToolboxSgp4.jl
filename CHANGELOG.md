@@ -24,6 +24,9 @@ Version 3.0.0
 - ![Enhancement][badge-enhancement] Simplify the propagation code by removing dead code and
   by adding a converting constructor to `Sgp4Constants`.
 - ![Enhancement][badge-enhancement] Allow **SatelliteToolboxBase.jl** v2.
+- ![Enhancement][badge-enhancement] **Aqua.jl** and **JET.jl** are now declared as test
+  dependencies and run in the new test file `test/quality.jl`, which also verifies with
+  JET that the propagation kernel is free of dynamic dispatch.
 - ![Bugfix][badge-bugfix] Fix the selection between the SGP4 and SDP4 algorithms, which
   compared the 225 min period threshold against the Kozai mean motion instead of the mean
   motion without the Kozai correction, as in Vallado's implementation.
