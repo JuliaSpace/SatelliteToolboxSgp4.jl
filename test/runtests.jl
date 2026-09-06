@@ -1,7 +1,9 @@
 using Test
 
+using Aqua
 using Dates
 using DelimitedFiles
+using JET
 using Printf
 using SatelliteToolboxOrbitDataMessages
 using SatelliteToolboxTle
@@ -23,16 +25,16 @@ end
     include("./copy.jl")
 end
 
+@testset "Quality Tests" verbose = true begin
+    include("./quality.jl")
+end
+
 if isempty(VERSION.prerelease)
     using Pkg
 
-    Pkg.add("JET")
     Pkg.add("AllocCheck")
-    Pkg.add("Aqua")
 
-    using JET
     using AllocCheck
-    using Aqua
 
     using ForwardDiff
     using StaticArrays

@@ -1,26 +1,8 @@
 ## Description #############################################################################
 #
-# Tests related to performance and memory allocations.
+# Tests related to memory allocations.
 #
 ############################################################################################
-
-@testset "Aqua.jl" begin
-    Aqua.test_all(
-        SatelliteToolboxSgp4;
-        ambiguities = (recursive = false),
-        deps_compat = (check_extras = false),
-    )
-end
-
-if VERSION >= v"1.12"
-    @warn "JET.jl test skipped on Julia 1.12+ due to MethodTableView incompatibility"
-else
-    @testset "JET Testing" begin
-        rep = JET.test_package(
-            SatelliteToolboxSgp4; toplevel_logger = nothing, target_modules = (@__MODULE__,)
-        )
-    end
-end
 
 if VERSION >= v"1.12"
     @warn "Allocation Check skipped on Julia 1.12+ as it is falsely flagging rem2pi internals"
