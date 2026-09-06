@@ -176,10 +176,13 @@ The following keywords are available:
     (**Default** = 50)
 - `mean_elements_epoch::Number`: Epoch for the fitted mean elements.
     (**Default** = vjd[end])
-- `template::Union{Nothing, S}`: Object of type `S` from which the metadata of the output
-    is copied, e.g. the satellite name and number of a `TLE` or the header, the metadata,
-    and the TLE-related parameters of an `OrbitMeanElementsMessage`. If it is `nothing`, the
-    metadata is filled with default values.
+- `template::Union{Nothing, S, NamedTuple}`: Source of the metadata of the output. If it
+    is an object of type `S`, its metadata is copied, e.g. the satellite name and number of
+    a `TLE` or the header, the metadata, and the TLE-related parameters of an
+    `OrbitMeanElementsMessage`. If it is a `NamedTuple`, its entries are passed as keywords
+    to the constructor of `S` on top of the default metadata, e.g.
+    `(; object_name = "AMAZONIA 1", object_id = "2021-015A", norad_cat_id = 47699)`. If it
+    is `nothing`, the metadata is filled with default values.
     (**Default** = nothing)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
     (**Default** = true)
@@ -260,7 +263,11 @@ TLE:
                      n̈ / 6 :            0 rev / day³
 
 julia> omm, P = fit_sgp4_mean_elements(
-           OrbitMeanElementsMessage, vjd, vr_teme, vv_teme; estimate_bstar = false
+           vjd,
+           vr_teme,
+           vv_teme;
+           estimate_bstar = false,
+           template       = (; object_name = "AMAZONIA 1", norad_cat_id = 47699),
        );
 ```
 

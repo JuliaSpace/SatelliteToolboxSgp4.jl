@@ -29,11 +29,12 @@ Version 3.0.0
   `fit_sgp4_mean_elements!`, `update_sgp4_mean_elements_epoch`, and
   `update_sgp4_mean_elements_epoch!`, which select the representation of the mean elements
   through a sink type that can be `TLE` or `OrbitMeanElementsMessage`, defaulting to the
-  latter when the sink type is omitted. The metadata of the
-  output is now copied from the new keyword `template` instead of the six TLE-specific
-  keywords. When the output is an OMM, the position and velocity block of the fit
-  covariance is stored in the covariance matrix section of the message, unless the new
-  keyword `include_covariance` is `false`. The initial guess can also be an OMM.
+  latter when the sink type is omitted. The metadata of the output is now obtained from
+  the new keyword `template`, which can be an object of the output type or a `NamedTuple`
+  with keywords of its constructor, instead of the six TLE-specific keywords. When the
+  output is an OMM, the position and velocity block of the fit covariance is stored in the
+  covariance matrix section of the message, unless the new keyword `include_covariance` is
+  `false`. The initial guess can also be an OMM.
 - ![BREAKING][badge-breaking] Remove the fields `AE`, `θ²`, and `k₄` from
   `Sgp4Propagator` and the fields `xnddt`, `xndot`, `xldot`, `pe`, `pinc`, `pgh`, `ph`,
   and `pl` from the internal structure `Sgp4DeepSpace`, since they were never read after
