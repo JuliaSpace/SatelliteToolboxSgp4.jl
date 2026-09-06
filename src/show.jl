@@ -51,14 +51,14 @@ function SatelliteToolboxBase.print_tree_body(io::IO, sgp4d::Sgp4Propagator)
 
     sections = SatelliteToolboxBase.PrintedSection[
         "Mean Elements" => [
-            ("Semi-Major Axis",    format_value(semi_major_axis),    "km"),
-            ("Mean Motion",        format_value(720 * sgp4d.n₀ / π), "rev/day"),
-            ("Eccentricity",       format_value(sgp4d.e₀),           ""),
-            ("Inclination",        format_value(rad2deg(sgp4d.i₀)),  "°"),
-            ("RA of Asc. Node",    format_value(rad2deg(sgp4d.Ω₀)),  "°"),
-            ("Arg. of Pericenter", format_value(rad2deg(sgp4d.ω₀)),  "°"),
-            ("Mean Anomaly",       format_value(rad2deg(sgp4d.M₀)),  "°"),
-            ("B*",                 format_value(sgp4d.bstar),        "1/er"),
+            ("Semi-Major Axis",   format_value(semi_major_axis),    "km"),
+            ("Mean Motion",       format_value(720 * sgp4d.n₀ / π), "rev/day"),
+            ("Eccentricity",      format_value(sgp4d.e₀),           ""),
+            ("Inclination",       format_value(rad2deg(sgp4d.i₀)),  "°"),
+            ("RA of Asc. Node",   format_value(rad2deg(sgp4d.Ω₀)),  "°"),
+            ("Arg. of Periapsis", format_value(rad2deg(sgp4d.ω₀)),  "°"),
+            ("Mean Anomaly",      format_value(rad2deg(sgp4d.M₀)),  "°"),
+            ("B*",                format_value(sgp4d.bstar),        "1/er"),
         ],
         "Constants" => [
             ("R₀",  format_value(sgp4c.R0),  "km"),
