@@ -57,7 +57,19 @@ defined in this package:
 > one selects `sgp4c_wgs84_f32`, the SGP4 will compute everything considering `Float32`
 > numbers.
 
-The SGP4 can also be initialized by passing the mean elements directly. For more
+The SGP4 can also be initialized using an Orbit Mean-Elements Message (OMM) parsed by
+[SatelliteToolboxOrbitDataMessages.jl](https://github.com/JuliaSpace/SatelliteToolboxOrbitDataMessages.jl),
+provided that its mean element theory is SGP4:
+
+```julia
+julia> using SatelliteToolboxOrbitDataMessages
+
+julia> omm = read_omm("amazonia_1.xml")
+
+julia> sgp4d = sgp4_init(omm)
+```
+
+Finally, the SGP4 can be initialized by passing the mean elements directly. For more
 information, see the documentation of the function `sgp4_init`.
 
 Afterward, we can propagate the orbit using the function `sgp4!(sgp4d, t)` that propagates

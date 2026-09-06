@@ -7,6 +7,7 @@ using StyledStrings
 
 using ForwardDiff
 using Reexport
+using SatelliteToolboxOrbitDataMessages
 using StaticArrays
 
 @reexport using SatelliteToolboxBase
@@ -73,6 +74,7 @@ end
 include("copy.jl")
 include("sgp4_model.jl")
 include("tle.jl")
+include("omm.jl")
 
 include("precompile.jl")
 

@@ -3,6 +3,7 @@ using Test
 using Dates
 using DelimitedFiles
 using Printf
+using SatelliteToolboxOrbitDataMessages
 using SatelliteToolboxTle
 using SatelliteToolboxSgp4
 
@@ -12,6 +13,10 @@ end
 
 @testset "SGP4 TLEs" verbose = true begin
     include("./tle.jl")
+end
+
+@testset "SGP4 OMMs" verbose = true begin
+    include("./omm.jl")
 end
 
 @testset "Copy Structures" verbose = true begin
