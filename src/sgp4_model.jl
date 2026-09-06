@@ -65,8 +65,8 @@ const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
 ############################################################################################
 
 """
-    sgp4_init(epoch::Tepoch, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number; kwargs...) where {Tepoch<:Number, T<:Number}
-    sgp4_init(tle::TLE; kwargs...) where T
+    sgp4_init(epoch::Tepoch, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number; kwargs...) where {Tepoch <: Number} -> Sgp4Propagator{Tepoch, T}
+    sgp4_init(tle::TLE; kwargs...) -> Sgp4Propagator{Float64, T}
 
 Create and initialize the data structure of SGP4 orbit propagator.
 
@@ -162,8 +162,8 @@ function sgp4_init(
 end
 
 """
-    sgp4_init!(sgp4d::Sgp4Propagator{Tepoch, T}, epoch::Number, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number) where {Tepoch, T} -> Nothing
-    sgp4_init!(sgp4d::Sgp4Propagator{Tepoch, T}, tle::TLE) where {Tepoch, T} -> Nothing
+    sgp4_init!(sgp4d::Sgp4Propagator{Tepoch, T}, epoch::Number, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number) where {Tepoch <: Number, T <: Number} -> Nothing
+    sgp4_init!(sgp4d::Sgp4Propagator{Tepoch, T}, tle::TLE) where {Tepoch <: Number, T <: Number} -> Nothing
 
 Initialize the SGP4 data structure `sgp4d` with the initial orbit specified by the
 arguments.
@@ -299,8 +299,8 @@ function sgp4_init!(
     if perigee < 156
         if perigee < 98
             s = 20 / XKMPER + AE
-            # Perigee between 98km and 156km.
         else
+            # Perigee between 98 km and 156 km.
             s = all₀ * (1 - T(e₀)) - s + AE
         end
 
@@ -474,13 +474,14 @@ function sgp4_init!(
 end
 
 """
-    sgp4(Δt::Number, tle::TLE; kwargs...)
-    sgp4(epoch::Tepoch, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number; kwargs...) where {Tepoch<:Number, T<:Number}
+    sgp4(Δt::Number, tle::TLE; kwargs...) -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Float64, T}
+    sgp4(Δt::Number, epoch::Tepoch, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number; kwargs...) where {Tepoch <: Number} -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Tepoch, T}
 
-Initialize the SGP4 structure and propagate the orbit until the time Δt [min].
+Initialize the SGP4 structure and propagate the orbit until the time `Δt` [min].
 
 # Arguments
 
+- `Δt::Number`: Propagation time from the epoch [min].
 - `epoch::Number`: Epoch of the orbital elements [Julian Day].
 - `n₀::Number`: SGP type "mean" mean motion at epoch [rad/min].
 - `e₀::Number`: "Mean" eccentricity at epoch.
@@ -579,7 +580,7 @@ function sgp4(
 end
 
 """
-    sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where T
+    sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch <: Number, T <: Number} -> SVector{3, T}, SVector{3, T}
 
 Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the time `t`
 [min].
@@ -685,13 +686,14 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         e_k += -bstar * C4 * Δt
         M_k += (3 // 2) * nll₀ * C1 * Δt^2
 
-        # Check if perigee is above 220 km.
     elseif algorithm === :sgp4
+        # In this case, the perigee is above 220 km and we use the complete set of terms.
         sin_M₀, cos_M₀ = sincos(M₀)
         δω = bstar * C3 * cos(ω₀) * Δt
 
-        # TODO: sin(M_k) and cos(M_k) can be computed faster here.
-
+        # NOTE: `cos(M_k)` is evaluated at the mean anomaly before the δω and δM corrections,
+        # whereas `sin(M_k)` in the eccentricity update is evaluated after them. Hence, they
+        # cannot share a single `sincos` call.
         δM  = (e₀ > T(1e-4)) ? -(2 // 3) * QOMS2T * bstar * ξ^4 * AE / (e₀ * η) * ((1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3) : T(0)
         M_k += +δω + δM
         ω_k += -δω - δM
@@ -714,8 +716,10 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         )
     end
 
-    # TODO: Vallado's implementation [2] apply this normalization to the mean anomaly. It is
-    # necessary to verify the reason for that.
+    # Vallado's implementation [2] normalizes the angles to [0, 2π) so that they remain
+    # bounded for long propagation intervals, avoiding the precision loss when computing
+    # trigonometric functions of very large arguments. The mean anomaly is normalized
+    # through the sum `M_k + ω_k + Ω_k` to reproduce exactly the algorithm in [2].
     M_k_aux = M_k + ω_k + Ω_k
     Ω_k     = rem2pi(Ω_k, RoundToZero)
     ω_k     = rem2pi(ω_k, RoundToZero)
@@ -744,9 +748,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         θ²         = θ^2
     end
 
-    # Vallado's code does not let the eccentricity to be smaller than 1e-6.
-    #
-    # TODO: Verify why this is necessary. I did not find any reason for that.
+    # Vallado's implementation [2] does not let the eccentricity be smaller than 1e-6 to
+    # avoid numerical problems in the long-period and short-period terms of near-circular
+    # orbits, which are singular for a null eccentricity.
     e_k = max(e_k, T(1e-6))
 
     β = √(1 - e_k^2)
@@ -760,8 +764,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
 
     a_xN = e_k * cos_ω_k
 
-    # TODO: Vallado's implementation of SGP4 uses another equation here.  However, both
-    # produces the same result. Verify which one is better.
+    # Vallado's implementation [2] computes `a_yNL` using the coefficient
+    # `-J3 / (2J2) ⋅ sin(i_k) / (a_k ⋅ β²)`, which is algebraically identical to the
+    # expression below since `A₃₀ = -J3` and `k₂ = J2 / 2`.
     a_yNL = A₃₀ * sin_i_k / (4k₂ * a_k * β^2)
     a_yN  = e_k * sin_ω_k + a_yNL
 
@@ -1312,7 +1317,6 @@ function _dsinit!(
         xli   = xlamo
         atime = T(0)
 
-        # TODO: Check if this variable can be removed from Sgp4DeepSpace.
         xni = nll₀
 
         # == Compute the "dot" Terms =======================================================
@@ -1530,8 +1534,8 @@ function _dssec!(
     Ω_sec = Ω_k + ssh * Δt
     ω_sec = ω_k + ssg * Δt
 
-    # TODO: Verify what this variable means. This is found in `dspace.m` of Vallado's
-    # implementation [2].
+    # Greenwich sidereal angle at the propagation instant [rad], obtained by propagating
+    # the Greenwich Mean Sidereal Time at epoch using the Earth rotation rate `THDT`.
     θ = mod(gmst + THDT * Δt, T(2π))
 
     # If the orbit is not resonant, then nothing more should be computed.
@@ -1541,8 +1545,9 @@ function _dssec!(
 
     # -- Epoch restart ---------------------------------------------------------------------
 
-    # This verification is different between Vallado's [2] and [3]. We will use [2] since it
-    # seems more recent.
+    # The condition to restart the integrator from the epoch differs between Vallado's
+    # implementation [2] and STRF's code [3]. We follow [2] since it is the most recent
+    # revision of the algorithm.
     if (atime == 0) || (Δt * atime <= 0) || (abs(Δt) < abs(atime))
         atime = T(0)
         xni   = nll₀
@@ -1553,10 +1558,9 @@ function _dssec!(
 
     ft = Δt - atime
 
-    # In [3], the integration process is performed only if `ft` is larger than `STEP`.
-    # However, Vallado's implementation [2] does not verify this and the integration is
-    # performed every time. This behavior was chose because it seems that [3] is a more
-    # recent version of the algorithm.
+    # In STRF's code [3], the integration is performed only if `ft` is larger than `STEP`.
+    # Vallado's implementation [2] does not verify this and always evaluates the dot terms
+    # before checking the integration step. We follow [2] for the same reason as above.
 
     # Check integration direction.
     delt = (Δt >= atime) ? STEP : -STEP

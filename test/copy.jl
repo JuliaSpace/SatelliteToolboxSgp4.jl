@@ -4,7 +4,7 @@
 #
 ############################################################################################
 
-@testset "Sgp4Propagator and Spg4DeepSpace" begin
+@testset "Sgp4Propagator and Sgp4DeepSpace" begin
     for sgp4c in (sgp4c_wgs84, sgp4c_wgs84_f32)
         sgp4d = sgp4_init(
             tle"""
