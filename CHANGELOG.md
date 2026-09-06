@@ -24,6 +24,15 @@ Version 3.0.0
   the 12 h resonant case from AIAA 2006-6753), `copy` became 28% faster (27 ns to 19 ns),
   and `sgp4_init` performs one allocation instead of two, while the initialization time
   and the near-Earth propagation are unchanged.
+- ![BREAKING][badge-breaking] Replace `fit_sgp4_tle`, `fit_sgp4_tle!`,
+  `update_sgp4_tle_epoch`, and `update_sgp4_tle_epoch!` by `fit_sgp4_mean_elements`,
+  `fit_sgp4_mean_elements!`, `update_sgp4_mean_elements_epoch`, and
+  `update_sgp4_mean_elements_epoch!`, which select the representation of the mean elements
+  through a sink type that can be `TLE` or `OrbitMeanElementsMessage`. The metadata of the
+  output is now copied from the new keyword `template` instead of the six TLE-specific
+  keywords. When the output is an OMM, the position and velocity block of the fit
+  covariance is stored in the covariance matrix section of the message, unless the new
+  keyword `include_covariance` is `false`. The initial guess can also be an OMM.
 - ![BREAKING][badge-breaking] Remove the fields `AE`, `θ²`, and `k₄` from
   `Sgp4Propagator` and the fields `xnddt`, `xndot`, `xldot`, `pe`, `pinc`, `pgh`, `ph`,
   and `pl` from the internal structure `Sgp4DeepSpace`, since they were never read after

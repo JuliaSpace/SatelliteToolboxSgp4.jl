@@ -109,31 +109,35 @@ We also have the function `sgp4_init!` that initializes a SGP4 propagator struct
 in-place, avoiding unnecessary allocations in some cases. For more information, see the
 function documentation.
 
-### TLE Fitting
+### Mean Elements Fitting
 
-This package also provides a way to fit a TLE for the SGP4 algorithm given a set of
-osculating state vectors through the following function:
+This package also provides a way to fit a set of SGP4 mean elements, represented as a `TLE`
+or as an `OrbitMeanElementsMessage` (OMM), given a set of osculating state vectors through
+the following function:
 
 ``` julia
-fit_sgp4_tle(vjd::AbstractVector{Tepoch}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {Tepoch<:Number, Tjd<:Number, Tv<:AbstractVector} -> TLE
+fit_sgp4_mean_elements(::Type{S}, vjd::AbstractVector{Tjd}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {S <: Union{TLE, OrbitMeanElementsMessage}, Tjd <: Number, Tv <: AbstractVector} -> S, SMatrix{7, 7, Float64}
 ```
 
-where the osculating elements are given by a set of position vectors `vr_teme` [km] and a
-set of velocity vectors `vv_teme` [km / s] represented in the True-Equator, Mean-Equinox
-reference frame (TEME) at instants in the array `vjd` [Julian Day].
+where `S` selects the representation of the output, and the osculating elements are given
+by a set of position vectors `vr_teme` [km] and a set of velocity vectors `vv_teme` [km / s]
+represented in the True-Equator, Mean-Equinox reference frame (TEME) at instants in the
+array `vjd` [Julian Day].
 
 The algorithm performs a least-square fitting to minimize the residue between the osculating
 elements provided by the SGP4 propagator and the input data. It was based on **[4]**.
 
-This function returns the fitted TLE and the last covariance matrix obtained from the
-least-square algorithm.
+This function returns the fitted mean elements and the last covariance matrix obtained from
+the least-square algorithm. When the output is an OMM, the position and velocity block of
+the covariance is also stored in the covariance matrix section of the message, unless the
+keyword `include_covariance` is `false`.
 
 > **Note**
 > This algorithm version will allocate a new SGP4 propagator with the default constants
 > `SGP4C_WGS84`. If another set of constants are required or if the user wants to reduce the
-> allocations, use the function `fit_sgp4_tle!` instead.
+> allocations, use the function `fit_sgp4_mean_elements!` instead.
 
-The following keywords are avaible:
+The following keywords are available:
 
 - `atol::Number`: Tolerance for the residue absolute value. If the residue is lower than
     `atol` at any iteration, the computation loop stops.
@@ -143,18 +147,20 @@ The following keywords are avaible:
     `rtol`, the computation loop stops.
     (**Default** = 2e-4)
 - `estimate_bstar::Bool`: If `true`, the algorithm will try to estimate the B* parameter.
-    Otherwise, it will be set to 0 or to the value in initial guess (see section  **Initial
+    Otherwise, it will be set to 0 or to the value in initial guess (see section **Initial
     Guess**).
     (**Default** = true)
-- `initial_guess::Union{Nothing, AbstractVector, TLE}`: Initial guess for the TLE fitting
-    process. If it is `nothing`, the algorithm will obtain an initial estimate from the
-    osculating elements in `vr_teme` and `vv_teme`. For more information, see the section
-    **Initial Guess**.
+- `include_covariance::Bool`: If `true`, the covariance of the mean position and velocity is
+    stored in the output OMM. It is ignored when the output is a TLE.
+    (**Default** = true)
+- `initial_guess::Union{Nothing, AbstractVector, TLE, OrbitMeanElementsMessage}`: Initial
+    guess for the fitting process. If it is `nothing`, the algorithm will obtain an initial
+    estimate from the osculating elements in `vr_teme` and `vv_teme`. For more information,
+    see the section **Initial Guess**.
     (**Default** = nothing)
 - `jacobian_method::Union{FiniteDiffJacobian, ForwardDiffJacobian}`: Method used to compute
     the Jacobian matrix. Use `FiniteDiffJacobian()` for finite differences or
-    `ForwardDiffJacobian()` for ForwardDiff.jl automatic differentiation. The AD path is
-    exact and typically faster for repeated iterations.
+    `ForwardDiffJacobian()` for `ForwardDiff.jl` automatic differentiation.
     (**Default** = `FiniteDiffJacobian()`)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
     finite-difference when calculating the Jacobian matrix. Only used with
@@ -162,41 +168,35 @@ The following keywords are avaible:
     (**Default** = 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
-    `jacobian_perturbation_tol`, we increase it until it absolute value is higher than
+    `jacobian_perturbation_tol`, we increase it until its absolute value is higher than
     `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
-- `mean_elements_epoch::Number`: Epoch for the fitted TLE.
+- `mean_elements_epoch::Number`: Epoch for the fitted mean elements.
     (**Default** = vjd[end])
+- `template::Union{Nothing, S}`: Object of type `S` from which the metadata of the output
+    is copied, e.g. the satellite name and number of a `TLE` or the header, the metadata,
+    and the TLE-related parameters of an `OrbitMeanElementsMessage`. If it is `nothing`, the
+    metadata is filled with default values.
+    (**Default** = nothing)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
     (**Default** = true)
 - `weight_vector::AbstractVector`: Vector with the measurements weights for the least-square
     algorithm. We assemble the weight matrix `W` as a diagonal matrix with the elements in
     `weight_vector` at its diagonal.
     (**Default** = `@SVector(ones(Bool, 6))`)
-- `classification::Char`: Satellite classification character for the output TLE.
-    (**Default** = 'U')
-- `element_set_number::Int`: Element set number for the output TLE.
-    (**Default** = 0)
-- `international_designator::String`: International designator string for the output TLE.
-    (**Default** = "999999")
-- `name::String`: Satellite name for the output TLE.
-    (**Default** = "UNDEFINED")
-- `revolution_number::Int`: Revolution number for the output TLE.
-    (**Default** = 0)
-- `satellite_number::Int`: Satellite number for the output TLE.
-    (**Default** = 9999)
 
 #### Initial Guess
 
-This algorithm uses a least-square algorithm to fit a TLE based on a set of osculating state
-vectors. Since the system is chaotic, a good initial guess is paramount for algorithm
-convergence. We can provide an initial guess using the keyword `initial_guess`.
+This algorithm uses a least-square algorithm to fit a set of mean elements based on a set of
+osculating state vectors. Since the system is chaotic, a good initial guess is paramount for
+algorithm convergence. We can provide an initial guess using the keyword `initial_guess`.
 
-If `initial_guess` is a `TLE`, we update the TLE epoch using the function
-`update_sgp4_tle_epoch!` to the desired one in `mean_elements_epoch`. Afterward, we use this
-new TLE as the initial guess.
+If `initial_guess` is a `TLE` or an `OrbitMeanElementsMessage`, we update its epoch to the
+desired one in `mean_elements_epoch` using the same algorithm as
+`update_sgp4_mean_elements_epoch!`. Afterward, we use the updated mean elements as the
+initial guess.
 
 If `initial_guess` is an `AbstractVector`, we use this vector as the initial mean state
 vector for the algorithm. It must contain 7 elements as follows:
@@ -211,67 +211,76 @@ vector for the algorithm. It must contain 7 elements as follows:
 
 If `initial_guess` is `nothing`, the algorithm takes the closest osculating state vector to
 the `mean_elements_epoch` and uses it as the initial mean state vector. In this case, the
-epoch is set to the same epoch of the osculating data in `vjd`. When the fitted TLE is
-obtained, the algorithm uses the function [`update_sgp4_tle_epoch!`](@ref) to change its
-epoch to `mean_elements_epoch`.
+epoch is set to the same epoch of the osculating data in `vjd`. When the fitted mean elements
+are obtained, the algorithm changes their epoch to `mean_elements_epoch`.
 
 > **Note**
-> If `initial_guess` is not `nothing`, the B* initial estimate is obtained from the TLE or
-> the state vector. Hence, if `estimate_bstar` is `false`, it will be kept constant with
-> this initial value.
+> If `initial_guess` is not `nothing`, the B* initial estimate is obtained from the mean
+> elements or the state vector. Hence, if `estimate_bstar` is `false`, it will be kept
+> constant with this initial value.
 
-#### Example
+#### Examples
 
 ```julia
-julia> vjd  = [2.46002818657856e6];
+julia> vr_teme = [
+           [-6792.402703741442, 2192.6458461287293, 0.18851758695295118],
+           [-6357.88873265975, 2391.9476768911686, 2181.838771262736]
+       ];
 
-julia> vr_teme = [@SVector [-6792.402703741442, 2192.6458461287293, 0.18851758695295118]];
+julia> vv_teme = [
+           [0.3445760107690598, 1.0395135806993514, 7.393686131436984],
+           [2.5285015912807003, 0.27812476784300005, 7.030323100703928]
+       ];
 
-julia> vv_teme = [@SVector [0.3445760107690598, 1.0395135806993514, 7.393686131436984]];
+julia> vjd = [2.46002818657856e6, 2.460028190050782e6];
 
-julia> tle, P = fit_sgp4_tle(vjd, vr_teme, vv_teme; estimate_bstar = false)
-ACTION:   Fitting the TLE.
+julia> tle, P = fit_sgp4_mean_elements(TLE, vjd, vr_teme, vv_teme; estimate_bstar = false);
+ACTION:   Fitting the mean elements.
            Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
                                      [km]             [km / s]                  [ ]
-PROGRESS:         47           2.7699e-07           2.5122e-10           2.7699e-07                 -100 %
-
-(TLE: UNDEFINED (Epoch = 2023-03-24T16:28:40.388), [2.5682204663112826 0.5152694462560151 … -1.2385529801114805 0.0; 0.5152694462560317 4.6021551786709445 … -0.1449556257318217 0.0; … ; -1.2385529801114785 -0.14495562573181023 … 0.999604694355324 0.0; 0.0 0.0 … 0.0 0.0])
+PROGRESS:          3          5.79375e-09          4.38304e-07          4.38343e-07             -99.9514 %
 
 julia> tle
 TLE:
                       Name : UNDEFINED
           Satellite number : 9999
   International designator : 999999
-        Epoch (Year / Day) : 23 /  83.68657856 (2023-03-24T16:28:40.388)
+        Epoch (Year / Day) : 23 /  83.69005079 (2023-03-24T16:33:40.388)
         Element set number : 0
-              Eccentricity :   0.00012470
+              Eccentricity :   0.00012463
                Inclination :  98.43040000 deg
-                      RAAN : 162.10970000 deg
-       Argument of perigee : 136.20170000 deg
-              Mean anomaly : 223.92830000 deg
-           Mean motion (n) :  14.40814394 revs / day
+                      RAAN : 162.11312239 deg
+       Argument of perigee : 136.15040637 deg
+              Mean anomaly : 241.97934028 deg
+           Mean motion (n) :  14.40814157 revs / day
          Revolution number : 0
                         B* :            0 1 / er
-                     ṅ / 2 :            0 rev / day²
+                     ṅ / 2 :            0 rev / day²
                      n̈ / 6 :            0 rev / day³
+
+julia> omm, P = fit_sgp4_mean_elements(
+           OrbitMeanElementsMessage, vjd, vr_teme, vv_teme; estimate_bstar = false
+       );
 ```
 
-### TLE Epoch Update
+### Mean Elements Epoch Update
 
-We can also update SGP4 TLE epoch using the function:
+We can also update the epoch of SGP4 mean elements, represented as a `TLE` or as an
+`OrbitMeanElementsMessage`, using the function:
 
 ```julia
-update_sgp4_tle_epoch(tle::TLE, new_epoch::Union{Number, DateTime}; kwargs...) -> TLE
+update_sgp4_mean_elements_epoch(me::S, new_epoch::Union{Number, DateTime}; kwargs...) where {S <: Union{TLE, OrbitMeanElementsMessage}} -> S
 ```
 
-which returns a new TLE obtained by updating the epoch of `tle` to `new_epoch`.
+which returns a new object of the same type obtained by updating the epoch of `me` to
+`new_epoch`.
 
 > **Note**
 > This algorithm version will allocate a new SGP4 propagator with the default constants
 > `SGP4C_WGS84`. If another set of constants are required or if the user wants to reduce the
-> allocations, use the function `update_sgp4_tle_epoch!` instead.
+> allocations, use the function `update_sgp4_mean_elements_epoch!` instead.
 
-The following keywords are avaible:
+The following keywords are available:
 
 - `atol::Number`: Tolerance for the residue absolute value. If, at any iteration, the
     residue is lower than `atol`, the computation loop stops.
@@ -306,14 +315,14 @@ TLE:
            Mean motion (n) :  14.40814394 revs / day
          Revolution number : 10865
                         B* :      4.3e-05 1 / er
-                     ṅ / 2 :     -4.4e-07 rev / day²
+                     ṅ / 2 :     -4.4e-07 rev / day²
                      n̈ / 6 :        1e-09 rev / day³
 
-julia> update_sgp4_tle_epoch(tle, DateTime("2023-05-01"))
-ACTION:   Fitting the TLE.
+julia> update_sgp4_mean_elements_epoch(tle, DateTime("2023-05-01"))
+ACTION:   Updating the epoch of the mean elements.
            Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
                                      [km]             [km / s]                  [ ]
-PROGRESS:          2          6.78579e-06          2.29683e-08          6.78583e-06             -99.9999 %
+PROGRESS:          2          6.79508e-06          2.29731e-08          6.79512e-06             -99.9999 %
 
 TLE:
                       Name : AMAZONIA 1
@@ -329,7 +338,7 @@ TLE:
            Mean motion (n) :  14.40824649 revs / day
          Revolution number : 10865
                         B* :      4.3e-05 1 / er
-                     ṅ / 2 :            0 rev / day²
+                     ṅ / 2 :            0 rev / day²
                      n̈ / 6 :            0 rev / day³
 ```
 
