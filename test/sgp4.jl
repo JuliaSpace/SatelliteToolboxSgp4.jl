@@ -64,22 +64,11 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
         false,
         false,
     )
 
     sgp4c = Sgp4Propagator{Float64, Float64}(
-        0,
-        0,
-        0,
         0,
         0,
         0,

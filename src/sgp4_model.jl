@@ -238,15 +238,13 @@ function sgp4_init!(
 
     # == Constants =========================================================================
     #
-    # Note: [er] = Earth radii.
+    # Note: [er] = Earth radii. All distances are normalized by the Earth radius, i.e., the
+    # distance unit `AE` of the original SGP4 technical report [1] is 1.
 
-    # Distance units / Earth radii.
-    AE = T(1)
-
-    k₂  = +(1 // 2) * J2 * AE * AE
+    k₂  = +(1 // 2) * J2
     k₂² = k₂ * k₂
-    k₄  = -(3 // 8) * J4 * AE * AE * AE * AE
-    A₃₀ = -J3 * AE * AE * AE
+    k₄  = -(3 // 8) * J4
+    A₃₀ = -J3
 
     # Kilometers / Earth radii.
     XKMPER = R0
@@ -293,15 +291,15 @@ function sgp4_init!(
     # == Initialization ====================================================================
 
     # Compute the orbit perigee [ER].
-    perigee = (all₀ * (1 - T(e₀)) - AE) * XKMPER
+    perigee = (all₀ * (1 - T(e₀)) - 1) * XKMPER
 
     # For perigee below 156 km, the values of S and QOMS2T are altered.
     if perigee < 156
         if perigee < 98
-            s = 20 / XKMPER + AE
+            s = 20 / XKMPER + 1
         else
             # Perigee between 98 km and 156 km.
-            s = all₀ * (1 - T(e₀)) - s + AE
+            s = all₀ * (1 - T(e₀)) - s + 1
         end
 
         QOMS2T = (q₀ - s) * (q₀ - s) * (q₀ - s) * (q₀ - s)
@@ -349,7 +347,7 @@ function sgp4_init!(
     C1³ = C1² * C1
     C1⁴ = C1² * C1²
 
-    C3 = T(e₀) > T(1e-4) ? QOMS2T * ξ⁵ * A₃₀ * nll₀ * AE * sin_i₀ / (k₂ * T(e₀)) : T(0)
+    C3 = T(e₀) > T(1e-4) ? QOMS2T * ξ⁵ * A₃₀ * nll₀ * sin_i₀ / (k₂ * T(e₀)) : T(0)
 
     C4 =
         2nll₀ *
@@ -425,7 +423,7 @@ function sgp4_init!(
         # `:sgp4_lowper`. Otherwise, if perigee is higher or equal 220 km and the orbit
         # period is lower than 225 min., then we use the normal SGP4 algorithm by selecting
         # `:sgp4`.
-        algorithm = (perigee / AE >= (220 + (AE - 1) * XKMPER)) ? :sgp4 : :sgp4_lowper
+        algorithm = (perigee >= 220) ? :sgp4 : :sgp4_lowper
     end
 
     # Initialize the structure with the data.
@@ -447,17 +445,14 @@ function sgp4_init!(
     sgp4d.n_k       = nll₀
     sgp4d.all₀      = all₀
     sgp4d.nll₀      = nll₀
-    sgp4d.AE        = AE
     sgp4d.QOMS2T    = QOMS2T
     sgp4d.β₀        = β₀
     sgp4d.ξ         = ξ
     sgp4d.η         = η
     sgp4d.sin_i₀    = sin_i₀
     sgp4d.θ         = θ
-    sgp4d.θ²        = θ²
     sgp4d.A₃₀       = A₃₀
     sgp4d.k₂        = k₂
-    sgp4d.k₄        = k₄
     sgp4d.C1        = C1
     sgp4d.C3        = C3
     sgp4d.C4        = C4
@@ -611,14 +606,12 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     n_k       = sgp4d.n_k
     all₀      = sgp4d.all₀
     nll₀      = sgp4d.nll₀
-    AE        = sgp4d.AE
     QOMS2T    = sgp4d.QOMS2T
     β₀        = sgp4d.β₀
     ξ         = sgp4d.ξ
     η         = sgp4d.η
     sin_i₀    = sgp4d.sin_i₀
     θ         = sgp4d.θ
-    θ²        = sgp4d.θ²
     A₃₀       = sgp4d.A₃₀
     k₂        = sgp4d.k₂
     C1        = sgp4d.C1
@@ -694,7 +687,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         # NOTE: `cos(M_k)` is evaluated at the mean anomaly before the δω and δM corrections,
         # whereas `sin(M_k)` in the eccentricity update is evaluated after them. Hence, they
         # cannot share a single `sincos` call.
-        δM  = (e₀ > T(1e-4)) ? -(2 // 3) * QOMS2T * bstar * ξ^4 * AE / (e₀ * η) * ((1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3) : T(0)
+        δM  = (e₀ > T(1e-4)) ? -(2 // 3) * QOMS2T * bstar * ξ^4 / (e₀ * η) * ((1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3) : T(0)
         M_k += +δω + δM
         ω_k += -δω - δM
         e_k = e₀ - bstar * C4 * Δt - bstar * C5 * (sin(M_k) - sin_M₀)
@@ -731,7 +724,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # This is only necessary if we are using SDP4 algorithm.
     if algorithm === :sdp4
         # Compute the elements perturbed by the Lunar-Solar periodics.
-        e_k, i_k, Ω_k, ω_k, M_k = _dsper!(sgp4ds, e_k, i_k, Ω_k, ω_k, M_k, Δt)
+        e_k, i_k, Ω_k, ω_k, M_k = _dsper(sgp4ds, e_k, i_k, Ω_k, ω_k, M_k, Δt)
 
         IL = M_k + ω_k + Ω_k
 
@@ -745,8 +738,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         # The inclination was changed, hence some auxiliary variables must be
         # recomputed.
         sin_i_k, θ = sincos(i_k)
-        θ²         = θ^2
     end
+
+    θ² = θ^2
 
     # Vallado's implementation [2] does not let the eccentricity be smaller than 1e-6 to
     # avoid numerical problems in the long-period and short-period terms of near-circular
@@ -882,7 +876,7 @@ end
 Initialize the deep space structure `sgp4ds` using the parameters in `args...`.
 
 This function computes several parameters in `sgp4ds` that will be used when calling the
-functions `_dsper!` and `_dssec!`.
+functions `_dsper` and `_dssec!`.
 
 # Arguments
 
@@ -957,9 +951,6 @@ function _dsinit!(
     d5232  = T(0)
     d5421  = T(0)
     d5433  = T(0)
-    xnddt  = T(0)
-    xndot  = T(0)
-    xldot  = T(0)
     zmos   = T(0)
     se2    = T(0)
     se3    = T(0)
@@ -986,11 +977,6 @@ function _dsinit!(
     xgh4   = T(0)
     xh2    = T(0)
     xh3    = T(0)
-    pe     = T(0)
-    pinc   = T(0)
-    pgh    = T(0)
-    ph     = T(0)
-    pl     = T(0)
     isynfl = false
     iresfl = false
 
@@ -1009,11 +995,6 @@ function _dsinit!(
     Q22    = T(1.7891679e-6)
     Q31    = T(2.1460748e-6)
     Q33    = T(2.2123015e-7)
-    G22    = T(5.7686396)
-    G32    = T(0.95240898)
-    G44    = T(1.8014998)
-    G52    = T(1.0508330)
-    G54    = T(4.4108898)
     ROOT22 = T(1.7891679e-6)
     ROOT32 = T(3.7393792e-7)
     ROOT44 = T(7.3636953e-9)
@@ -1310,62 +1291,12 @@ function _dsinit!(
         isynfl = false
     end
 
+    # Initialize the integrator if the orbit is resonant.
     if iresfl
-        # == Initialize the Integrator =====================================================
-
         xfact = bfact - nll₀
         xli   = xlamo
+        xni   = nll₀
         atime = T(0)
-
-        xni = nll₀
-
-        # == Compute the "dot" Terms =======================================================
-
-        if isynfl
-            sin_1, cos_1 = sincos((xli - fasx2))
-            sin_2, cos_2 = sincos(2(xli - fasx4))
-            sin_3, cos_3 = sincos(3(xli - fasx6))
-
-            xndot = del1 * sin_1 + del2 * sin_2 + del3 * sin_3
-            xnddt = del1 * cos_1 + 2del2 * cos_2 + 3del3 * cos_3
-        else
-            ω = ω₀ + ∂ω * atime
-
-            sin_1, cos_1   = sincos(2ω + xli - G22)
-            sin_2, cos_2   = sincos(+ xli - G22)
-            sin_3, cos_3   = sincos(+ω + xli - G32)
-            sin_4, cos_4   = sincos(-ω + xli - G32)
-            sin_5, cos_5   = sincos(+ω + xli - G52)
-            sin_6, cos_6   = sincos(-ω + xli - G52)
-            sin_7, cos_7   = sincos(2ω + 2xli - G44)
-            sin_8, cos_8   = sincos(2xli - G44)
-            sin_9, cos_9   = sincos(+ω + 2xli - G54)
-            sin_10, cos_10 = sincos(-ω + 2xli - G54)
-
-            xndot =
-                d2201 * sin_1 +
-                d2211 * sin_2 +
-                d3210 * sin_3 +
-                d3222 * sin_4 +
-                d5220 * sin_5 +
-                d5232 * sin_6 +
-                d4410 * sin_7 +
-                d4422 * sin_8 +
-                d5421 * sin_9 +
-                d5433 * sin_10
-
-            xnddt =
-                d2201 * cos_1 +
-                d2211 * cos_2 +
-                d3210 * cos_3 +
-                d3222 * cos_4 +
-                d5220 * cos_5 +
-                d5232 * cos_6 +
-                2(d4410 * cos_7 + d4422 * cos_8 + d5421 * cos_9 + d5433 * cos_10)
-        end
-
-        xldot = xni + xfact
-        xnddt *= xldot
     end
 
     # Pack variables.
@@ -1396,9 +1327,6 @@ function _dsinit!(
     sgp4ds.d5232  = d5232
     sgp4ds.d5421  = d5421
     sgp4ds.d5433  = d5433
-    sgp4ds.xnddt  = xnddt
-    sgp4ds.xndot  = xndot
-    sgp4ds.xldot  = xldot
     sgp4ds.zmos   = zmos
     sgp4ds.se2    = se2
     sgp4ds.se3    = se3
@@ -1425,11 +1353,6 @@ function _dsinit!(
     sgp4ds.xgh4   = xgh4
     sgp4ds.xh2    = xh2
     sgp4ds.xh3    = xh3
-    sgp4ds.pe     = pe
-    sgp4ds.pinc   = pinc
-    sgp4ds.pgh    = pgh
-    sgp4ds.ph     = ph
-    sgp4ds.pl     = pl
     sgp4ds.isynfl = isynfl
     sgp4ds.iresfl = iresfl
 
@@ -1437,7 +1360,7 @@ function _dsinit!(
 end
 
 """
-    _dssec!(sgp4ds::Sgp4DeepSpace{T}, nll₀::T, e₀::T, i₀::T, ω₀::T, Ω_k::T, ω_k::T, M_k::T, ∂ω::T, Δt::Number) where T<:Number
+    _dssec!(sgp4ds::Sgp4DeepSpace{T}, nll₀::T, e₀::T, i₀::T, ω₀::T, Ω_k::T, ω_k::T, M_k::T, ∂ω::T, Δt::Number) where {T <: Number} -> T, T, T, T, T, T
 
 Compute the secular effects.
 
@@ -1510,9 +1433,6 @@ function _dssec!(
     d5232  = sgp4ds.d5232
     d5421  = sgp4ds.d5421
     d5433  = sgp4ds.d5433
-    xnddt  = sgp4ds.xnddt
-    xndot  = sgp4ds.xndot
-    xldot  = sgp4ds.xldot
     iresfl = sgp4ds.iresfl
     isynfl = sgp4ds.isynfl
 
@@ -1564,6 +1484,11 @@ function _dssec!(
 
     # Check integration direction.
     delt = (Δt >= atime) ? STEP : -STEP
+
+    # Dot terms computed inside the integration loop and used after it.
+    xndot = T(0)
+    xnddt = T(0)
+    xldot = T(0)
 
     # Perform the integration with step `delt` until the difference between the time `Δt`
     # and `atime` is less then `STEP`.
@@ -1633,21 +1558,14 @@ function _dssec!(
     sgp4ds.atime = atime
     sgp4ds.xni   = xni
     sgp4ds.xli   = xli
-    sgp4ds.xnddt = xnddt
-    sgp4ds.xndot = xndot
-    sgp4ds.xldot = xldot
 
     return n_sec, e_sec, i_sec, Ω_sec, ω_sec, M_sec
 end
 
 """
-    _dsper!(sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt::Number) where T<:Number
+    _dsper(sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt::Number) where {T <: Number} -> T, T, T, T, T
 
 Compute the effects caused by Lunar-Solar periodics.
-
-!!! note
-
-    The internal values in `sgp4ds` will be modified.
 
 # Arguments
 
@@ -1669,7 +1587,7 @@ The following elements perturbed by lunar-solar periodics.
 - `T`: Argument of perigee [rad].
 - `T`: Mean anomaly [rad].
 """
-function _dsper!(
+function _dsper(
     sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt::Number
 ) where {T <: Number}
 
@@ -1785,13 +1703,6 @@ function _dsper!(
         M_per = M_k + pl
         ω_per = xls - M_per - cosis * Ω_per
     end
-
-    # Pack variables.
-    sgp4ds.pgh  = pgh
-    sgp4ds.ph   = ph
-    sgp4ds.pe   = pe
-    sgp4ds.pinc = pinc
-    sgp4ds.pl   = pl
 
     return e_per, i_per, Ω_per, ω_per, M_per
 end

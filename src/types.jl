@@ -60,9 +60,6 @@ mutable struct Sgp4DeepSpace{T}
     d5232::T
     d5421::T
     d5433::T
-    xnddt::T
-    xndot::T
-    xldot::T
     zmos::T
     se2::T
     se3::T
@@ -89,11 +86,6 @@ mutable struct Sgp4DeepSpace{T}
     xgh4::T
     xh2::T
     xh3::T
-    pe::T
-    pinc::T
-    pgh::T
-    ph::T
-    pl::T
 
     isynfl::Bool
     iresfl::Bool
@@ -133,17 +125,14 @@ mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
     all₀::T
     nll₀::T
     # Useful constants to decrease the computational burden.
-    AE::T
     QOMS2T::T
     β₀::T
     ξ::T
     η::T
     sin_i₀::T
     θ::T
-    θ²::T
     A₃₀::T
     k₂::T
-    k₄::T
     C1::T
     C3::T
     C4::T
