@@ -4,6 +4,26 @@ SatelliteToolboxSgp4.jl Changelog
 Version 3.0.0
 -------------
 
+- ![BREAKING][badge-breaking] Rename the constants `sgp4c_wgs84` and `sgp4c_wgs72` to
+  `SGP4C_WGS84` and `SGP4C_WGS72`, following the naming pattern of the SatelliteToolbox
+  ecosystem. The `Float32` variants `sgp4c_wgs84_f32` and `sgp4c_wgs72_f32` were removed
+  since they can be obtained with the new converting constructor
+  `Sgp4Constants{Float32}(SGP4C_WGS84)`.
+- ![BREAKING][badge-breaking] The number type of the propagator created by `sgp4_init` and
+  `sgp4` is now always the number type of the constants `sgp4c`, as already happened in
+  `sgp4_init!`. Previously, non-floating-point inputs (e.g. integers or dual numbers)
+  promoted the propagator type, so the same call could return a `Float32` or a `Float64`
+  propagator depending on whether an integer literal was used. Other number types must now
+  be selected by converting the constants with `Sgp4Constants{T}(sgp4c)`.
+- ![BREAKING][badge-breaking] The internal structure `Sgp4DeepSpace` is now immutable and
+  stored inline in `Sgp4Propagator`, which gained the resonance integrator state fields
+  `atime`, `xli`, and `xni`. The new constructor `Sgp4Propagator{Tepoch}(sgp4c)` returns a
+  propagator ready to be initialized by `sgp4_init!`, so the field `sgp4ds` no longer needs
+  to be set manually. Measured with BenchmarkTools.jl on an Apple M-series CPU (Julia
+  1.12.6), `sgp4!` became 3% to 12% faster for deep space orbits (e.g. 407 ns to 358 ns for
+  the 12 h resonant case from AIAA 2006-6753), `copy` became 28% faster (27 ns to 19 ns),
+  and `sgp4_init` performs one allocation instead of two, while the initialization time
+  and the near-Earth propagation are unchanged.
 - ![BREAKING][badge-breaking] Remove the fields `AE`, `θ²`, and `k₄` from
   `Sgp4Propagator` and the fields `xnddt`, `xndot`, `xldot`, `pe`, `pinc`, `pgh`, `ph`,
   and `pl` from the internal structure `Sgp4DeepSpace`, since they were never read after
