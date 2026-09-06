@@ -293,6 +293,67 @@ end
         @test sgp4d.epoch ≈ vjd[begin] atol = 1e-9
     end
 
+    @testset "NamedTuple Template" begin
+        kwargs = (;
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 1000,
+            verbose             = false,
+        )
+
+        omm, ~ = fit_sgp4_mean_elements(
+            vjd,
+            vr_teme,
+            vv_teme;
+            template = (;
+                object_name     = "AMAZONIA 1",
+                object_id       = "2021-015A",
+                norad_cat_id    = 47699,
+                originator      = "INPE",
+                header_comments = ["Fitted from osculating data."],
+            ),
+            kwargs...,
+        )
+
+        # The provided fields must override the defaults, whereas the others are kept.
+        @test ODM.object_name(omm) == "AMAZONIA 1"
+        @test ODM.object_id(omm) == "2021-015A"
+        @test ODM.norad_cat_id(omm) == 47699
+        @test ODM.originator(omm) == "INPE"
+        @test ODM.header_comments(omm) == ["Fitted from osculating data."]
+        @test ODM.center_name(omm) == "EARTH"
+        @test ODM.mean_element_theory(omm) == "SGP4"
+        @test ODM.mean_motion(omm) ≈ ODM.mean_motion(omm_input) atol = 1e-7
+
+        # The same applies to the TLE.
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
+            vjd,
+            vr_teme,
+            vv_teme;
+            template = (; name = "AMAZONIA 1", satellite_number = 47699),
+            kwargs...,
+        )
+
+        @test tle.name == "AMAZONIA 1"
+        @test tle.satellite_number == 47699
+        @test tle.classification == 'U'
+        @test tle.international_designator == "999999"
+        @test tle.mean_motion ≈ ODM.mean_motion(omm_input) atol = 1e-7
+
+        # Fields set by the fit cannot be overridden.
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            vjd, vr_teme, vv_teme; template = (; eccentricity = 0.1), kwargs...
+        )
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            vjd, vr_teme, vv_teme; template = (; mean_element_theory = "DSST"), kwargs...
+        )
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme; template = (; bstar = 0.1), kwargs...
+        )
+    end
+
     @testset "Epoch Update" begin
         new_epoch = DateTime(ODM.epoch(omm_input)) + Day(1)
 

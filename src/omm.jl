@@ -320,22 +320,30 @@ time derivatives of the mean motion are set to 0, since they are not estimated.
 
 - `sgp4c::Sgp4Constants`: SGP4 propagator constants.
     (**Default**: `SGP4C_WGS84`)
-- `template::Union{Nothing, OrbitMeanElementsMessage}`: Message from which the header,
-    the metadata, the spacecraft parameters, and the TLE-related parameters are copied.
-    The mean element theory and the reference frame are always set to `"SGP4"` and
-    `"TEME"`. If it is `nothing`, the metadata is filled with default values.
+- `template::Union{Nothing, OrbitMeanElementsMessage, NamedTuple}`: Message from which
+    the header, the metadata, the spacecraft parameters, and the TLE-related parameters
+    are copied, or a `NamedTuple` whose entries are passed as keywords to the constructor
+    of `OrbitMeanElementsMessage` on top of the default metadata. The mean element theory
+    and the reference frame are always set to `"SGP4"` and `"TEME"`. If it is `nothing`,
+    the metadata is filled with default values.
     (**Default**: `nothing`)
 - `covariance::Union{Nothing, SMatrix{6, 6}}`: Covariance matrix of the mean position [km]
     and velocity [km / s] represented in the TEME reference frame, stored in the covariance
     matrix section of the message. If it is `nothing`, the section is omitted.
     (**Default**: `nothing`)
+
+# Extended help
+
+## Throws
+
+- `ArgumentError`: If a `NamedTuple` template contains a field set by the fit.
 """
 function _build_mean_elements(
     ::Type{OrbitMeanElementsMessage},
     sv::SVector{7},
     epoch::Number;
     sgp4c::Sgp4Constants = SGP4C_WGS84,
-    template::Union{Nothing, OrbitMeanElementsMessage} = nothing,
+    template::Union{Nothing, OrbitMeanElementsMessage, NamedTuple} = nothing,
     covariance::Union{Nothing, SMatrix{6, 6}} = nothing,
 )
     n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar = _mean_state_vector_to_elements(sv, sgp4c)
@@ -390,12 +398,12 @@ function _build_mean_elements(
         covariance_matrix = covariance_matrix,
     )
 
-    isnothing(template) ||
+    template isa OrbitMeanElementsMessage &&
         return OrbitMeanElementsMessage(template; mean_element_theory = "SGP4", fitted...)
 
     # The default metadata mirrors the default TLE fields so that the message can be
     # converted to a TLE.
-    return OrbitMeanElementsMessage(;
+    metadata = (;
         originator          = "SatelliteToolboxSgp4.jl",
         object_name         = "UNDEFINED",
         object_id           = "UNDEFINED",
@@ -407,6 +415,12 @@ function _build_mean_elements(
         norad_cat_id        = 9999,
         element_set_number  = 0,
         rev_at_epoch        = 0,
-        fitted...,
     )
+
+    if template isa NamedTuple
+        _check_template(template, (keys(fitted)..., :mean_element_theory))
+        metadata = merge(metadata, template)
+    end
+
+    return OrbitMeanElementsMessage(; metadata..., fitted...)
 end

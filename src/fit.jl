@@ -72,8 +72,8 @@ See [`fit_sgp4_mean_elements!`](@ref).
 ## Throws
 
 - `ArgumentError`: If the lengths of `vjd`, `vr_teme`, and `vv_teme` differ, if the weight
-    vector or the initial guess vector have the wrong size, or if `max_iterations` is lower
-    than 1.
+    vector or the initial guess vector have the wrong size, if `max_iterations` is lower
+    than 1, or if a `NamedTuple` template contains a field set by the fit.
 - `ErrorException`: If the least-square iterations diverge.
 
 ## Examples
@@ -229,11 +229,16 @@ See also: [`fit_sgp4_mean_elements`](@ref), [`update_sgp4_mean_elements_epoch!`]
     (**Default**: 50)
 - `mean_elements_epoch::Number`: Epoch of the fitted mean elements [Julian Day, UTC].
     (**Default**: `vjd[end]`)
-- `template::Union{Nothing, S}`: Object of type `S` from which the metadata of the output
-    is copied, e.g. the satellite name and number of a `TLE` or the header, the metadata,
-    and the TLE-related parameters of an `OrbitMeanElementsMessage`. Only the mean
-    elements, the epoch, the drag term, and the covariance matrix are replaced by the
-    fitted values. If it is `nothing`, the metadata is filled with default values.
+- `template::Union{Nothing, S, NamedTuple}`: Source of the metadata of the output. If it
+    is an object of type `S`, its metadata is copied, e.g. the satellite name and number of
+    a `TLE` or the header, the metadata, and the TLE-related parameters of an
+    `OrbitMeanElementsMessage`. If it is a `NamedTuple`, its entries are passed as keywords
+    to the constructor of `S` on top of the default metadata, e.g.
+    `(; name = "AMAZONIA 1", satellite_number = 47699)` for a `TLE` or
+    `(; object_name = "AMAZONIA 1", object_id = "2021-015A", norad_cat_id = 47699)` for
+    an `OrbitMeanElementsMessage`. In both cases, only the mean elements, the epoch, the
+    drag term, and the covariance matrix are set by the fitted values, and a `NamedTuple`
+    must not contain them. If it is `nothing`, the metadata is filled with default values.
     (**Default**: `nothing`)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
     (**Default**: `true`)
@@ -291,8 +296,8 @@ same algorithm as [`update_sgp4_mean_elements_epoch!`](@ref).
 ## Throws
 
 - `ArgumentError`: If the lengths of `vjd`, `vr_teme`, and `vv_teme` differ, if the weight
-    vector or the initial guess vector have the wrong size, or if `max_iterations` is lower
-    than 1.
+    vector or the initial guess vector have the wrong size, if `max_iterations` is lower
+    than 1, or if a `NamedTuple` template contains a field set by the fit.
 - `ErrorException`: If the least-square iterations diverge.
 
 ## Examples
@@ -362,7 +367,7 @@ function fit_sgp4_mean_elements!(
     jacobian_perturbation_tol::Number       = 1e-7,
     max_iterations::Int                     = 50,
     mean_elements_epoch::Number             = vjd[end],
-    template::Union{Nothing, S}             = nothing,
+    template::Union{Nothing, S, NamedTuple} = nothing,
     verbose::Bool                           = true,
     weight_vector::AbstractVector           = SVector{6, Bool}(true, true, true, true, true, true),
 ) where {
@@ -1037,6 +1042,26 @@ function _update_sgp4_mean_state_vector!(
     )
 
     return x₂
+end
+
+"""
+    _check_template(template::NamedTuple, reserved::Tuple) -> Nothing
+
+Throw an `ArgumentError` if the `NamedTuple` `template` contains any of the fields in
+`reserved`, which are set by the fitting algorithm.
+"""
+function _check_template(template::NamedTuple, reserved::Tuple)
+    invalid = filter(k -> k in reserved, keys(template))
+
+    isempty(invalid) || throw(
+        ArgumentError(
+            "The template must not contain the fields set by the fit: " *
+            join(string.(invalid), ", ") *
+            ".",
+        ),
+    )
+
+    return nothing
 end
 
 """
