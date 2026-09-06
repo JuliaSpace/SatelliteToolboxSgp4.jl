@@ -1043,7 +1043,10 @@ function _dsinit!(
     ishq = T(3π / 180) <= i₀ <= T(π - 3π / 180)
 
     # Do not let `sin_i₀` be 0.
-    abs(sin_i₀) < 1e-12 && (sin_i₀ = sign(sin_i₀) * T(1e-12))
+    #
+    # NOTE: `copysign` must be used instead of `sign` because the latter returns 0 when
+    # `sin_i₀` is exactly 0, which would not clamp the value.
+    abs(sin_i₀) < T(1e-12) && (sin_i₀ = copysign(T(1e-12), sin_i₀))
 
     # Compute the Greenwich Mean Sidereal Time at epoch.
     gmst = T(jd_to_gmst(epoch))
