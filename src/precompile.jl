@@ -63,19 +63,33 @@ PrecompileTools.@compile_workload begin
     vv_teme = [@SVector [0.3445760107690598, 1.0395135806993514, 7.393686131436984]]
 
     redirect_stdout(devnull) do
-        fit_sgp4_tle(vjd, vr_teme, vv_teme, estimate_bstar = false, max_iterations = 1)
+        # Fit a TLE without and with an initial guess.
+        fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme; estimate_bstar = false, max_iterations = 1
+        )
 
-        fit_sgp4_tle(
+        fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
-            vv_teme,
+            vv_teme;
             estimate_bstar = false,
-            initial_guess = tle_input,
+            initial_guess  = tle_input,
+            max_iterations = 1,
+        )
+
+        # Fit an OMM with the covariance section.
+        fit_sgp4_mean_elements(
+            OrbitMeanElementsMessage,
+            vjd,
+            vr_teme,
+            vv_teme;
+            estimate_bstar = false,
             max_iterations = 1,
         )
     end
 
-    # == TLE Epoch Update ==================================================================
+    # == Mean Elements Epoch Update ========================================================
 
     tle = tle"""
         AMAZONIA 1
@@ -83,7 +97,8 @@ PrecompileTools.@compile_workload begin
         2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652"""
 
     redirect_stdout(devnull) do
-        update_sgp4_tle_epoch(tle, 2.46002818657856e6 + 1; max_iterations = 1)
+        update_sgp4_mean_elements_epoch(tle, 2.46002818657856e6 + 1; max_iterations = 1)
+        update_sgp4_mean_elements_epoch(omm, 2.46104025838581e6 + 1; max_iterations = 1)
     end
 
     # == Structure Copying =================================================================

@@ -33,14 +33,14 @@ function run_scenario(sc)
     kw = merge(sc.fit_kwargs, (; mean_elements_epoch = vjd[begin]))
 
     println("\n  Benchmarking FiniteDiffJacobian...")
-    b_fd = @benchmark fit_sgp4_tle(
-        $vjd, $vr_teme, $vv_teme; jacobian_method = FiniteDiffJacobian(), $kw...
+    b_fd = @benchmark fit_sgp4_mean_elements(
+        TLE, $vjd, $vr_teme, $vv_teme; jacobian_method = FiniteDiffJacobian(), $kw...
     )
     display(b_fd)
 
     println("\n  Benchmarking ForwardDiffJacobian...")
-    b_ad = @benchmark fit_sgp4_tle(
-        $vjd, $vr_teme, $vv_teme; jacobian_method = ForwardDiffJacobian(), $kw...
+    b_ad = @benchmark fit_sgp4_mean_elements(
+        TLE, $vjd, $vr_teme, $vv_teme; jacobian_method = ForwardDiffJacobian(), $kw...
     )
     display(b_ad)
 
@@ -53,11 +53,11 @@ function run_scenario(sc)
 
     @printf("\n  Median: FD = %.1f ms, AD = %.1f ms\n\n", t_fd, t_ad)
 
-    tle_fd, _ = fit_sgp4_tle(
-        vjd, vr_teme, vv_teme; jacobian_method = FiniteDiffJacobian(), kw...
+    tle_fd, _ = fit_sgp4_mean_elements(
+        TLE, vjd, vr_teme, vv_teme; jacobian_method = FiniteDiffJacobian(), kw...
     )
-    tle_ad, _ = fit_sgp4_tle(
-        vjd, vr_teme, vv_teme; jacobian_method = ForwardDiffJacobian(), kw...
+    tle_ad, _ = fit_sgp4_mean_elements(
+        TLE, vjd, vr_teme, vv_teme; jacobian_method = ForwardDiffJacobian(), kw...
     )
 
     errors = Dict{Symbol, NamedTuple{(:ref, :fd, :ad), Tuple{Float64, Float64, Float64}}}()
@@ -162,8 +162,12 @@ for tier in tolerance_tiers
     for sc in tier.scenarios
         vjd, vr_teme, vv_teme = generate_osc_data(sc.tle_input, sc.time_range)
         kw = merge(sc.fit_kwargs, (; mean_elements_epoch = vjd[begin]))
-        fit_sgp4_tle(vjd, vr_teme, vv_teme; jacobian_method = FiniteDiffJacobian(), kw...)
-        fit_sgp4_tle(vjd, vr_teme, vv_teme; jacobian_method = ForwardDiffJacobian(), kw...)
+        fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme; jacobian_method = FiniteDiffJacobian(), kw...
+        )
+        fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme; jacobian_method = ForwardDiffJacobian(), kw...
+        )
     end
 end
 

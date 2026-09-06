@@ -6,6 +6,7 @@ using Printf
 using StyledStrings
 
 using ForwardDiff
+using NanoDates
 using Reexport
 using StaticArrays
 
@@ -75,6 +76,7 @@ include("copy.jl")
 include("sgp4_model.jl")
 include("tle.jl")
 include("omm.jl")
+include("fit.jl")
 
 include("precompile.jl")
 

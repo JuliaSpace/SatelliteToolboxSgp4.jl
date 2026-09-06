@@ -138,3 +138,159 @@ const _OMM_FIXTURE = "./omm_tests/amazonia_1.xml"
         @test_throws ArgumentError sgp4_init(omm_no_gm)
     end
 end
+
+@testset "Fitting Using OMM" verbose = true begin
+    omm_input = read_omm(_OMM_FIXTURE)
+    tle_input = convert(TLE, omm_input)
+
+    # Generate the osculating elements (TEME).
+    sgp4d   = sgp4_init(omm_input)
+    ret     = map(t -> sgp4!(sgp4d, t), 0:0.2:200)
+    vr_teme = first.(ret)
+    vv_teme = last.(ret)
+    vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
+
+    @testset "Without Template" begin
+        omm, P = fit_sgp4_mean_elements(
+            OrbitMeanElementsMessage,
+            vjd,
+            vr_teme,
+            vv_teme;
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 1000,
+            verbose             = false,
+        )
+
+        @test omm isa OrbitMeanElementsMessage
+        @test P isa SMatrix{7, 7, Float64}
+
+        # The default metadata mirrors the default TLE fields.
+        @test ODM.originator(omm) == "SatelliteToolboxSgp4.jl"
+        @test ODM.object_name(omm) == "UNDEFINED"
+        @test ODM.center_name(omm) == "EARTH"
+        @test ODM.ref_frame(omm) == "TEME"
+        @test ODM.time_system(omm) == "UTC"
+        @test ODM.mean_element_theory(omm) == "SGP4"
+        @test ODM.classification_type(omm) == 'U'
+        @test ODM.norad_cat_id(omm) == 9999
+        @test ODM.mean_motion_dot(omm) == 0
+        @test ODM.mean_motion_ddot(omm) == 0
+
+        # The fitted elements must match the input message.
+        @test ODM.bstar(omm) ≈ ODM.bstar(omm_input) atol = 1e-6
+        @test ODM.eccentricity(omm) ≈ ODM.eccentricity(omm_input) atol = 1e-7
+        @test ODM.inclination(omm) ≈ ODM.inclination(omm_input) atol = 1e-4
+        @test ODM.raan(omm) ≈ ODM.raan(omm_input) atol = 1e-4
+        @test ODM.arg_of_pericenter(omm) ≈ ODM.arg_of_pericenter(omm_input) atol = 1e-4
+        @test ODM.mean_anomaly(omm) ≈ ODM.mean_anomaly(omm_input) atol = 1e-4
+        @test ODM.mean_motion(omm) ≈ ODM.mean_motion(omm_input) atol = 1e-7
+
+        # The epoch is stored with millisecond precision.
+        @test abs(Dates.value(DateTime(ODM.epoch(omm)) - DateTime(ODM.epoch(omm_input)))) <=
+            1
+
+        # The covariance section must contain the position and velocity block of `P`.
+        cov = ODM.covariance_matrix(omm)
+
+        @test !isnothing(cov)
+        @test cov.cov_ref_frame == "TEME"
+        @test cov.cx_x == P[1, 1]
+        @test cov.cy_x == P[2, 1]
+        @test cov.cz_z == P[3, 3]
+        @test cov.cx_dot_x == P[4, 1]
+        @test cov.cy_dot_y_dot == P[5, 5]
+        @test cov.cz_dot_z_dot == P[6, 6]
+
+        # The message must be usable to initialize the propagator.
+        sgp4d_fit = sgp4_init(omm)
+
+        @test sgp4d_fit.bstar ≈ sgp4d.bstar atol = 1e-6
+    end
+
+    @testset "With Template and Without Covariance" begin
+        omm, ~ = fit_sgp4_mean_elements(
+            OrbitMeanElementsMessage,
+            vjd,
+            vr_teme,
+            vv_teme;
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            include_covariance  = false,
+            initial_guess       = omm_input,
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 10,
+            template            = omm_input,
+            verbose             = false,
+        )
+
+        # The metadata must be copied from the template.
+        @test ODM.originator(omm) == ODM.originator(omm_input)
+        @test ODM.object_name(omm) == ODM.object_name(omm_input)
+        @test ODM.object_id(omm) == ODM.object_id(omm_input)
+        @test ODM.norad_cat_id(omm) == ODM.norad_cat_id(omm_input)
+        @test ODM.element_set_number(omm) == ODM.element_set_number(omm_input)
+        @test ODM.rev_at_epoch(omm) == ODM.rev_at_epoch(omm_input)
+        @test ODM.mean_motion_dot(omm) == 0
+
+        @test isnothing(ODM.covariance_matrix(omm))
+
+        @test ODM.eccentricity(omm) ≈ ODM.eccentricity(omm_input) atol = 1e-7
+        @test ODM.mean_motion(omm) ≈ ODM.mean_motion(omm_input) atol = 1e-7
+        @test ODM.mean_anomaly(omm) ≈ ODM.mean_anomaly(omm_input) atol = 1e-4
+
+        # Both representations must provide the same mean elements.
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
+            vjd,
+            vr_teme,
+            vv_teme;
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            initial_guess       = omm_input,
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 10,
+            template            = tle_input,
+            verbose             = false,
+        )
+
+        @test ODM.mean_motion(omm) ≈ tle.mean_motion atol = 1e-10
+        @test ODM.eccentricity(omm) ≈ tle.eccentricity atol = 1e-10
+        @test ODM.inclination(omm) ≈ tle.inclination atol = 1e-10
+        @test ODM.raan(omm) ≈ tle.raan atol = 1e-10
+        @test ODM.arg_of_pericenter(omm) ≈ tle.argument_of_perigee atol = 1e-10
+        @test ODM.mean_anomaly(omm) ≈ tle.mean_anomaly atol = 1e-10
+        @test ODM.bstar(omm) ≈ tle.bstar atol = 1e-12
+    end
+
+    @testset "Epoch Update" begin
+        new_epoch = DateTime(ODM.epoch(omm_input)) + Day(1)
+
+        omm = update_sgp4_mean_elements_epoch(omm_input, new_epoch; verbose = false)
+        tle = update_sgp4_mean_elements_epoch(tle_input, new_epoch; verbose = false)
+
+        @test ODM.object_name(omm) == ODM.object_name(omm_input)
+        @test ODM.norad_cat_id(omm) == ODM.norad_cat_id(omm_input)
+        @test DateTime(ODM.epoch(omm)) == new_epoch
+        @test isnothing(ODM.covariance_matrix(omm))
+
+        # The update must not depend on the representation. The angles differ slightly
+        # because the TLE epoch is rounded to the resolution of its day fraction, whereas
+        # the OMM epoch keeps the microseconds.
+        @test ODM.mean_motion(omm) ≈ tle.mean_motion atol = 1e-10
+        @test ODM.eccentricity(omm) ≈ tle.eccentricity atol = 1e-10
+        @test ODM.inclination(omm) ≈ tle.inclination atol = 1e-10
+        @test ODM.raan(omm) ≈ tle.raan atol = 1e-5
+        @test ODM.arg_of_pericenter(omm) ≈ tle.argument_of_perigee atol = 1e-5
+        @test ODM.mean_anomaly(omm) ≈ tle.mean_anomaly atol = 1e-5
+        @test ODM.bstar(omm) == ODM.bstar(omm_input)
+
+        # The in-place version must initialize the propagator with the updated message.
+        sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
+        omm!  = update_sgp4_mean_elements_epoch!(sgp4d, omm_input, new_epoch; verbose = false)
+
+        @test sgp4d.epoch ≈ datetime2julian(new_epoch) atol = 1e-9
+        @test ODM.mean_motion(omm!) == ODM.mean_motion(omm)
+    end
+end

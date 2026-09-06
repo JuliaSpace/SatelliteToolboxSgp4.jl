@@ -101,14 +101,15 @@ else
             ),
         ) == 0
 
-        # -- TLE Fitting: fit_sgp4_tle! (FiniteDiffJacobian) -----------------------------------
-        # fit_sgp4_tle! inherently allocates. We use a regression bound here.
+        # -- Fitting: fit_sgp4_mean_elements! (FiniteDiffJacobian) -----------------------------
+        # fit_sgp4_mean_elements! inherently allocates. We use a regression bound here.
 
         @test length(
             check_allocs(
                 (sgp4d, vjd, vr_teme, vv_teme) -> begin
-                    fit_sgp4_tle!(
+                    fit_sgp4_mean_elements!(
                         sgp4d,
+                        TLE,
                         vjd,
                         vr_teme,
                         vv_teme;
@@ -125,13 +126,14 @@ else
             ),
         ) <= 45
 
-        # -- TLE Fitting: fit_sgp4_tle! (ForwardDiffJacobian) ----------------------------------
+        # -- Fitting: fit_sgp4_mean_elements! (ForwardDiffJacobian) ----------------------------
 
         @test length(
             check_allocs(
                 (sgp4d, vjd, vr_teme, vv_teme) -> begin
-                    fit_sgp4_tle!(
+                    fit_sgp4_mean_elements!(
                         sgp4d,
+                        TLE,
                         vjd,
                         vr_teme,
                         vv_teme;

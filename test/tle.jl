@@ -25,20 +25,17 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            atol                     = 1e-10,
-            rtol                     = 1e-10,
-            element_set_number       = 999,
-            international_designator = "21015A",
-            mean_elements_epoch      = vjd[begin],
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 1000,
-            verbose                  = false,
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 1000,
+            verbose             = false,
         )
 
         # Compare.
@@ -75,20 +72,17 @@
         vjd     = sgp4d.epoch .+ (0:10:2880) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            atol                     = 5e-5,
-            rtol                     = 5e-5,
-            element_set_number       = 304,
-            international_designator = "92011A",
-            mean_elements_epoch      = vjd[begin],
-            name                     = "MOLNIYA 1-83",
-            revolution_number        = 10488,
-            satellite_number         = 21897,
-            max_iterations           = 7000,
-            verbose                  = false,
+            atol                = 5e-5,
+            rtol                = 5e-5,
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 7000,
+            verbose             = false,
         )
 
         # Compare.
@@ -125,20 +119,17 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            atol                     = 1e-10,
-            rtol                     = 1e-10,
-            element_set_number       = 999,
-            international_designator = "21015A",
-            mean_elements_epoch      = vjd[begin] - 1,
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 1000,
-            verbose                  = false,
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            mean_elements_epoch = vjd[begin] - 1,
+            template            = tle_input,
+            max_iterations      = 1000,
+            verbose             = false,
         )
 
         # Compare.
@@ -174,19 +165,16 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            element_set_number       = 999,
-            international_designator = "21015A",
-            initial_guess            = tle_input,
-            mean_elements_epoch      = vjd[begin],
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 10,
-            verbose                  = false,
+            initial_guess       = tle_input,
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 10,
+            verbose             = false,
         )
 
         # Compare.
@@ -224,19 +212,16 @@
         vjd     = sgp4d.epoch .+ (0:10:2880) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            element_set_number       = 304,
-            international_designator = "92011A",
-            initial_guess            = tle_input,
-            mean_elements_epoch      = vjd[begin],
-            name                     = "MOLNIYA 1-83",
-            revolution_number        = 10488,
-            satellite_number         = 21897,
-            max_iterations           = 10,
-            verbose                  = false,
+            initial_guess       = tle_input,
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 10,
+            verbose             = false,
         )
 
         # Compare.
@@ -274,19 +259,16 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            element_set_number       = 999,
-            initial_guess            = tle_input,
-            international_designator = "21015A",
-            mean_elements_epoch      = vjd[begin] - 1,
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 1000,
-            verbose                  = false,
+            initial_guess       = tle_input,
+            mean_elements_epoch = vjd[begin] - 1,
+            template            = tle_input,
+            max_iterations      = 1000,
+            verbose             = false,
         )
 
         # Compare.
@@ -322,21 +304,18 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            atol                     = 1e-10,
-            rtol                     = 1e-10,
-            jacobian_method          = ForwardDiffJacobian(),
-            element_set_number       = 999,
-            international_designator = "21015A",
-            mean_elements_epoch      = vjd[begin],
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 1000,
-            verbose                  = false,
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            jacobian_method     = ForwardDiffJacobian(),
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 1000,
+            verbose             = false,
         )
 
         # Compare.
@@ -373,21 +352,18 @@
         vjd     = sgp4d.epoch .+ (0:10:2880) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            atol                     = 5e-5,
-            rtol                     = 5e-5,
-            jacobian_method          = ForwardDiffJacobian(),
-            element_set_number       = 304,
-            international_designator = "92011A",
-            mean_elements_epoch      = vjd[begin],
-            name                     = "MOLNIYA 1-83",
-            revolution_number        = 10488,
-            satellite_number         = 21897,
-            max_iterations           = 7000,
-            verbose                  = false,
+            atol                = 5e-5,
+            rtol                = 5e-5,
+            jacobian_method     = ForwardDiffJacobian(),
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 7000,
+            verbose             = false,
         )
 
         # Compare.
@@ -424,21 +400,18 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            atol                     = 1e-10,
-            rtol                     = 1e-10,
-            jacobian_method          = ForwardDiffJacobian(),
-            element_set_number       = 999,
-            international_designator = "21015A",
-            mean_elements_epoch      = vjd[begin] - 1,
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 1000,
-            verbose                  = false,
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            jacobian_method     = ForwardDiffJacobian(),
+            mean_elements_epoch = vjd[begin] - 1,
+            template            = tle_input,
+            max_iterations      = 1000,
+            verbose             = false,
         )
 
         # Compare.
@@ -474,20 +447,17 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            jacobian_method          = ForwardDiffJacobian(),
-            element_set_number       = 999,
-            international_designator = "21015A",
-            initial_guess            = tle_input,
-            mean_elements_epoch      = vjd[begin],
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 10,
-            verbose                  = false,
+            jacobian_method     = ForwardDiffJacobian(),
+            initial_guess       = tle_input,
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 10,
+            verbose             = false,
         )
 
         # Compare.
@@ -525,20 +495,17 @@
         vjd     = sgp4d.epoch .+ (0:10:2880) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            jacobian_method          = ForwardDiffJacobian(),
-            element_set_number       = 304,
-            international_designator = "92011A",
-            initial_guess            = tle_input,
-            mean_elements_epoch      = vjd[begin],
-            name                     = "MOLNIYA 1-83",
-            revolution_number        = 10488,
-            satellite_number         = 21897,
-            max_iterations           = 10,
-            verbose                  = false,
+            jacobian_method     = ForwardDiffJacobian(),
+            initial_guess       = tle_input,
+            mean_elements_epoch = vjd[begin],
+            template            = tle_input,
+            max_iterations      = 10,
+            verbose             = false,
         )
 
         # Compare.
@@ -576,20 +543,17 @@
         vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
         # Obtain the mean elements.
-        tle, ~ = fit_sgp4_tle(
+        tle, ~ = fit_sgp4_mean_elements(
+            TLE,
             vjd,
             vr_teme,
             vv_teme;
-            jacobian_method          = ForwardDiffJacobian(),
-            element_set_number       = 999,
-            initial_guess            = tle_input,
-            international_designator = "21015A",
-            mean_elements_epoch      = vjd[begin] - 1,
-            name                     = "AMAZONIA 1",
-            revolution_number        = 3043,
-            satellite_number         = 47699,
-            max_iterations           = 1000,
-            verbose                  = false,
+            jacobian_method     = ForwardDiffJacobian(),
+            initial_guess       = tle_input,
+            mean_elements_epoch = vjd[begin] - 1,
+            template            = tle_input,
+            max_iterations      = 1000,
+            verbose             = false,
         )
 
         # Compare.
@@ -623,25 +587,33 @@
 
         # == Wrong Dimensions in the Input Vectors =========================================
 
-        @test_throws ArgumentError fit_sgp4_tle(vjd[1:(end - 1)], vr_teme, vv_teme)
-        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme[1:(end - 1)], vv_teme)
-        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme, vv_teme[1:(end - 1)])
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            TLE, vjd[1:(end - 1)], vr_teme, vv_teme
+        )
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme[1:(end - 1)], vv_teme
+        )
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme[1:(end - 1)]
+        )
 
         # == Wrong Dimensions in the Weight Vector =========================================
 
-        @test_throws ArgumentError fit_sgp4_tle(
-            vjd, vr_teme, vv_teme; weight_vector = [1, 2, 3, 4, 5]
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme; weight_vector = [1, 2, 3, 4, 5]
         )
 
         # == Wrong Dimensions in the Initial Guess Vector ==================================
 
-        @test_throws ArgumentError fit_sgp4_tle(
-            vjd, vr_teme, vv_teme; initial_guess = [1, 2, 3, 4, 5, 6]
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme; initial_guess = [1, 2, 3, 4, 5, 6]
         )
 
         # == Invalid Maximum Number of Iterations ==========================================
 
-        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme, vv_teme; max_iterations = 0)
+        @test_throws ArgumentError fit_sgp4_mean_elements(
+            TLE, vjd, vr_teme, vv_teme; max_iterations = 0
+        )
     end
 end
 
@@ -652,7 +624,7 @@ end
         2 47699  98.4889 344.6059 0001597  74.4244 285.7135 14.40801240 30436
         """
 
-    tle = update_sgp4_tle_epoch(
+    tle = update_sgp4_mean_elements_epoch(
         tle_input, DateTime("2021-09-28T11:40:12.955"); verbose = false
     )
 

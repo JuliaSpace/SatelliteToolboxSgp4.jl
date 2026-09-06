@@ -269,3 +269,144 @@ function _omm_epoch_to_julian_day(omm::OrbitMeanElementsMessage)
 
     return jd
 end
+
+# == Fitting Support =======================================================================
+
+"""
+    _mean_elements_epoch(omm::OrbitMeanElementsMessage) -> Float64
+
+Return the epoch of the mean elements in `omm` [Julian Day] in the time system of the
+message.
+"""
+_mean_elements_epoch(omm::OrbitMeanElementsMessage) = _omm_epoch_to_julian_day(omm)
+
+"""
+    _mean_state_vector(omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = SGP4C_WGS84) where {T <: Number} -> SVector{7, T}
+
+Convert the Orbit Mean-Elements Message `omm` to the SGP4 mean state vector using the
+constants `sgp4c`. The function can fail if the message does not contain the required
+information (see [`_omm_sgp4_elements`](@ref)). The state vector has the following
+structure:
+
+    ┌                                    ┐
+    │ IDs 1 to 3: Mean position [km]     │
+    │ IDs 4 to 6: Mean velocity [km / s] │
+    │ ID  7:      Bstar         [1 / er] │
+    └                                    ┘
+"""
+function _mean_state_vector(
+    omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
+) where {T}
+    ~, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar = _omm_sgp4_elements(omm)
+    return _elements_to_mean_state_vector(n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar, sgp4c)
+end
+
+"""
+    _build_mean_elements(::Type{OrbitMeanElementsMessage}, sv::SVector{7}, epoch::Number; kwargs...) -> OrbitMeanElementsMessage
+
+Create an Orbit Mean-Elements Message (OMM) for the `epoch` [Julian Day, UTC] given the
+SGP4 mean state vector `sv`, which must have the following elements:
+
+    ┌                                    ┐
+    │ IDs 1 to 3: Mean position [km]     │
+    │ IDs 4 to 6: Mean velocity [km / s] │
+    │ ID  7:      Bstar         [1 / er] │
+    └                                    ┘
+
+The creation date of the message is set to the current time [UTC]. The first and second
+time derivatives of the mean motion are set to 0, since they are not estimated.
+
+# Keywords
+
+- `sgp4c::Sgp4Constants`: SGP4 propagator constants.
+    (**Default**: `SGP4C_WGS84`)
+- `template::Union{Nothing, OrbitMeanElementsMessage}`: Message from which the header,
+    the metadata, the spacecraft parameters, and the TLE-related parameters are copied.
+    The mean element theory and the reference frame are always set to `"SGP4"` and
+    `"TEME"`. If it is `nothing`, the metadata is filled with default values.
+    (**Default**: `nothing`)
+- `covariance::Union{Nothing, SMatrix{6, 6}}`: Covariance matrix of the mean position [km]
+    and velocity [km / s] represented in the TEME reference frame, stored in the covariance
+    matrix section of the message. If it is `nothing`, the section is omitted.
+    (**Default**: `nothing`)
+"""
+function _build_mean_elements(
+    ::Type{OrbitMeanElementsMessage},
+    sv::SVector{7},
+    epoch::Number;
+    sgp4c::Sgp4Constants = SGP4C_WGS84,
+    template::Union{Nothing, OrbitMeanElementsMessage} = nothing,
+    covariance::Union{Nothing, SMatrix{6, 6}} = nothing,
+)
+    n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar = _mean_state_vector_to_elements(sv, sgp4c)
+
+    # Assemble the covariance matrix section, if requested.
+    P = covariance
+
+    covariance_matrix =
+        isnothing(P) ? nothing :
+        OmmCovarianceMatrix(;
+            cov_ref_frame = "TEME",
+            cx_x = P[1, 1],
+            cy_x = P[2, 1],
+            cy_y = P[2, 2],
+            cz_x = P[3, 1],
+            cz_y = P[3, 2],
+            cz_z = P[3, 3],
+            cx_dot_x = P[4, 1],
+            cx_dot_y = P[4, 2],
+            cx_dot_z = P[4, 3],
+            cx_dot_x_dot = P[4, 4],
+            cy_dot_x = P[5, 1],
+            cy_dot_y = P[5, 2],
+            cy_dot_z = P[5, 3],
+            cy_dot_x_dot = P[5, 4],
+            cy_dot_y_dot = P[5, 5],
+            cz_dot_x = P[6, 1],
+            cz_dot_y = P[6, 2],
+            cz_dot_z = P[6, 3],
+            cz_dot_x_dot = P[6, 4],
+            cz_dot_y_dot = P[6, 5],
+            cz_dot_z_dot = P[6, 6],
+        )
+
+    # Keywords with the fitted values, which are the same regardless of the template.
+    fitted = (;
+        creation_date     = NanoDate(now(UTC)),
+        ref_frame         = "TEME",
+        epoch             = NanoDate(julian2datetime(epoch)),
+        semi_major_axis   = nothing,
+        mean_motion       = n₀,
+        eccentricity      = e₀,
+        inclination       = i₀,
+        raan              = Ω₀,
+        arg_of_pericenter = ω₀,
+        mean_anomaly      = M₀,
+        bstar             = bstar,
+        bterm             = nothing,
+        mean_motion_dot   = 0.0,
+        mean_motion_ddot  = 0.0,
+        agom              = nothing,
+        covariance_matrix = covariance_matrix,
+    )
+
+    isnothing(template) ||
+        return OrbitMeanElementsMessage(template; mean_element_theory = "SGP4", fitted...)
+
+    # The default metadata mirrors the default TLE fields so that the message can be
+    # converted to a TLE.
+    return OrbitMeanElementsMessage(;
+        originator          = "SatelliteToolboxSgp4.jl",
+        object_name         = "UNDEFINED",
+        object_id           = "UNDEFINED",
+        center_name         = "EARTH",
+        time_system         = "UTC",
+        mean_element_theory = "SGP4",
+        ephemeris_type      = 0,
+        classification_type = 'U',
+        norad_cat_id        = 9999,
+        element_set_number  = 0,
+        rev_at_epoch        = 0,
+        fitted...,
+    )
+end
