@@ -4,7 +4,7 @@
 #
 ############################################################################################
 
-export Sgp4Constants, Sgp4Propagator
+export Sgp4Constants, Sgp4FitDivergenceError, Sgp4Propagator
 
 """
     struct Sgp4Constants{T}
@@ -190,4 +190,32 @@ mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
         sgp4d.sgp4ds = Sgp4DeepSpace{T}()
         return sgp4d
     end
+end
+
+"""
+    struct Sgp4FitDivergenceError <: Exception
+
+Exception thrown when the least-square iterations used to fit the SGP4 mean elements
+diverge.
+
+# Fields
+
+- `iteration::Int`: Iteration in which the divergence was detected.
+- `residue::Float64`: Total RMSE of the residue in that iteration.
+"""
+struct Sgp4FitDivergenceError <: Exception
+    iteration::Int
+    residue::Float64
+end
+
+function Base.showerror(io::IO, e::Sgp4FitDivergenceError)
+    print(
+        io,
+        "Sgp4FitDivergenceError: The least-square iterations diverged at iteration ",
+        e.iteration,
+        " with a total RMSE of ",
+        e.residue,
+        ".",
+    )
+    return nothing
 end

@@ -609,6 +609,17 @@
             TLE, vjd, vr_teme, vv_teme; initial_guess = [1, 2, 3, 4, 5, 6]
         )
 
+        # == Divergence Exception ==========================================================
+
+        e = Sgp4FitDivergenceError(12, 1e12)
+
+        @test e isa Exception
+        @test e.iteration == 12
+        @test e.residue == 1e12
+        @test sprint(showerror, e) ==
+            "Sgp4FitDivergenceError: The least-square iterations diverged at " *
+              "iteration 12 with a total RMSE of 1.0e12."
+
         # == Invalid Maximum Number of Iterations ==========================================
 
         @test_throws ArgumentError fit_sgp4_mean_elements(
