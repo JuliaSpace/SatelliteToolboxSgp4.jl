@@ -47,9 +47,9 @@ Version 3.0.0
   new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`. The
   package **SatelliteToolboxOrbitDataMessages.jl** is now re-exported.
 - ![Feature][badge-feature] Add `show` methods to `Sgp4Propagator`, which print the
-  algorithm, the epoch, and the last propagation instant followed by the sections with the
-  mean elements, including the semi-major axis recovered from the mean motion and B*, and
-  the gravitational constants, instead of every internal field. They use the tree layout of
+  algorithm and the sections with the mean elements and their epoch, including the
+  semi-major axis recovered from the mean motion and B*, the gravitational constants, and
+  the last propagation instant, instead of every internal field. They use the tree layout of
   **SatelliteToolboxBase.jl** v2.1, which follows the orbit data messages, and overload
   `SatelliteToolboxBase.print_tree_body` so that the wrappers of the propagator can print
   the same body under their own header.

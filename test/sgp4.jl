@@ -315,9 +315,8 @@ end
     expected = join(
         (
             "Sgp4Propagator{Float64, Float64} (SGP4):",
-            "  Epoch            : 2.46003e6 (2023-03-24T16:28:40.388)",
-            "  Last Propagation : 10.0 min",
             "  ├─ Mean Elements",
+            "  │    Epoch             : 2.46003e6 (2023-03-24T16:28:40.388)",
             "  │    Semi-Major Axis   : 7133.946314 km",
             "  │    Mean Motion       : 14.40814394 rev/day",
             "  │    Eccentricity      : 0.0001247",
@@ -326,12 +325,14 @@ end
             "  │    Arg. of Periapsis : 136.2017°",
             "  │    Mean Anomaly      : 223.9283°",
             "  │    B*                : 4.3e-5 1/er",
-            "  └─ Constants",
-            "       R₀  : 6378.137 km",
-            "       XKE : 0.07436685317 er^(3/2)/min",
-            "       J₂  : 0.001082629989",
-            "       J₃  : -2.53215306e-6",
-            "       J₄  : -1.61098761e-6",
+            "  ├─ Constants",
+            "  │    R₀  : 6378.137 km",
+            "  │    XKE : 0.07436685317 er^(3/2)/min",
+            "  │    J₂  : 0.001082629989",
+            "  │    J₃  : -2.53215306e-6",
+            "  │    J₄  : -1.61098761e-6",
+            "  └─ Propagation",
+            "       Last Instant : 10.0 min",
         ),
         '\n',
     )
@@ -341,7 +342,8 @@ end
 
     # The body can be printed under another header.
     str = sprint(SatelliteToolboxBase.print_tree_body, sgp4d)
-    @test str == expected[(length("Sgp4Propagator{Float64, Float64} (SGP4):\n") + 1):end]
+    header = "Sgp4Propagator{Float64, Float64} (SGP4):\n"
+    @test str == expected[(length(header) + 1):end]
 
     # The decorations must not change the text when the output supports colors.
     str_color = sprint(show, MIME("text/plain"), sgp4d; context = :color => true)

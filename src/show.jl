@@ -3,9 +3,9 @@
 # Functions to print the structures related to the SGP4 propagator.
 #
 # The representations follow the layout of SatelliteToolboxBase.jl: the compact form prints
-# the type with its parameters and the epoch, whereas the rich form is a tree with the epoch
-# and the last propagation instant at the top level, followed by the sections with the mean
-# elements and the gravitational constants.
+# the type with its parameters and the epoch, whereas the rich form is a tree with the
+# sections holding the mean elements and their epoch, the gravitational constants, and the
+# last propagation instant.
 #
 ############################################################################################
 
@@ -41,16 +41,14 @@ function SatelliteToolboxBase.print_tree_body(io::IO, sgp4d::Sgp4Propagator)
 
     format_value = SatelliteToolboxBase.format_value
 
-    fields = SatelliteToolboxBase.PrintedField[
-        ("Epoch",            SatelliteToolboxBase.epoch_string(sgp4d.epoch), ""),
-        ("Last Propagation", format_value(sgp4d.Δt),                         "min"),
-    ]
-
     # The semi-major axis is recovered from the mean motion as in the SGP4 theory.
     semi_major_axis = (sgp4c.XKE / sgp4d.n₀)^(2 // 3) * sgp4c.R0
 
+    epoch_str = SatelliteToolboxBase.epoch_string(sgp4d.epoch)
+
     sections = SatelliteToolboxBase.PrintedSection[
         "Mean Elements" => [
+            ("Epoch",             epoch_str,                        ""),
             ("Semi-Major Axis",   format_value(semi_major_axis),    "km"),
             ("Mean Motion",       format_value(720 * sgp4d.n₀ / π), "rev/day"),
             ("Eccentricity",      format_value(sgp4d.e₀),           ""),
@@ -67,9 +65,12 @@ function SatelliteToolboxBase.print_tree_body(io::IO, sgp4d::Sgp4Propagator)
             ("J₃",  format_value(sgp4c.J3),  ""),
             ("J₄",  format_value(sgp4c.J4),  ""),
         ],
+        "Propagation" => [
+            ("Last Instant", format_value(sgp4d.Δt), "min"),
+        ],
     ]
 
-    SatelliteToolboxBase.print_tree_body(io, fields, sections)
+    SatelliteToolboxBase.print_tree_body(io, SatelliteToolboxBase.PrintedField[], sections)
 
     return nothing
 end
