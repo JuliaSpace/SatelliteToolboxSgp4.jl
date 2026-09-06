@@ -764,8 +764,13 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # produces the same result. Verify which one is better.
     a_yNL = A₃₀ * sin_i_k / (4k₂ * a_k * β^2)
     a_yN  = e_k * sin_ω_k + a_yNL
-    IL_L  = (1 // 2) * a_yNL * a_xN * (3 + 5θ) / (1 + θ)
-    IL_T  = IL + IL_L
+
+    # The term `1 + θ` vanishes when the inclination is 180°. Vallado's implementation [2]
+    # avoids the division by zero by clamping the denominator to a small value.
+    aux_IL_L = abs(1 + θ) > T(1.5e-12) ? 1 + θ : T(1.5e-12)
+
+    IL_L = (1 // 2) * a_yNL * a_xN * (3 + 5θ) / aux_IL_L
+    IL_T = IL + IL_L
 
     # == Solve Kepler's Equation for (E + ω) ===============================================
 

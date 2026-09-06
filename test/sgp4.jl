@@ -238,3 +238,25 @@ end
     sgp4d.algorithm = :any
     @test_throws ErrorException sgp4!(sgp4d, 10)
 end
+
+@testset "Retrograde Equatorial Orbit" begin
+    # An inclination of 180° leads to a division by zero in the long-period periodic term
+    # unless the denominator is clamped as in Vallado's implementation.
+    n₀ = 15 * 2π / 1440
+    sgp4d_pro = sgp4_init(2.46e6, n₀, 0.001, 0.0, 0.0, 0.0, 0.0, 1e-4)
+    sgp4d_ret = sgp4_init(2.46e6, n₀, 0.001, Float64(π), 0.0, 0.0, 0.0, 1e-4)
+
+    r_pro, v_pro = sgp4!(sgp4d_pro, 100.0)
+    r_ret, v_ret = sgp4!(sgp4d_ret, 100.0)
+
+    @test !any(isnan, r_ret)
+    @test !any(isnan, v_ret)
+
+    # The retrograde orbit must mirror the prograde one about the x-axis.
+    @test r_ret[1] ≈ +r_pro[1] atol = 1e-6
+    @test r_ret[2] ≈ -r_pro[2] atol = 1e-6
+    @test r_ret[3] ≈ 0 atol = 1e-6
+    @test v_ret[1] ≈ +v_pro[1] atol = 1e-9
+    @test v_ret[2] ≈ -v_pro[2] atol = 1e-9
+    @test v_ret[3] ≈ 0 atol = 1e-9
+end
