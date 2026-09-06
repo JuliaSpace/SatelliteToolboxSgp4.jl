@@ -51,52 +51,45 @@ else
             ),
         ) == 0
 
-        # -- TLE Fitting: _sgp4_jacobian (FiniteDiffJacobian) ----------------------------------
+        # -- Fitting: _sgp4_jacobian! (FiniteDiffJacobian) -------------------------------------
 
         @test length(
             check_allocs(
-                (sgp4d, Δt, x₁, y₁) -> begin
-                    SatelliteToolboxSgp4._sgp4_jacobian(
-                        FiniteDiffJacobian(), sgp4d, Δt, x₁, y₁
+                (vJ, sgp4d, vjd, epoch, x₁, vŷ) -> begin
+                    SatelliteToolboxSgp4._sgp4_jacobian!(
+                        FiniteDiffJacobian(), vJ, sgp4d, nothing, vjd, epoch, x₁, vŷ
                     )
                 end,
                 (
+                    Array{Float64, 3},
                     Sgp4Propagator{Float64, Float64},
+                    Vector{Float64},
                     Float64,
                     SVector{7, Float64},
-                    SVector{6, Float64},
+                    Vector{SVector{6, Float64}},
                 ),
             ),
         ) == 0
 
-        # -- TLE Fitting: _sgp4_fwd_jacobian_eval ----------------------------------------------
+        # -- Fitting: _sgp4_jacobian! (ForwardDiffJacobian) ------------------------------------
 
         _D = ForwardDiff.Dual{ForwardDiff.Tag{Nothing, Float64}, Float64, 7}
 
         @test length(
             check_allocs(
-                (sgp4d_ad, epoch, Δt, x₁) -> begin
-                    SatelliteToolboxSgp4._sgp4_fwd_jacobian_eval(sgp4d_ad, epoch, Δt, x₁)
-                end,
-                (Sgp4Propagator{Float64, _D}, Float64, Float64, SVector{7, Float64}),
-            ),
-        ) == 0
-
-        # -- TLE Fitting: _sgp4_jacobian (ForwardDiffJacobian) with pre-allocated propagator -----
-
-        @test length(
-            check_allocs(
-                (sgp4d, sgp4d_ad, Δt, x₁, y₁) -> begin
-                    SatelliteToolboxSgp4._sgp4_jacobian(
-                        ForwardDiffJacobian(), sgp4d, Δt, x₁, y₁; sgp4d_ad = sgp4d_ad
+                (vJ, sgp4d, sgp4d_ad, vjd, epoch, x₁, vŷ) -> begin
+                    SatelliteToolboxSgp4._sgp4_jacobian!(
+                        ForwardDiffJacobian(), vJ, sgp4d, sgp4d_ad, vjd, epoch, x₁, vŷ
                     )
                 end,
                 (
+                    Array{Float64, 3},
                     Sgp4Propagator{Float64, Float64},
                     Sgp4Propagator{Float64, _D},
+                    Vector{Float64},
                     Float64,
                     SVector{7, Float64},
-                    SVector{6, Float64},
+                    Vector{SVector{6, Float64}},
                 ),
             ),
         ) == 0
@@ -124,7 +117,7 @@ else
                     Vector{SVector{3, Float64}},
                 ),
             ),
-        ) <= 45
+        ) <= 47
 
         # -- Fitting: fit_sgp4_mean_elements! (ForwardDiffJacobian) ----------------------------
 
@@ -148,6 +141,6 @@ else
                     Vector{SVector{3, Float64}},
                 ),
             ),
-        ) <= 47
+        ) <= 49
     end
 end

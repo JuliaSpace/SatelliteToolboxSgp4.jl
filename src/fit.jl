@@ -74,7 +74,7 @@ See [`fit_sgp4_mean_elements!`](@ref).
 - `ArgumentError`: If the lengths of `vjd`, `vr_teme`, and `vv_teme` differ, if the weight
     vector or the initial guess vector have the wrong size, if `max_iterations` is lower
     than 1, or if a `NamedTuple` template contains a field set by the fit.
-- `ErrorException`: If the least-square iterations diverge.
+- `Sgp4FitDivergenceError`: If the least-square iterations diverge.
 
 ## Examples
 
@@ -298,7 +298,7 @@ same algorithm as [`update_sgp4_mean_elements_epoch!`](@ref).
 - `ArgumentError`: If the lengths of `vjd`, `vr_teme`, and `vv_teme` differ, if the weight
     vector or the initial guess vector have the wrong size, if `max_iterations` is lower
     than 1, or if a `NamedTuple` template contains a field set by the fit.
-- `ErrorException`: If the least-square iterations diverge.
+- `Sgp4FitDivergenceError`: If the least-square iterations diverge.
 
 ## Examples
 
@@ -592,7 +592,7 @@ which is removed.
 ## Throws
 
 - `ArgumentError`: If `max_iterations` is lower than 1.
-- `ErrorException`: If the least-square iterations diverge.
+- `Sgp4FitDivergenceError`: If the least-square iterations diverge.
 
 ## Examples
 
@@ -676,7 +676,7 @@ iterations diverge.
 ## Throws
 
 - `ArgumentError`: If `max_iterations` is lower than 1.
-- `ErrorException`: If the least-square iterations diverge.
+- `Sgp4FitDivergenceError`: If the least-square iterations diverge.
 """
 function update_sgp4_mean_elements_epoch!(
     sgp4d::Sgp4Propagator, me::_SGP4_MEAN_ELEMENTS, new_epoch::DateTime; kwargs...
@@ -786,7 +786,7 @@ function can fail if the least-square iterations diverge.
 
 ## Throws
 
-- `ErrorException`: If the least-square iterations diverge.
+- `Sgp4FitDivergenceError`: If the least-square iterations diverge.
 """
 function _fit_sgp4_mean_state_vector!(
     sgp4d::Sgp4Propagator{Tepoch, T},
@@ -827,13 +827,26 @@ function _fit_sgp4_mean_state_vector!(
     # after the iterations.
     ΣJ′WJ = @SMatrix zeros(T, num_states, num_states)
 
+    # == Workspaces ========================================================================
+    #
+    # The propagator is initialized once per mean state vector and propagated to all
+    # measurements, since the initialization is more expensive than the propagation. Hence,
+    # we need buffers to store the nominal propagated state vectors and the Jacobians of
+    # all measurements. They are allocated once per fit.
+
     # Pre-allocate the Dual-typed propagator for ForwardDiff Jacobian computation so it is
     # reused across all iterations instead of being heap-allocated on every call.
     sgp4d_ad =
         jacobian_method isa ForwardDiffJacobian ? _create_ad_propagator(sgp4d) : nothing
 
+    # Nominal propagated state vectors [km, km / s].
+    vŷ = Vector{SVector{6, T}}(undef, num_measurements)
+
+    # Jacobians of all measurements, in which `vJ[:, :, k]` is the Jacobian of the k-th one.
+    vJ = Array{T, 3}(undef, 6, num_states, num_measurements)
+
     # Loop until the maximum allowed iteration.
-    @inbounds @views for it in 1:max_iterations
+    @inbounds for it in 1:max_iterations
         x₁ = x₂
 
         # Variables to store the summations to compute the least square fitting algorithm.
@@ -845,36 +858,42 @@ function _fit_sgp4_mean_state_vector!(
         σp_i = T(0)
         σv_i = T(0)
 
+        # == Nominal Propagation ===========================================================
+
+        # Initialize the SGP4 with the current estimated mean elements and propagate the
+        # orbit to all measurements.
+        _init_sgp4_with_state_vector!(sgp4d, x₁, epoch)
+
         for k in 1:num_measurements
-            # Obtain the measured ephemerides.
-            y = vy[k]
-
-            # Initialize the SGP4 with the current estimated mean elements.
-            _init_sgp4_with_state_vector!(sgp4d, x₁, epoch)
-
-            # Obtain the propagation time for this measurement.
             Δt = (vjd[k] - epoch) * 1440
-
-            # Propagate the orbit.
             r̂_teme, v̂_teme = sgp4!(sgp4d, Δt)
-            ŷ = vcat(r̂_teme, v̂_teme)
+            vŷ[k] = vcat(r̂_teme, v̂_teme)
+        end
 
+        # == Jacobian ======================================================================
+
+        _sgp4_jacobian!(
+            jacobian_method,
+            vJ,
+            sgp4d,
+            sgp4d_ad,
+            vjd,
+            epoch,
+            x₁,
+            vŷ;
+            perturbation     = jacobian_perturbation,
+            perturbation_tol = jacobian_perturbation_tol,
+        )
+
+        # == Accumulation ==================================================================
+
+        for k in 1:num_measurements
             # Compute the residue.
-            b = y - ŷ
+            b = vy[k] - vŷ[k]
 
-            # Compute the Jacobian.
-            J = _sgp4_jacobian(
-                jacobian_method,
-                sgp4d,
-                Δt,
-                x₁,
-                ŷ;
-                perturbation     = jacobian_perturbation,
-                perturbation_tol = jacobian_perturbation_tol,
-                sgp4d_ad         = sgp4d_ad,
-            )
+            # Obtain the Jacobian of this measurement.
+            J = SMatrix{6, 7, T}(@view vJ[:, :, k])
 
-            # Accumulation.
             ΣJ′WJ += J' * (W .* J)
             ΣJ′Wb += J' * (W .* b)
             σ_i   += dot(W .* b, b)
@@ -887,12 +906,13 @@ function _fit_sgp4_mean_state_vector!(
         σp_i = √(σp_i / num_measurements)
         σv_i = √(σv_i / num_measurements)
 
-        # Update the estimate.
-        @views if estimate_bstar
+        # == Estimate Update ===============================================================
+
+        if estimate_bstar
             δx = ΣJ′WJ \ ΣJ′Wb
         else
-            ΣJ′WJ_sub = SMatrix{6, 6, T}(ΣJ′WJ[1:6, 1:6])
-            ΣJ′Wb_sub = SVector{6, T}(ΣJ′Wb[1:6])
+            ΣJ′WJ_sub = SMatrix{6, 6, T}(@view ΣJ′WJ[1:6, 1:6])
+            ΣJ′Wb_sub = SVector{6, T}(@view ΣJ′Wb[1:6])
             δx_sub    = ΣJ′WJ_sub \ ΣJ′Wb_sub
 
             δx = SVector{7, T}(
@@ -909,6 +929,8 @@ function _fit_sgp4_mean_state_vector!(
         end
 
         x₂ = x₁ + δx
+
+        # == Convergence Check =============================================================
 
         # We cannot compute the RMSE variation in the first iteration.
         if it == 1
@@ -935,7 +957,7 @@ function _fit_sgp4_mean_state_vector!(
 
             # If the RMSE increased by three iterations and its value is higher than 5e11,
             # we abort because the iterations are diverging.
-            ((Δd ≥ 3) && (σ_i > 5e11)) && error("The iterations diverged!")
+            ((Δd ≥ 3) && (σ_i > 5e11)) && throw(Sgp4FitDivergenceError(it, σ_i))
 
             # Check if the condition to stop has been reached.
             ((abs(Δσ) < rtol) || (σ_i < atol) || (it ≥ max_iterations)) && break
@@ -990,7 +1012,7 @@ can fail if the least-square iterations diverge.
 
 ## Throws
 
-- `ErrorException`: If the least-square iterations diverge.
+- `Sgp4FitDivergenceError`: If the least-square iterations diverge.
 """
 function _update_sgp4_mean_state_vector!(
     sgp4d::Sgp4Propagator{Tepoch, T},
@@ -1225,8 +1247,7 @@ end
     ) where {Tepoch <: Number, T <: Number} -> Sgp4Propagator
 
 Create a Dual-typed SGP4 propagator for use with `ForwardDiffJacobian`. The returned
-propagator can be passed via the `sgp4d_ad` keyword in [`_sgp4_jacobian`](@ref) to avoid
-per-call heap allocations.
+propagator is passed to [`_sgp4_jacobian!`](@ref) so that it is allocated once per fit.
 """
 function _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T}
     tag   = ForwardDiff.Tag{Nothing, T}
@@ -1237,52 +1258,57 @@ function _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, 
 end
 
 """
-    _sgp4_jacobian(
+    _sgp4_jacobian!(
         ::FiniteDiffJacobian,
+        vJ::AbstractArray{T, 3},
         sgp4d::Sgp4Propagator{Tepoch, T},
-        Δt::Number,
+        sgp4d_ad::Nothing,
+        vjd::AbstractVector,
+        epoch::Number,
         x₁::SVector{7, T},
-        y₁::SVector{6, T};
+        vŷ::AbstractVector{SVector{6, T}};
         kwargs...,
-    ) where {T <: Number, Tepoch <: Number} -> SMatrix{6, 7, T}
+    ) where {Tepoch <: Number, T <: Number} -> Nothing
 
-Compute the SGP4 Jacobian by finite-differences using the propagator `sgp4d` at instant `Δt`
-considering the input mean elements `x₁` that must provide the output vector `y₁`. Hence:
+Compute by finite differences the SGP4 Jacobians with respect to the mean state vector `x₁`
+at `epoch` [Julian Day] for all the measurement instants `vjd` [Julian Day], storing the
+Jacobian of the k-th measurement in `vJ[:, :, k]`. The vector `vŷ` must contain the state
+vectors propagated with `x₁` to the instants `vjd`. Hence:
 
-        ∂sgp4(x, Δt) │
-    J = ──────────── │
-             ∂x      │ x = x₁
+                 ∂sgp4(x, Δt) │
+    vJ[:, :, k] = ──────────── │
+                      ∂x      │ x = x₁, Δt = vjd[k] - epoch
+
+The propagator `sgp4d` is used as a workspace and its final state is undefined. The
+propagator `sgp4d_ad` is not used.
 
 # Keywords
 
-- `perturbation::T`: Initial state perturbation to compute the finite-difference:
+- `perturbation::Number`: Initial state perturbation to compute the finite-difference:
     `Δx = x * perturbation`.
     (**Default**: 1e-3)
-- `perturbation_tol::T`: Tolerance to accept the perturbation. If the computed perturbation
-    is lower than `perturbation_tol`, we increase it until its absolute value is higher than
-    `perturbation_tol`.
+- `perturbation_tol::Number`: Tolerance to accept the perturbation. If the computed
+    perturbation is lower than `perturbation_tol`, we increase it until its absolute value
+    is higher than `perturbation_tol`.
     (**Default**: 1e-7)
 """
-function _sgp4_jacobian(
+function _sgp4_jacobian!(
     ::FiniteDiffJacobian,
+    vJ::AbstractArray{T, 3},
     sgp4d::Sgp4Propagator{Tepoch, T},
-    Δt::Number,
+    sgp4d_ad::Nothing,
+    vjd::AbstractVector,
+    epoch::Number,
     x₁::SVector{7, T},
-    y₁::SVector{6, T};
+    vŷ::AbstractVector{SVector{6, T}};
     perturbation::Number = T(1e-3),
     perturbation_tol::Number = T(1e-7),
-    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing,
-) where {T <: Number, Tepoch <: Number}
-
-    # Allocate the `MMatrix` that will have the Jacobian.
-    J = MMatrix{6, 7, T}(undef)
-
-    # Auxiliary variables.
-    x₂ = x₁
+) where {Tepoch <: Number, T <: Number}
+    num_measurements = length(vjd)
 
     @inbounds for j in 1:7
         # State that will be perturbed.
-        α = x₂[j]
+        α = x₁[j]
 
         # Obtain the perturbation, taking care to avoid small values.
         ϵ = α * T(perturbation)
@@ -1298,98 +1324,84 @@ function _sgp4_jacobian(
             ϵ = signbit(α) ? -perturbation_tol : perturbation_tol
         end
 
-        α += ϵ
+        # Initialize the propagator with the perturbed state and propagate it to all the
+        # measurements to obtain the j-th column of every Jacobian.
+        _init_sgp4_with_state_vector!(sgp4d, setindex(x₁, α + ϵ, j), epoch)
 
-        # Modify the perturbed state.
-        x₂ = setindex(x₂, α, j)
+        for k in 1:num_measurements
+            Δt = (vjd[k] - epoch) * 1440
+            r_teme, v_teme = sgp4!(sgp4d, Δt)
+            y₂ = vcat(r_teme, v_teme)
+            ∂y = (y₂ - vŷ[k]) / ϵ
 
-        # Obtain the Jacobian by finite differentiation.
-        _init_sgp4_with_state_vector!(sgp4d, x₂, sgp4d.epoch)
-        r_teme, v_teme = sgp4!(sgp4d, Δt)
-        y₂ = @SVector [r_teme[1], r_teme[2], r_teme[3], v_teme[1], v_teme[2], v_teme[3]]
-
-        J[:, j] .= (y₂ .- y₁) ./ ϵ
-
-        # Restore the value of the perturbed state for the next iteration.
-        x₂ = setindex(x₂, x₁[j], j)
+            for i in 1:6
+                vJ[i, j, k] = ∂y[i]
+            end
+        end
     end
 
-    # Convert the Jacobian to a static matrix to avoid allocations.
-    Js = SMatrix{6, 7, T}(J)
-
-    return Js
+    return nothing
 end
 
 """
-    _sgp4_jacobian(
+    _sgp4_jacobian!(
         ::ForwardDiffJacobian,
+        vJ::AbstractArray{T, 3},
         sgp4d::Sgp4Propagator{Tepoch, T},
-        Δt::Number,
+        sgp4d_ad::Sgp4Propagator{Tepoch, D},
+        vjd::AbstractVector,
+        epoch::Number,
         x₁::SVector{7, T},
-        y₁::SVector{6, T};
+        vŷ::AbstractVector{SVector{6, T}};
         kwargs...,
-    ) where {T <: Number, Tepoch <: Number} -> SMatrix{6, 7, T}
+    ) where {Tepoch <: Number, T <: Number, D <: ForwardDiff.Dual} -> Nothing
 
-Compute the SGP4 Jacobian via ForwardDiff automatic differentiation using the propagator
-`sgp4d` at instant `Δt` considering the input mean elements `x₁`. Hence:
+Compute by forward-mode automatic differentiation the SGP4 Jacobians with respect to the
+mean state vector `x₁` at `epoch` [Julian Day] for all the measurement instants `vjd`
+[Julian Day], storing the Jacobian of the k-th measurement in `vJ[:, :, k]`. Hence:
 
-        ∂sgp4(x, Δt) │
-    J = ──────────── │
-             ∂x      │ x = x₁
+                 ∂sgp4(x, Δt) │
+    vJ[:, :, k] = ──────────── │
+                      ∂x      │ x = x₁, Δt = vjd[k] - epoch
 
-A Dual-typed propagator can be pre-allocated with [`_create_ad_propagator`](@ref) and passed
-via the `sgp4d_ad` keyword to eliminate per-call heap allocations.
-
-# Keywords
-
-- `sgp4d_ad::Union{Nothing, Sgp4Propagator}`: Pre-allocated Dual-typed propagator for AD
-    evaluation. If `nothing`, one is created internally.
-    (**Default**: `nothing`)
+The Dual-typed propagator `sgp4d_ad`, created by [`_create_ad_propagator`](@ref), is used
+as a workspace and its final state is undefined. The propagator `sgp4d` and the propagated
+state vectors `vŷ` are not used. The keywords are accepted for compatibility with the
+finite-difference method and are ignored.
 """
-function _sgp4_jacobian(
+function _sgp4_jacobian!(
     ::ForwardDiffJacobian,
+    vJ::AbstractArray{T, 3},
     sgp4d::Sgp4Propagator{Tepoch, T},
-    Δt::Number,
+    sgp4d_ad::Sgp4Propagator{Tepoch, D},
+    vjd::AbstractVector,
+    epoch::Number,
     x₁::SVector{7, T},
-    y₁::SVector{6, T};
+    vŷ::AbstractVector{SVector{6, T}};
     perturbation::Number = T(1e-3),
     perturbation_tol::Number = T(1e-7),
-    sgp4d_ad::Union{Nothing, Sgp4Propagator} = nothing,
-) where {T <: Number, Tepoch <: Number}
-    epoch = sgp4d.epoch
+) where {Tepoch <: Number, T <: Number, D <: ForwardDiff.Dual}
+    num_measurements = length(vjd)
 
-    if isnothing(sgp4d_ad)
-        sgp4d_ad = _create_ad_propagator(sgp4d)
+    # Seed the dual numbers so that the j-th partial is the derivative with respect to the
+    # j-th element of the mean state vector.
+    seeds  = ntuple(i -> ForwardDiff.Partials(ntuple(j -> T(i == j), Val(7))), Val(7))
+    x_dual = SVector{7, D}(ntuple(i -> D(x₁[i], seeds[i]), Val(7)))
+
+    # Initialize the propagator once and propagate it to all the measurements.
+    _init_sgp4_with_state_vector!(sgp4d_ad, x_dual, epoch)
+
+    @inbounds for k in 1:num_measurements
+        Δt     = (vjd[k] - epoch) * 1440
+        r, v   = sgp4!(sgp4d_ad, Δt)
+        y_dual = vcat(r, v)
+
+        for j in 1:7, i in 1:6
+            vJ[i, j, k] = ForwardDiff.partials(y_dual[i], j)
+        end
     end
 
-    return _sgp4_fwd_jacobian_eval(sgp4d_ad, epoch, Δt, x₁)
-end
-
-"""
-    _sgp4_fwd_jacobian_eval(
-        sgp4d_ad::Sgp4Propagator{Tepoch, D},
-        epoch::Number,
-        Δt::Number,
-        x₁::SVector{N, T},
-    ) where {Tepoch <: Number, D <: ForwardDiff.Dual, N, T <: Number} -> SMatrix{6, N, T}
-
-Evaluate the SGP4 Jacobian with respect to the mean state vector `x₁` at `epoch` [Julian
-Day] and instant `Δt` [min] using the Dual-typed propagator `sgp4d_ad` and forward-mode
-automatic differentiation.
-"""
-function _sgp4_fwd_jacobian_eval(
-    sgp4d_ad::Sgp4Propagator{Tepoch, D}, epoch::Number, Δt::Number, x₁::SVector{N, T}
-) where {Tepoch, D <: ForwardDiff.Dual, N, T}
-    seeds  = ntuple(i -> ForwardDiff.Partials(ntuple(j -> T(i == j), Val(N))), Val(N))
-    x_dual = SVector{N, D}(ntuple(i -> D(x₁[i], seeds[i]), Val(N)))
-
-    _init_sgp4_with_state_vector!(sgp4d_ad, x_dual, epoch)
-    r, v   = sgp4!(sgp4d_ad, Δt)
-    y_dual = vcat(r, v)
-
-    return SMatrix{6, N, T}(
-        ntuple(k -> ForwardDiff.partials(y_dual[mod1(k, 6)], cld(k, 6)), Val(6 * N))
-    )
+    return nothing
 end
 
 # == Printing Helpers ======================================================================
