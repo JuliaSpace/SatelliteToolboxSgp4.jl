@@ -12,6 +12,7 @@ using StaticArrays
 
 @reexport using SatelliteToolboxBase
 @reexport using SatelliteToolboxTle
+@reexport using SatelliteToolboxOrbitDataMessages
 
 import Base: copy
 
