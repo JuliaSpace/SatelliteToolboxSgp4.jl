@@ -73,6 +73,7 @@ end
 ############################################################################################
 
 include("copy.jl")
+include("show.jl")
 include("sgp4_model.jl")
 include("tle.jl")
 include("omm.jl")

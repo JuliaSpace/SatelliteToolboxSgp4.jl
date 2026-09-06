@@ -295,3 +295,57 @@ end
     @test v_ret[2] ≈ -v_pro[2] atol = 1e-9
     @test v_ret[3] ≈ 0 atol = 1e-9
 end
+
+@testset "Show" begin
+    tle = tle"""
+        AMAZONIA 1
+        1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
+        2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652"""
+
+    sgp4d = sgp4_init(tle)
+    sgp4!(sgp4d, 10.0)
+
+    # == Compact ===========================================================================
+
+    @test repr(sgp4d) ==
+        "Sgp4Propagator{Float64, Float64} (SGP4, Epoch = 2023-03-24T16:28:40.388)"
+
+    # == Multi-line ========================================================================
+
+    str = sprint(show, MIME("text/plain"), sgp4d)
+
+    @test occursin("Sgp4Propagator{Float64, Float64}:", str)
+    @test occursin("Epoch : 2023-03-24T16:28:40.388 (2.46002818657856e6)", str)
+    @test occursin("Algorithm : SGP4", str)
+    @test occursin("Mean motion : 14.40814394 rev / day", str)
+    @test occursin("Eccentricity : 0.00012470", str)
+    @test occursin("Inclination : 98.43040000 °", str)
+    @test occursin("B* : 4.3e-5 1 / er", str)
+    @test occursin("Last propagation : 10.0 min", str)
+
+    # The labels must be highlighted when the output supports colors.
+    str_color = sprint(show, MIME("text/plain"), sgp4d; context = :color => true)
+
+    @test occursin("\e[1m", str_color)
+
+    # == Other Algorithms ==================================================================
+
+    tle_ds = tle"""
+        1 08195U 75081A   06176.33215444  .00000099  00000-0  11873-3 0   813
+        2 08195  64.1586 279.0717 6877146 264.7651  20.2257  2.00491383225656"""
+
+    @test occursin("(SDP4, ", repr(sgp4_init(tle_ds)))
+
+    tle_lp = tle"""
+        1 28872U 05037B   05333.02012661  .25992681  00000-0  24476-3 0  1534
+        2 28872  96.4736 157.9986 0303955 244.0492 110.6523 16.46015938 10708"""
+
+    @test occursin("(SGP4 (low perigee), ", repr(sgp4_init(tle_lp)))
+
+    # == Uninitialized Propagator ==========================================================
+
+    sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
+
+    @test repr(sgp4d) == "Sgp4Propagator{Float64, Float64} (not initialized)"
+    @test occursin("Status : not initialized", sprint(show, MIME("text/plain"), sgp4d))
+end
