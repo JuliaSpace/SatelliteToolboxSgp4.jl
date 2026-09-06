@@ -20,7 +20,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", sgp4d::Sgp4Propagator)
     if !isdefined(sgp4d, :algorithm)
         println(io, _sgp4_propagator_name(sgp4d), ":")
-        SatelliteToolboxBase.print_field(io, " Status : ", "not initialized")
+        SatelliteToolboxBase.print_field(io, "  Status : ", "not initialized")
         return nothing
     end
 
