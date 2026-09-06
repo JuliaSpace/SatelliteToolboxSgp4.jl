@@ -109,7 +109,7 @@
         0,
         0,
         :sdp4,
-        sgp4c_wgs84,
+        SGP4C_WGS84,
         sgp4ds,
     )
 
@@ -124,13 +124,13 @@
     @test SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}() == sgp4ds
 
     # Constructor that only sets the gravitational constants.
-    sgp4d = Sgp4Propagator{Float64}(sgp4c_wgs72)
+    sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS72)
 
     @test sgp4d isa Sgp4Propagator{Float64, Float64}
-    @test sgp4d.sgp4c === sgp4c_wgs72
+    @test sgp4d.sgp4c === SGP4C_WGS72
     @test sgp4d.sgp4ds == SatelliteToolboxSgp4.Sgp4DeepSpace{Float64}()
 
-    sgp4d = Sgp4Propagator{Float32}(Sgp4Constants{Float32}(sgp4c_wgs72))
+    sgp4d = Sgp4Propagator{Float32}(Sgp4Constants{Float32}(SGP4C_WGS72))
 
     @test sgp4d isa Sgp4Propagator{Float32, Float32}
 end
@@ -147,7 +147,7 @@ end
             SGP4_results = readdlm(filename; comments = true)
 
             # Initialize the orbit propagator.
-            sgp4d = sgp4_init(tle; sgp4c = sgp4c_wgs72)
+            sgp4d = sgp4_init(tle; sgp4c = SGP4C_WGS72)
 
             t = SGP4_results[:, 1]
 
@@ -174,7 +174,7 @@ end
     @testset "In-place Initialization" begin
         # First, we create a dummy SGP4 structure but with the correct constants and epoch
         # type.
-        sgp4d = sgp4_init(0.0, 0, 0, 0, 0, 0, 0, 0; sgp4c = sgp4c_wgs72)
+        sgp4d = sgp4_init(0.0, 0, 0, 0, 0, 0, 0, 0; sgp4c = SGP4C_WGS72)
 
         for tle in tles
             filename = @sprintf(
@@ -219,7 +219,7 @@ end
             t = SGP4_results[:, 1]
 
             # Initialize the orbit propagator.
-            r_teme, v_teme, sgp4d = sgp4(t[end], tle; sgp4c = sgp4c_wgs72)
+            r_teme, v_teme, sgp4d = sgp4(t[end], tle; sgp4c = SGP4C_WGS72)
 
             # We test just the final instant to save computational burden.
             @test t[end] == SGP4_results[end, 1]
@@ -238,10 +238,10 @@ end
 
     # The number type of the propagator must always be the number type of the constants,
     # regardless of the input types.
-    sgp4d = sgp4_init(jd, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 4e-5; sgp4c = sgp4c_wgs72)
+    sgp4d = sgp4_init(jd, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 4e-5; sgp4c = SGP4C_WGS72)
     @test sgp4d isa Sgp4Propagator{Float64, Float64}
 
-    sgp4c_f32 = Sgp4Constants{Float32}(sgp4c_wgs72)
+    sgp4c_f32 = Sgp4Constants{Float32}(SGP4C_WGS72)
 
     sgp4d = sgp4_init(jd, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 4e-5; sgp4c = sgp4c_f32)
     @test sgp4d isa Sgp4Propagator{Float64, Float32}

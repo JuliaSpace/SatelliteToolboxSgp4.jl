@@ -18,8 +18,7 @@
 #
 ############################################################################################
 
-export sgp4c_wgs72, sgp4c_wgs84
-export sgp4c_wgs72_f32, sgp4c_wgs84_f32
+export SGP4C_WGS72, SGP4C_WGS84
 export sgp4_init, sgp4_init!, sgp4, sgp4!
 
 ############################################################################################
@@ -27,15 +26,7 @@ export sgp4_init, sgp4_init!, sgp4, sgp4!
 ############################################################################################
 
 # WGS-84 / EGM-08 gravitational constants.
-const sgp4c_wgs84 = Sgp4Constants{Float64}(
-    6378.137,
-    60.0 / sqrt(6378.137^3 / 398600.5),
-    0.00108262998905,
-    -0.00000253215306,
-    -0.00000161098761,
-)
-
-const sgp4c_wgs84_f32 = Sgp4Constants{Float32}(
+const SGP4C_WGS84 = Sgp4Constants{Float64}(
     6378.137,
     60.0 / sqrt(6378.137^3 / 398600.5),
     0.00108262998905,
@@ -44,15 +35,7 @@ const sgp4c_wgs84_f32 = Sgp4Constants{Float32}(
 )
 
 # WGS-72 gravitational constants.
-const sgp4c_wgs72 = Sgp4Constants{Float64}(
-    6378.135,
-    60.0 / sqrt(6378.135^3 / 398600.8),
-    0.001082616,
-    -0.00000253881,
-    -0.00000165597,
-)
-
-const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
+const SGP4C_WGS72 = Sgp4Constants{Float64}(
     6378.135,
     60.0 / sqrt(6378.135^3 / 398600.8),
     0.001082616,
@@ -103,13 +86,13 @@ propagation.
 # Keywords
 
 - `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
-    (**Default** = `sgp4c_wgs84`)
+    (**Default** = `SGP4C_WGS84`)
 
 # Returns
 
 - [`Sgp4Propagator`](@ref): The structure with the initialized parameters.
 """
-function sgp4_init(tle::TLE; sgp4c::Sgp4Constants{T} = sgp4c_wgs84) where {T <: Number}
+function sgp4_init(tle::TLE; sgp4c::Sgp4Constants{T} = SGP4C_WGS84) where {T <: Number}
     sgp4d = Sgp4Propagator{typeof(tle_epoch(tle))}(sgp4c)
     sgp4_init!(sgp4d, tle)
     return sgp4d
@@ -124,7 +107,7 @@ function sgp4_init(
     ω₀::Number,
     M₀::Number,
     bstar::Number;
-    sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
+    sgp4c::Sgp4Constants{T} = SGP4C_WGS84,
 ) where {Tepoch <: Number, T <: Number}
     sgp4d = Sgp4Propagator{Tepoch}(sgp4c)
     sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
@@ -493,7 +476,7 @@ more information, see [`sgp4_init`](@ref).
 # Keywords
 
 - `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
-    (**Default** = `sgp4c_wgs84`)
+    (**Default** = `SGP4C_WGS84`)
 
 # Returns
 
@@ -502,7 +485,7 @@ more information, see [`sgp4_init`](@ref).
 - [`Sgp4Propagator`](@ref): The SGP4 orbit propagator structure.
 """
 function sgp4(
-    Δt::Number, tle::TLE; sgp4c::Sgp4Constants{T} = sgp4c_wgs84
+    Δt::Number, tle::TLE; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
 ) where {T <: Number}
     d2r = T(π / 180)
     return sgp4(
@@ -529,7 +512,7 @@ function sgp4(
     ω₀::Number,
     M₀::Number,
     bstar::Number;
-    sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
+    sgp4c::Sgp4Constants{T} = SGP4C_WGS84,
 ) where {Tepoch <: Number, T <: Number}
     sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c)
     r_teme, v_teme = sgp4!(sgp4d, Δt)

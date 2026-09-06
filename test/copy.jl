@@ -5,7 +5,7 @@
 ############################################################################################
 
 @testset "Sgp4Propagator and Sgp4DeepSpace" begin
-    for sgp4c in (sgp4c_wgs84, sgp4c_wgs84_f32)
+    for sgp4c in (SGP4C_WGS84, Sgp4Constants{Float32}(SGP4C_WGS84))
         sgp4d = sgp4_init(
             tle"""
             1 24208U 96044A   06177.04061740 -.00000094  00000-0  10000-3 0  1600

@@ -28,7 +28,7 @@ See also: [`sgp4_init!`](@ref), [`sgp4`](@ref).
 # Keywords
 
 - `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
-    (**Default**: `sgp4c_wgs84`)
+    (**Default**: `SGP4C_WGS84`)
 
 # Returns
 
@@ -58,7 +58,7 @@ julia> r_teme, v_teme = sgp4!(sgp4d, 10)
 ```
 """
 function sgp4_init(
-    omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = sgp4c_wgs84
+    omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
 ) where {T <: Number}
     sgp4d = Sgp4Propagator{Float64}(sgp4c)
     sgp4_init!(sgp4d, omm)
@@ -138,7 +138,7 @@ function can fail if the message does not contain the required information.
 # Keywords
 
 - `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
-    (**Default**: `sgp4c_wgs84`)
+    (**Default**: `SGP4C_WGS84`)
 
 # Returns
 
@@ -160,7 +160,7 @@ function can fail if the message does not contain the required information.
     together with the gravitational coefficient.
 """
 function sgp4(
-    Δt::Number, omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = sgp4c_wgs84
+    Δt::Number, omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
 ) where {T <: Number}
     epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar = _omm_sgp4_elements(omm)
 

@@ -25,8 +25,8 @@ PrecompileTools.@compile_workload begin
     """
 
     for tle in tles
-        sgp4(10.0, tle; sgp4c = sgp4c_wgs84)
-        sgp4(10.0f0, tle; sgp4c = sgp4c_wgs84_f32)
+        sgp4(10.0, tle; sgp4c = SGP4C_WGS84)
+        sgp4(10.0f0, tle; sgp4c = Sgp4Constants{Float32}(SGP4C_WGS84))
     end
 
     # == Orbit Propagation Using OMM =======================================================
@@ -48,8 +48,8 @@ PrecompileTools.@compile_workload begin
         """,
     )
 
-    sgp4(10.0, omm; sgp4c = sgp4c_wgs84)
-    sgp4(10.0f0, omm; sgp4c = sgp4c_wgs84_f32)
+    sgp4(10.0, omm; sgp4c = SGP4C_WGS84)
+    sgp4(10.0f0, omm; sgp4c = Sgp4Constants{Float32}(SGP4C_WGS84))
 
     # == TLE Fitting =======================================================================
 
@@ -93,7 +93,7 @@ PrecompileTools.@compile_workload begin
         AMAZONIA 1
         1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
         2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652""";
-        sgp4c = sgp4c_wgs84,
+        sgp4c = SGP4C_WGS84,
     )
     copy(sgp4d)
 
@@ -102,7 +102,7 @@ PrecompileTools.@compile_workload begin
         AMAZONIA 1
         1 47699U 21015A   23083.68657856 -.00000044  10000-8  43000-4 0  9990
         2 47699  98.4304 162.1097 0001247 136.2017 223.9283 14.40814394108652""";
-        sgp4c = sgp4c_wgs84_f32,
+        sgp4c = Sgp4Constants{Float32}(SGP4C_WGS84),
     )
     copy(sgp4d_f32)
 end

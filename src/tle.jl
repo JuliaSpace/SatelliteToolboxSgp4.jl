@@ -31,7 +31,7 @@ This algorithm was based on **[1]**.
 !!! note
 
     This algorithm version will allocate a new SGP4 propagator with the default constants
-    `sgp4c_wgs84`. If another set of constants is required, use the function
+    `SGP4C_WGS84`. If another set of constants is required, use the function
     [`fit_sgp4_tle!`](@ref) instead.
 
 # Keywords
@@ -180,7 +180,7 @@ function fit_sgp4_tle(
     vv_teme::AbstractVector{Tv};
     kwargs...,
 ) where {Tjd <: Number, Tv <: AbstractVector}
-    sgp4d = Sgp4Propagator{Float64}(sgp4c_wgs84)
+    sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
 
     return fit_sgp4_tle!(sgp4d, vjd, vr_teme, vv_teme; kwargs...)
 end
@@ -659,7 +659,7 @@ represented by a Julian Day or a `DateTime`.
 !!! note
 
     This algorithm version will allocate a new SGP4 propagator with the default constants
-    `sgp4c_wgs84`. If another set of constants is required, use the function
+    `SGP4C_WGS84`. If another set of constants is required, use the function
     [`update_sgp4_tle_epoch!`](@ref) instead.
 
 This function uses the following algorithm to update the TLE epoch:
@@ -737,7 +737,7 @@ TLE:
 ```
 """
 function update_sgp4_tle_epoch(tle::TLE, new_epoch::Union{Number, DateTime}; kwargs...)
-    sgp4d = Sgp4Propagator{Float64}(sgp4c_wgs84)
+    sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
 
     return update_sgp4_tle_epoch!(sgp4d, tle, new_epoch; kwargs...)
 end
@@ -965,7 +965,7 @@ the following elements:
 # Keywords
 
 - `sgp4c::Sgp4Constants`: SGP4 propagator constants.
-    (**Default** = sgp4c_wgs84)
+    (**Default** = SGP4C_WGS84)
 - `classification::Char`: Satellite classification for the TLE.
     (**Default** = 'U')
 - `element_set_number::Int`: Satellite element set number for the TLE.
@@ -982,7 +982,7 @@ the following elements:
 function _mean_state_vector_to_tle(
     sv::SVector{7},
     epoch::Number;
-    sgp4c::Sgp4Constants = sgp4c_wgs84,
+    sgp4c::Sgp4Constants = SGP4C_WGS84,
     classification::Char = 'U',
     element_set_number::Int = 0,
     international_designator::String = "999999",
@@ -1039,7 +1039,7 @@ function _mean_state_vector_to_tle(
 end
 
 """
-    _tle_to_mean_state_vector(tle::TLE; sgp4c::Sgp4Constants = sgp4c_wgs84) -> SVector{7, T}
+    _tle_to_mean_state_vector(tle::TLE; sgp4c::Sgp4Constants = SGP4C_WGS84) -> SVector{7, T}
 
 Convert the `tle` to a mean state vector using the SGP4 constants `sgp4c`. The state vector
 has the following structure:
@@ -1051,7 +1051,7 @@ has the following structure:
     └                                    ┘
 """
 function _tle_to_mean_state_vector(
-    tle::TLE; sgp4c::Sgp4Constants{T} = sgp4c_wgs84
+    tle::TLE; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
 ) where {T <: Number}
     # Unpack information.
     n = tle.mean_motion * π / 720

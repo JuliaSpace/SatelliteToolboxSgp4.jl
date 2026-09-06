@@ -110,14 +110,14 @@ const _OMM_FIXTURE = "./omm_tests/amazonia_1.xml"
     end
 
     @testset "Other Constants" begin
-        sgp4d = sgp4_init(omm; sgp4c = sgp4c_wgs84_f32)
+        sgp4d = sgp4_init(omm; sgp4c = Sgp4Constants{Float32}(SGP4C_WGS84))
 
         @test sgp4d isa Sgp4Propagator{Float64, Float32}
         @test sgp4d.epoch isa Float64
 
-        r, v, sgp4d = sgp4(10.0, omm; sgp4c = sgp4c_wgs72)
+        r, v, sgp4d = sgp4(10.0, omm; sgp4c = SGP4C_WGS72)
 
-        @test sgp4d.sgp4c === sgp4c_wgs72
+        @test sgp4d.sgp4c === SGP4C_WGS72
         @test eltype(r) === Float64
     end
 

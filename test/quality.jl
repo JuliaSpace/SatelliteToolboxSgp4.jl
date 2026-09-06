@@ -34,7 +34,8 @@ if isempty(VERSION.prerelease)
                 1 08195U 75081A   06176.33215444  .00000099  00000-0  11873-3 0   813
                 2 08195  64.1586 279.0717 6877146 264.7651  20.2257  2.00491383225656"""
 
-            for (sgp4c, T) in ((sgp4c_wgs84, Float64), (sgp4c_wgs84_f32, Float32))
+            for (sgp4c, T) in
+                ((SGP4C_WGS84, Float64), (Sgp4Constants{Float32}(SGP4C_WGS84), Float32))
                 sgp4d = sgp4_init(tle; sgp4c = sgp4c)
 
                 @test_opt target_modules = (SatelliteToolboxSgp4,) sgp4_init!(

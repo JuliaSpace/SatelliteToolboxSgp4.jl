@@ -47,15 +47,14 @@ julia> sgp4d = sgp4_init(tle)
 orbit. It must be an object of type `Sgp4Constants`. The following constants are already
 defined in this package:
 
-- `sgp4c_wgs84`: (**DEFAULT**) Constants based on WGS84 using `Float64`.
-- `sgp4c_wgs84_f32`: Constants based on WGS84 using `Float32`.
-- `sgp4c_wgs72`: Constants based on WGS72 using `Float64`.
-- `sgp4c_wgs72_f32`: Constants based on WGS72 using `Float32`.
+- `SGP4C_WGS84`: (**DEFAULT**) Constants based on WGS84.
+- `SGP4C_WGS72`: Constants based on WGS72.
 
 > **Note**
-> The propagator will use the same type of object `sgp4c` to propagate the orbit. Hence, if
-> one selects `sgp4c_wgs84_f32`, the SGP4 will compute everything considering `Float32`
-> numbers.
+> The propagator uses the number type of `sgp4c` in all computations. Hence, to propagate
+> using another number type, convert the constants first. For example,
+> `sgp4_init(tle; sgp4c = Sgp4Constants{Float32}(SGP4C_WGS84))` computes everything
+> considering `Float32` numbers.
 
 The SGP4 can also be initialized using an Orbit Mean-Elements Message (OMM) parsed by
 [SatelliteToolboxOrbitDataMessages.jl](https://github.com/JuliaSpace/SatelliteToolboxOrbitDataMessages.jl),
@@ -131,7 +130,7 @@ least-square algorithm.
 
 > **Note**
 > This algorithm version will allocate a new SGP4 propagator with the default constants
-> `sgp4c_wgs84`. If another set of constants are required or if the user wants to reduce the
+> `SGP4C_WGS84`. If another set of constants are required or if the user wants to reduce the
 > allocations, use the function `fit_sgp4_tle!` instead.
 
 The following keywords are avaible:
@@ -269,7 +268,7 @@ which returns a new TLE obtained by updating the epoch of `tle` to `new_epoch`.
 
 > **Note**
 > This algorithm version will allocate a new SGP4 propagator with the default constants
-> `sgp4c_wgs84`. If another set of constants are required or if the user wants to reduce the
+> `SGP4C_WGS84`. If another set of constants are required or if the user wants to reduce the
 > allocations, use the function `update_sgp4_tle_epoch!` instead.
 
 The following keywords are avaible:
