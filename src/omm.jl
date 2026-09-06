@@ -50,8 +50,6 @@ See also: [`sgp4_init!`](@ref), [`sgp4`](@ref).
 ## Examples
 
 ```julia-repl
-julia> using SatelliteToolboxOrbitDataMessages
-
 julia> omm = read_omm("amazonia_1.xml");
 
 julia> sgp4d = sgp4_init(omm);

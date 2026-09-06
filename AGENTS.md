@@ -4,11 +4,11 @@ Instructions for coding agents working in this repository. `CLAUDE.md` imports t
 
 ## Package Structure
 
-`SatelliteToolboxSgp4` is a pure-Julia implementation of the SGP4/SDP4 orbit propagator. It is part of the SatelliteToolbox ecosystem and re-exports `SatelliteToolboxBase` and `SatelliteToolboxTle`. It also depends on `SatelliteToolboxOrbitDataMessages` (not re-exported) to initialize the propagator from CCSDS Orbit Mean-Elements Messages (OMMs).
+`SatelliteToolboxSgp4` is a pure-Julia implementation of the SGP4/SDP4 orbit propagator. It is part of the SatelliteToolbox ecosystem and re-exports `SatelliteToolboxBase`, `SatelliteToolboxTle`, and `SatelliteToolboxOrbitDataMessages` (the latter to initialize the propagator from CCSDS Orbit Mean-Elements Messages, OMMs).
 
 - **Julia compat:** `[compat] julia = "1.10, 1.11, 1.12"` — supported on Julia 1.10, 1.11, and 1.12 only (not an open `^1.10` range; do not assume 1.13+ works). Nightly is exercised in CI but is not a supported target.
 - **Module entrypoint:** `src/SatelliteToolboxSgp4.jl`. Include order is fixed and load-order-sensitive: `types.jl` → `copy.jl` → `sgp4_model.jl` → `tle.jl` → `omm.jl` → `precompile.jl`. New code must respect this order; symbols defined in an earlier file are visible to later ones, not vice versa.
-- **Re-exports:** `@reexport using SatelliteToolboxBase` and `@reexport using SatelliteToolboxTle` — public API of those packages is part of this package's public surface.
+- **Re-exports:** `@reexport using SatelliteToolboxBase`, `@reexport using SatelliteToolboxTle`, and `@reexport using SatelliteToolboxOrbitDataMessages` — public API of those packages is part of this package's public surface.
 - **Runtime deps (`[deps]`):** Dates, ForwardDiff, LinearAlgebra, PrecompileTools, Printf, Reexport, SatelliteToolboxBase, SatelliteToolboxOrbitDataMessages, SatelliteToolboxTle, StaticArrays, StyledStrings. `PrecompileTools` is used for precompile workloads in `src/precompile.jl`. `StyledStrings` (stdlib on Julia ≥ 1.11, registered package on 1.10; compat `"1.0, 1.11"`) renders the decorated tags of the TLE fitting output once at load time in `src/SatelliteToolboxSgp4.jl`. Crayons is no longer used.
 - **No package extensions:** no `[weakdeps]`, `[extensions]`, or `ext/` directory.
 - **No build script:** no `deps/build.jl`; `Pkg.build()` is a no-op.

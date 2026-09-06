@@ -12,7 +12,8 @@ Version 3.0.0
   every propagation. Hence, the positional constructor of `Sgp4Propagator` changed.
 - ![Feature][badge-feature] The SGP4 propagator can now be initialized using an Orbit
   Mean-Elements Message (OMM) from **SatelliteToolboxOrbitDataMessages.jl** through the
-  new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`.
+  new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`. The
+  package **SatelliteToolboxOrbitDataMessages.jl** is now re-exported.
 - ![Enhancement][badge-enhancement] Replace **Crayons.jl** with **StyledStrings.jl** to
   decorate the output of the TLE fitting algorithm.
 - ![Enhancement][badge-enhancement] The progress line of the TLE fitting algorithm is

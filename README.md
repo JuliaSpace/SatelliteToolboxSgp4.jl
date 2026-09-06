@@ -59,11 +59,9 @@ defined in this package:
 
 The SGP4 can also be initialized using an Orbit Mean-Elements Message (OMM) parsed by
 [SatelliteToolboxOrbitDataMessages.jl](https://github.com/JuliaSpace/SatelliteToolboxOrbitDataMessages.jl),
-provided that its mean element theory is SGP4:
+which is re-exported by this package, provided that its mean element theory is SGP4:
 
 ```julia
-julia> using SatelliteToolboxOrbitDataMessages
-
 julia> omm = read_omm("amazonia_1.xml")
 
 julia> sgp4d = sgp4_init(omm)
