@@ -219,6 +219,35 @@ end
     end
 end
 
+@testset "Number Type" begin
+    jd = 2.46e6
+
+    # The number type of the propagator must always be the number type of the constants,
+    # regardless of the input types.
+    sgp4d = sgp4_init(jd, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 4e-5; sgp4c = sgp4c_wgs72)
+    @test sgp4d isa Sgp4Propagator{Float64, Float64}
+
+    sgp4c_f32 = Sgp4Constants{Float32}(sgp4c_wgs72)
+
+    sgp4d = sgp4_init(jd, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 4e-5; sgp4c = sgp4c_f32)
+    @test sgp4d isa Sgp4Propagator{Float64, Float32}
+
+    sgp4d = sgp4_init(jd, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 0; sgp4c = sgp4c_f32)
+    @test sgp4d isa Sgp4Propagator{Float64, Float32}
+
+    sgp4d = sgp4_init(jd, 0.06f0, 0.001f0, 1.7f0, 2.8f0, 2.4f0, 3.9f0, 4.0f-5)
+    @test sgp4d isa Sgp4Propagator{Float64, Float64}
+
+    r, v, sgp4d = sgp4(10, jd, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 4e-5; sgp4c = sgp4c_f32)
+    @test sgp4d isa Sgp4Propagator{Float64, Float32}
+    @test eltype(r) === Float32
+    @test eltype(v) === Float32
+
+    # The epoch type is independent from the propagation type.
+    sgp4d = sgp4_init(2.46f6, 0.06, 0.001, 1.7, 2.8, 2.4, 3.9, 4e-5)
+    @test sgp4d isa Sgp4Propagator{Float32, Float64}
+end
+
 @testset "Errors" begin
     tle = tle"""
        AMAZONIA 1

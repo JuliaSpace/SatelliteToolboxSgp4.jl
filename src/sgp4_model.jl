@@ -80,6 +80,14 @@ const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
 
 Create and initialize the data structure of SGP4 orbit propagator.
 
+The number type `T` of the propagator is the number type of the constants `sgp4c`. Every
+input is converted to `T` during the initialization. Hence, to propagate using another
+number type, e.g. `Float32` or a dual number for automatic differentiation, convert the
+constants first with `Sgp4Constants{T}(sgp4c)`. Notice that the initialization fails if an
+input cannot be converted to `T`, e.g. a dual number with `Float64` constants. The epoch
+keeps its own type `Tepoch` so that it can be stored with a higher precision than the
+propagation.
+
 # Arguments
 
 - `epoch::Number`: Epoch of the orbital elements [Julian Day].
@@ -114,35 +122,6 @@ end
 
 function sgp4_init(
     epoch::Tepoch,
-    n₀::N,
-    e₀::E,
-    i₀::I,
-    Ω₀::O,
-    ω₀::W,
-    M₀::M,
-    bstar::B;
-    sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
-) where {
-    Tepoch <: Number,
-    N <: AbstractFloat,
-    E <: AbstractFloat,
-    I <: AbstractFloat,
-    O <: AbstractFloat,
-    W <: AbstractFloat,
-    M <: AbstractFloat,
-    B <: AbstractFloat,
-    T <: Number,
-}
-    sgp4d = Sgp4Propagator{Tepoch, T}()
-    sgp4d.sgp4c = sgp4c
-    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
-
-    sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
-    return sgp4d
-end
-
-function sgp4_init(
-    epoch::Tepoch,
     n₀::Number,
     e₀::Number,
     i₀::Number,
@@ -152,20 +131,9 @@ function sgp4_init(
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
 ) where {Tepoch <: Number, T <: Number}
-    Tprom = promote_type(
-        T,
-        typeof(n₀),
-        typeof(e₀),
-        typeof(i₀),
-        typeof(Ω₀),
-        typeof(ω₀),
-        typeof(M₀),
-        typeof(bstar),
-    )
-
-    sgp4d = Sgp4Propagator{Tepoch, Tprom}()
-    sgp4d.sgp4c = Sgp4Constants{Tprom}(sgp4c)
-    sgp4d.sgp4ds = Sgp4DeepSpace{Tprom}()
+    sgp4d = Sgp4Propagator{Tepoch, T}()
+    sgp4d.sgp4c = sgp4c
+    sgp4d.sgp4ds = Sgp4DeepSpace{T}()
 
     sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
     return sgp4d
@@ -519,6 +487,9 @@ end
 
 Initialize the SGP4 structure and propagate the orbit until the time `Δt` [min].
 
+The number type `T` of the propagator is the number type of the constants `sgp4c`. For
+more information, see [`sgp4_init`](@ref).
+
 # Arguments
 
 - `Δt::Number`: Propagation time from the epoch [min].
@@ -562,34 +533,6 @@ function sgp4(
 end
 
 function sgp4(
-    Δt::D,
-    epoch::Tepoch,
-    n₀::N,
-    e₀::E,
-    i₀::I,
-    Ω₀::O,
-    ω₀::W,
-    M₀::M,
-    bstar::B;
-    sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
-) where {
-    Tepoch <: Number,
-    D <: AbstractFloat,
-    N <: AbstractFloat,
-    E <: AbstractFloat,
-    I <: AbstractFloat,
-    O <: AbstractFloat,
-    W <: AbstractFloat,
-    M <: AbstractFloat,
-    B <: AbstractFloat,
-    T <: Number,
-}
-    sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c)
-    r_teme, v_teme = sgp4!(sgp4d, Δt)
-    return r_teme, v_teme, sgp4d
-end
-
-function sgp4(
     Δt::Number,
     epoch::Tepoch,
     n₀::Number,
@@ -601,20 +544,7 @@ function sgp4(
     bstar::Number;
     sgp4c::Sgp4Constants{T} = sgp4c_wgs84,
 ) where {Tepoch <: Number, T <: Number}
-    Tprom = promote_type(
-        T,
-        typeof(Δt),
-        typeof(n₀),
-        typeof(e₀),
-        typeof(i₀),
-        typeof(Ω₀),
-        typeof(ω₀),
-        typeof(M₀),
-        typeof(bstar),
-    )
-    sgp4c_p = Sgp4Constants{Tprom}(sgp4c)
-
-    sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c = sgp4c_p)
+    sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c)
     r_teme, v_teme = sgp4!(sgp4d, Δt)
     return r_teme, v_teme, sgp4d
 end
