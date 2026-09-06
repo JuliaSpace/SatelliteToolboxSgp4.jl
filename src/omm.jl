@@ -11,7 +11,7 @@
 ############################################################################################
 
 """
-    sgp4_init(omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = sgp4c_wgs84) where {T <: Number} -> Sgp4Propagator{Float64, T}
+    sgp4_init(omm::OrbitMeanElementsMessage; kwargs...) -> Sgp4Propagator{Float64, T}
 
 Create and initialize the data structure of the SGP4 orbit propagator using the Orbit
 Mean-Elements Message (OMM) `omm` as defined in **[1]**.
@@ -70,7 +70,10 @@ function sgp4_init(
 end
 
 """
-    sgp4_init!(sgp4d::Sgp4Propagator{Tepoch, T}, omm::OrbitMeanElementsMessage) where {Tepoch <: Number, T <: Number} -> Nothing
+    sgp4_init!(
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        omm::OrbitMeanElementsMessage,
+    ) where {Tepoch <: Number, T <: Number} -> Nothing
 
 Initialize the SGP4 data structure `sgp4d` with the mean elements in the Orbit
 Mean-Elements Message (OMM) `omm` as defined in **[1]**.
@@ -124,7 +127,11 @@ function sgp4_init!(
 end
 
 """
-    sgp4(Δt::Number, omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = sgp4c_wgs84) where {T <: Number} -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Float64, T}
+    sgp4(
+        Δt::Number,
+        omm::OrbitMeanElementsMessage;
+        kwargs...,
+    ) -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Float64, T}
 
 Initialize the SGP4 structure using the Orbit Mean-Elements Message (OMM) `omm` as defined
 in **[1]** and propagate the orbit until the time `Δt` [min] from the message epoch.
@@ -181,7 +188,7 @@ end
 ############################################################################################
 
 """
-    _omm_sgp4_elements(omm::OrbitMeanElementsMessage) -> Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64
+    _omm_sgp4_elements(omm::OrbitMeanElementsMessage) -> NTuple{8, Float64}
 
 Obtain from the Orbit Mean-Elements Message `omm` the elements required to initialize the
 SGP4 orbit propagator, using the same units as the TLE. The function can fail if the

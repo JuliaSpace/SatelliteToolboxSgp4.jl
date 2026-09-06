@@ -14,7 +14,12 @@ export fit_sgp4_tle, fit_sgp4_tle!, update_sgp4_tle_epoch, update_sgp4_tle_epoch
 const _INITIAL_GUESS_T = Union{Nothing, AbstractVector, TLE}
 
 """
-    fit_sgp4_tle(vjd::AbstractVector{Tjd}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {T<:Number, Tepoch<:Number, Tjd<:Number, Tv<:AbstractVector} -> TLE, SMatrix{7, 7, T}
+    fit_sgp4_tle(
+        vjd::AbstractVector{Tjd},
+        vr_teme::AbstractVector{Tv},
+        vv_teme::AbstractVector{Tv};
+        kwargs...,
+    ) where {Tjd <: Number, Tv <: AbstractVector} -> TLE, SMatrix{7, 7, Float64}
 
 Fit a Two-Line Element set (`TLE`) for the SGP4 orbit propagator using the osculating
 elements represented by a set of position vectors `vr_teme` [km] and a set of velocity
@@ -184,7 +189,18 @@ function fit_sgp4_tle(
 end
 
 """
-    fit_sgp4_tle!(sgp4d::Sgp4Propagator{Tepoch, T}, vjd::AbstractVector{Tjd}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {T<:Number, Tepoch<:Number, Tjd<:Number, Tv<:AbstractVector} -> TLE, SMatrix{7, 7, T}
+    fit_sgp4_tle!(
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        vjd::AbstractVector{Tjd},
+        vr_teme::AbstractVector{Tv},
+        vv_teme::AbstractVector{Tv};
+        kwargs...,
+    ) where {
+        T <: Number,
+        Tepoch <: Number,
+        Tjd <: Number,
+        Tv <: AbstractVector,
+    } -> TLE, SMatrix{7, 7, T}
 
 Fit a Two-Line Element set (`TLE`) for the SGP4 orbit propagator `sgp4d` using the
 osculating elements represented by a set of position vectors `vr_teme` [km] and a set of
@@ -733,7 +749,12 @@ function update_sgp4_tle_epoch(tle::TLE, new_epoch::Union{Number, DateTime}; kwa
 end
 
 """
-    update_sgp4_tle_epoch!(sgp4d::Sgp4Propagator, tle::TLE, new_epoch::Union{Number, DateTime}; kwargs...) -> TLE
+    update_sgp4_tle_epoch!(
+        sgp4d::Sgp4Propagator,
+        tle::TLE,
+        new_epoch::Union{Number, DateTime};
+        kwargs...,
+    ) -> TLE
 
 Update the `tle` epoch with SGP4 mean elements to `new_epoch` using the orbit propagator
 `sgp4d`. `new_epoch` can be represented by a Julian Day or a `DateTime`.
@@ -890,7 +911,11 @@ end
 ############################################################################################
 
 """
-    _init_sgp4_with_state_vector!(sgp4d::Sgp4Propagator, sv::SVector{7}, epoch::Number) -> Nothing
+    _init_sgp4_with_state_vector!(
+        sgp4d::Sgp4Propagator,
+        sv::SVector{7},
+        epoch::Number,
+    ) -> Nothing
 
 Initialize the SGP4 orbit propagator `sgp4d` using the state vector `sv`, which must have
 the following elements:
@@ -1062,7 +1087,9 @@ function _tle_to_mean_state_vector(
 end
 
 """
-    _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T} -> Sgp4Propagator
+    _create_ad_propagator(
+        sgp4d::Sgp4Propagator{Tepoch, T},
+    ) where {Tepoch <: Number, T <: Number} -> Sgp4Propagator
 
 Create a Dual-typed SGP4 propagator for use with `ForwardDiffJacobian`. The returned
 propagator can be passed via the `sgp4d_ad` keyword in [`_sgp4_jacobian`](@ref) to avoid
@@ -1081,7 +1108,14 @@ function _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, 
 end
 
 """
-    _sgp4_jacobian(::FiniteDiffJacobian, sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{7, T}, y₁::SVector{6, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
+    _sgp4_jacobian(
+        ::FiniteDiffJacobian,
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        Δt::Number,
+        x₁::SVector{7, T},
+        y₁::SVector{6, T};
+        kwargs...,
+    ) where {T <: Number, Tepoch <: Number} -> SMatrix{6, 7, T}
 
 Compute the SGP4 Jacobian by finite-differences using the propagator `sgp4d` at instant `Δt`
 considering the input mean elements `x₁` that must provide the output vector `y₁`. Hence:
@@ -1158,7 +1192,14 @@ function _sgp4_jacobian(
 end
 
 """
-    _sgp4_jacobian(::ForwardDiffJacobian, sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number, x₁::SVector{7, T}, y₁::SVector{6, T}; kwargs...) where {T<:Number, Tepoch<:Number} -> SMatrix{6, 7, T}
+    _sgp4_jacobian(
+        ::ForwardDiffJacobian,
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        Δt::Number,
+        x₁::SVector{7, T},
+        y₁::SVector{6, T};
+        kwargs...,
+    ) where {T <: Number, Tepoch <: Number} -> SMatrix{6, 7, T}
 
 Compute the SGP4 Jacobian via ForwardDiff automatic differentiation using the propagator
 `sgp4d` at instant `Δt` considering the input mean elements `x₁`. Hence:

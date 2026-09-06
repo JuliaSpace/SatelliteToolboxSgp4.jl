@@ -65,7 +65,17 @@ const sgp4c_wgs72_f32 = Sgp4Constants{Float32}(
 ############################################################################################
 
 """
-    sgp4_init(epoch::Tepoch, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number; kwargs...) where {Tepoch <: Number} -> Sgp4Propagator{Tepoch, T}
+    sgp4_init(
+        epoch::Tepoch,
+        n₀::Number,
+        e₀::Number,
+        i₀::Number,
+        Ω₀::Number,
+        ω₀::Number,
+        M₀::Number,
+        bstar::Number;
+        kwargs...,
+    ) where {Tepoch <: Number} -> Sgp4Propagator{Tepoch, T}
     sgp4_init(tle::TLE; kwargs...) -> Sgp4Propagator{Float64, T}
 
 Create and initialize the data structure of SGP4 orbit propagator.
@@ -162,8 +172,21 @@ function sgp4_init(
 end
 
 """
-    sgp4_init!(sgp4d::Sgp4Propagator{Tepoch, T}, epoch::Number, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number) where {Tepoch <: Number, T <: Number} -> Nothing
-    sgp4_init!(sgp4d::Sgp4Propagator{Tepoch, T}, tle::TLE) where {Tepoch <: Number, T <: Number} -> Nothing
+    sgp4_init!(
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        epoch::Number,
+        n₀::Number,
+        e₀::Number,
+        i₀::Number,
+        Ω₀::Number,
+        ω₀::Number,
+        M₀::Number,
+        bstar::Number,
+    ) where {Tepoch <: Number, T <: Number} -> Nothing
+    sgp4_init!(
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        tle::TLE,
+    ) where {Tepoch <: Number, T <: Number} -> Nothing
 
 Initialize the SGP4 data structure `sgp4d` with the initial orbit specified by the
 arguments.
@@ -476,8 +499,23 @@ function sgp4_init!(
 end
 
 """
-    sgp4(Δt::Number, tle::TLE; kwargs...) -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Float64, T}
-    sgp4(Δt::Number, epoch::Tepoch, n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number; kwargs...) where {Tepoch <: Number} -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Tepoch, T}
+    sgp4(
+        Δt::Number,
+        tle::TLE;
+        kwargs...,
+    ) -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Float64, T}
+    sgp4(
+        Δt::Number,
+        epoch::Tepoch,
+        n₀::Number,
+        e₀::Number,
+        i₀::Number,
+        Ω₀::Number,
+        ω₀::Number,
+        M₀::Number,
+        bstar::Number;
+        kwargs...,
+    ) where {Tepoch <: Number} -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Tepoch, T}
 
 Initialize the SGP4 structure and propagate the orbit until the time `Δt` [min].
 
@@ -582,7 +620,10 @@ function sgp4(
 end
 
 """
-    sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch <: Number, T <: Number} -> SVector{3, T}, SVector{3, T}
+    sgp4!(
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        t::Number,
+    ) where {Tepoch <: Number, T <: Number} -> SVector{3, T}, SVector{3, T}
 
 Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the time `t`
 [min].
@@ -869,7 +910,20 @@ end
 # == Deep Space Functions ==================================================================
 
 """
-    _dsinit!(sgp4ds::Sgp4DeepSpace{T}, args...) where {Tepoch<:Number, T<:Number} -> Nothing
+    _dsinit!(
+        sgp4ds::Sgp4DeepSpace{T},
+        epoch::Number,
+        nll₀::Number,
+        all₀::Number,
+        e₀::Number,
+        i₀::Number,
+        Ω₀::Number,
+        ω₀::Number,
+        M₀::Number,
+        ∂M::Number,
+        ∂ω::Number,
+        ∂Ω::Number,
+    ) where {T <: Number} -> Nothing
 
 Initialize the deep space structure `sgp4ds` using the parameters in `args...`.
 
@@ -1348,7 +1402,18 @@ function _dsinit!(
 end
 
 """
-    _dssec!(sgp4ds::Sgp4DeepSpace{T}, nll₀::T, e₀::T, i₀::T, ω₀::T, Ω_k::T, ω_k::T, M_k::T, ∂ω::T, Δt::Number) where {T <: Number} -> T, T, T, T, T, T
+    _dssec!(
+        sgp4ds::Sgp4DeepSpace{T},
+        nll₀::T,
+        e₀::T,
+        i₀::T,
+        ω₀::T,
+        Ω_k::T,
+        ω_k::T,
+        M_k::T,
+        ∂ω::T,
+        Δt::Number,
+    ) where {T <: Number} -> T, T, T, T, T, T
 
 Compute the secular effects.
 
@@ -1551,7 +1616,15 @@ function _dssec!(
 end
 
 """
-    _dsper(sgp4ds::Sgp4DeepSpace{T}, e_k::T, i_k::T, Ω_k::T, ω_k::T, M_k::T, Δt::Number) where {T <: Number} -> T, T, T, T, T
+    _dsper(
+        sgp4ds::Sgp4DeepSpace{T},
+        e_k::T,
+        i_k::T,
+        Ω_k::T,
+        ω_k::T,
+        M_k::T,
+        Δt::Number,
+    ) where {T <: Number} -> T, T, T, T, T
 
 Compute the effects caused by Lunar-Solar periodics.
 
