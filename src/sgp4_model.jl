@@ -59,6 +59,7 @@ const SGP4C_WGS72 = Sgp4Constants{Float64}(
         bstar::Number;
         kwargs...,
     ) where {Tepoch <: Number} -> Sgp4Propagator{Tepoch, T}
+
     sgp4_init(tle::TLE; kwargs...) -> Sgp4Propagator{Float64, T}
 
 Create and initialize the data structure of SGP4 orbit propagator.
@@ -126,6 +127,7 @@ end
         M₀::Number,
         bstar::Number,
     ) where {Tepoch <: Number, T <: Number} -> Nothing
+
     sgp4_init!(
         sgp4d::Sgp4Propagator{Tepoch, T},
         tle::TLE,
@@ -442,6 +444,7 @@ end
         tle::TLE;
         kwargs...,
     ) -> SVector{3, T}, SVector{3, T}, Sgp4Propagator{Float64, T}
+
     sgp4(
         Δt::Number,
         epoch::Tepoch,
@@ -633,12 +636,27 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         # NOTE: `cos(M_k)` is evaluated at the mean anomaly before the δω and δM corrections,
         # whereas `sin(M_k)` in the eccentricity update is evaluated after them. Hence, they
         # cannot share a single `sincos` call.
-        δM  = (e₀ > T(1e-4)) ? -(2 // 3) * QOMS2T * bstar * ξ^4 / (e₀ * η) * ((1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3) : T(0)
+        δM =
+            (e₀ > T(1e-4)) ?
+            -(2 // 3) * QOMS2T * bstar * ξ^4 / (e₀ * η) *
+            ((1 + η * cos(M_k))^3 - (1 + η * cos_M₀)^3) : T(0)
         M_k += +δω + δM
         ω_k += -δω - δM
         e_k = e₀ - bstar * C4 * Δt - bstar * C5 * (sin(M_k) - sin_M₀)
         a_k = all₀ * (@evalpoly(Δt, 1, -C1, -D2, -D3, -D4))^2
-        IL  = M_k + ω_k + Ω_k + nll₀ * @evalpoly(Δt, 0, 0, (3 // 2) * C1, +(D2 + 2C1^2), +(3D3 + 12C1 * D2 + 10C1^3) / 4, +(3D4 + 12C1 * D3 + 6D2^2 + 30C1^2 * D2 + 15C1^4) / 5)
+        IL =
+            M_k +
+            ω_k +
+            Ω_k +
+            nll₀ * @evalpoly(
+                Δt,
+                0,
+                0,
+                (3 // 2) * C1,
+                +(D2 + 2C1^2),
+                +(3D3 + 12C1 * D2 + 10C1^3) / 4,
+                +(3D4 + 12C1 * D3 + 6D2^2 + 30C1^2 * D2 + 15C1^4) / 5
+            )
 
     elseif algorithm === :sgp4_lowper
         # If so, then
