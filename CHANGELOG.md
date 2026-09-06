@@ -47,7 +47,9 @@ Version 3.0.0
   new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`. The
   package **SatelliteToolboxOrbitDataMessages.jl** is now re-exported.
 - ![Feature][badge-feature] Add `show` methods to `Sgp4Propagator`, which print the
-  algorithm, the epoch, and the initial mean elements instead of every internal field.
+  algorithm, the epoch, and the initial mean elements instead of every internal field, using
+  the printing helpers of **SatelliteToolboxBase.jl** v2.1 so that the layout matches the
+  orbit representations.
 - ![Enhancement][badge-enhancement] The mean elements fitting initializes the propagator
   once per mean state vector and propagates it to all measurements, instead of
   initializing it for every measurement, since the initialization is more expensive than

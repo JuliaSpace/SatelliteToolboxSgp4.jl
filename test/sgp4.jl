@@ -308,20 +308,19 @@ end
     # == Compact ===========================================================================
 
     @test repr(sgp4d) ==
-        "Sgp4Propagator{Float64, Float64} (SGP4, Epoch = 2023-03-24T16:28:40.388)"
+        "Sgp4Propagator{Float64, Float64} (SGP4): Epoch = 2.46003e6 (2023-03-24T16:28:40.388)"
 
     # == Multi-line ========================================================================
 
     str = sprint(show, MIME("text/plain"), sgp4d)
 
-    @test occursin("Sgp4Propagator{Float64, Float64}:", str)
-    @test occursin("Epoch : 2023-03-24T16:28:40.388 (2.46002818657856e6)", str)
-    @test occursin("Algorithm : SGP4", str)
-    @test occursin("Mean motion : 14.40814394 rev / day", str)
-    @test occursin("Eccentricity : 0.00012470", str)
-    @test occursin("Inclination : 98.43040000 °", str)
-    @test occursin("B* : 4.3e-5 1 / er", str)
-    @test occursin("Last propagation : 10.0 min", str)
+    @test occursin("Sgp4Propagator{Float64, Float64} (SGP4):", str)
+    @test occursin("Epoch :   2.46003e6 (2023-03-24T16:28:40.388)", str)
+    @test occursin("Mean motion :  14.40814394 rev / day", str)
+    @test occursin("Eccentricity :   0.00012470", str)
+    @test occursin("Inclination :  98.43040000 °", str)
+    @test occursin("B* :   4.3e-5     1 / er", str)
+    @test occursin("Last propagation :  10.0        min", str)
 
     # The labels must be highlighted when the output supports colors.
     str_color = sprint(show, MIME("text/plain"), sgp4d; context = :color => true)
@@ -334,13 +333,13 @@ end
         1 08195U 75081A   06176.33215444  .00000099  00000-0  11873-3 0   813
         2 08195  64.1586 279.0717 6877146 264.7651  20.2257  2.00491383225656"""
 
-    @test occursin("(SDP4, ", repr(sgp4_init(tle_ds)))
+    @test occursin("(SDP4): ", repr(sgp4_init(tle_ds)))
 
     tle_lp = tle"""
         1 28872U 05037B   05333.02012661  .25992681  00000-0  24476-3 0  1534
         2 28872  96.4736 157.9986 0303955 244.0492 110.6523 16.46015938 10708"""
 
-    @test occursin("(SGP4 (low perigee), ", repr(sgp4_init(tle_lp)))
+    @test occursin("(SGP4 (low perigee)): ", repr(sgp4_init(tle_lp)))
 
     # == Uninitialized Propagator ==========================================================
 

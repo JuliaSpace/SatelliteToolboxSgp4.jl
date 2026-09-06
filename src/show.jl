@@ -4,68 +4,53 @@
 #
 ############################################################################################
 
-function Base.show(io::IO, sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T}
-    print(io, "Sgp4Propagator{", Tepoch, ", ", T, "}")
-
+function Base.show(io::IO, sgp4d::Sgp4Propagator)
     # The field `algorithm` is only assigned by `sgp4_init!`. Hence, it indicates whether
     # the structure has been initialized.
-    if isdefined(sgp4d, :algorithm)
-        print(
-            io,
-            " (",
-            _sgp4_algorithm_name(sgp4d.algorithm),
-            ", Epoch = ",
-            julian2datetime(sgp4d.epoch),
-            ")",
-        )
-    else
-        print(io, " (not initialized)")
+    if !isdefined(sgp4d, :algorithm)
+        print(io, _sgp4_propagator_name(sgp4d), " (not initialized)")
+        return nothing
     end
+
+    SatelliteToolboxBase.print_compact(io, _sgp4_propagator_name(sgp4d), sgp4d.epoch)
 
     return nothing
 end
 
-function Base.show(
-    io::IO, ::MIME"text/plain", sgp4d::Sgp4Propagator{Tepoch, T}
-) where {Tepoch, T}
-    println(io, "Sgp4Propagator{", Tepoch, ", ", T, "}:")
-
+function Base.show(io::IO, ::MIME"text/plain", sgp4d::Sgp4Propagator)
     if !isdefined(sgp4d, :algorithm)
-        print(io, styled"{bold:           Status :} not initialized")
+        println(io, _sgp4_propagator_name(sgp4d), ":")
+        SatelliteToolboxBase.print_field(io, " Status : ", "not initialized")
         return nothing
     end
 
-    # `StyledStrings` only emits the escape sequences if `io` supports colors.
-    println(
-        io,
-        styled"{bold:            Epoch :} ",
-        julian2datetime(sgp4d.epoch),
-        " (",
-        sgp4d.epoch,
-        ")",
+    labels = (
+        "Mean motion",
+        "Eccentricity",
+        "Inclination",
+        "RAAN",
+        "Arg. of perigee",
+        "Mean anomaly",
+        "B*",
+        "Last propagation",
     )
-    println(io, styled"{bold:        Algorithm :} ", _sgp4_algorithm_name(sgp4d.algorithm))
-    println(
-        io,
-        styled"{bold:      Mean motion :} ",
+
+    values = (
         _sgp4_show_number(720 * sgp4d.n₀ / π),
-        " rev / day",
+        _sgp4_show_number(sgp4d.e₀),
+        _sgp4_show_number(rad2deg(sgp4d.i₀)),
+        _sgp4_show_number(rad2deg(sgp4d.Ω₀)),
+        _sgp4_show_number(rad2deg(sgp4d.ω₀)),
+        _sgp4_show_number(rad2deg(sgp4d.M₀)),
+        SatelliteToolboxBase.compact_string(io, sgp4d.bstar),
+        SatelliteToolboxBase.compact_string(io, sgp4d.Δt),
     )
-    println(io, styled"{bold:     Eccentricity :} ", _sgp4_show_number(sgp4d.e₀))
-    println(
-        io, styled"{bold:      Inclination :} ", _sgp4_show_number(rad2deg(sgp4d.i₀)), " °"
+
+    units = ("rev / day", "", "°", "°", "°", "°", "1 / er", "min")
+
+    SatelliteToolboxBase.print_elements(
+        io, _sgp4_propagator_name(sgp4d), sgp4d.epoch, labels, values, units
     )
-    println(
-        io, styled"{bold:             RAAN :} ", _sgp4_show_number(rad2deg(sgp4d.Ω₀)), " °"
-    )
-    println(
-        io, styled"{bold:  Arg. of perigee :} ", _sgp4_show_number(rad2deg(sgp4d.ω₀)), " °"
-    )
-    println(
-        io, styled"{bold:     Mean anomaly :} ", _sgp4_show_number(rad2deg(sgp4d.M₀)), " °"
-    )
-    println(io, styled"{bold:               B* :} ", sgp4d.bstar, " 1 / er")
-    print(io, styled"{bold: Last propagation :} ", sgp4d.Δt, " min")
 
     return nothing
 end
@@ -84,6 +69,19 @@ function _sgp4_algorithm_name(algorithm::Symbol)
     algorithm === :sgp4_lowper && return "SGP4 (low perigee)"
     algorithm === :sdp4 && return "SDP4"
     return string(algorithm)
+end
+
+"""
+    _sgp4_propagator_name(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T} -> String
+
+Return the name of the propagator structure `sgp4d` with its type parameters, followed by
+the selected algorithm in parentheses if `sgp4d` has been initialized, as used in the
+headers of the printed representations.
+"""
+function _sgp4_propagator_name(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T}
+    name = string("Sgp4Propagator{", Tepoch, ", ", T, "}")
+    isdefined(sgp4d, :algorithm) || return name
+    return string(name, " (", _sgp4_algorithm_name(sgp4d.algorithm), ")")
 end
 
 """
