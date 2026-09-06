@@ -15,6 +15,9 @@ using StaticArrays
 @reexport using SatelliteToolboxOrbitDataMessages
 
 import Base: copy
+import SatelliteToolboxBase: PrintedField, PrintedSection, epoch_string, format_value
+import SatelliteToolboxBase: print_compact, print_status, print_tree, print_tree_body
+import SatelliteToolboxBase: type_name
 
 ############################################################################################
 #                                          Types                                           #

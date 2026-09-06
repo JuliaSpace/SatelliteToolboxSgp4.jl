@@ -10,43 +10,37 @@
 ############################################################################################
 
 function Base.show(io::IO, sgp4d::Sgp4Propagator)
-    # The field `algorithm` is only assigned by `sgp4_init!`. Hence, it indicates whether
-    # the structure has been initialized.
-    if !isdefined(sgp4d, :algorithm)
+    if !sgp4_is_initialized(sgp4d)
         print(io, _sgp4_propagator_name(sgp4d), " (not initialized)")
         return nothing
     end
 
-    SatelliteToolboxBase.print_compact(io, _sgp4_propagator_name(sgp4d), sgp4d.epoch)
+    print_compact(io, _sgp4_propagator_name(sgp4d), sgp4d.epoch)
 
     return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", sgp4d::Sgp4Propagator)
-    SatelliteToolboxBase.print_tree(io, _sgp4_propagator_name(sgp4d), sgp4d)
+    print_tree(io, _sgp4_propagator_name(sgp4d), sgp4d)
     return nothing
 end
 
 # The body of the rich representation is overloaded so that the wrappers of the propagator
 # can print it under their own header.
-function SatelliteToolboxBase.print_tree_body(io::IO, sgp4d::Sgp4Propagator)
-    if !isdefined(sgp4d, :algorithm)
-        fields   = SatelliteToolboxBase.PrintedField[("Status", "not initialized", "")]
-        sections = SatelliteToolboxBase.PrintedSection[]
-        SatelliteToolboxBase.print_tree_body(io, fields, sections)
+function print_tree_body(io::IO, sgp4d::Sgp4Propagator)
+    if !sgp4_is_initialized(sgp4d)
+        print_status(io, "not initialized")
         return nothing
     end
 
     sgp4c = sgp4d.sgp4c
 
-    format_value = SatelliteToolboxBase.format_value
-
     # The semi-major axis is recovered from the mean motion as in the SGP4 theory.
     semi_major_axis = (sgp4c.XKE / sgp4d.n₀)^(2 // 3) * sgp4c.R0
 
-    epoch_str = SatelliteToolboxBase.epoch_string(sgp4d.epoch)
+    epoch_str = epoch_string(sgp4d.epoch)
 
-    sections = SatelliteToolboxBase.PrintedSection[
+    sections = PrintedSection[
         "Mean Elements" => [
             ("Epoch",             epoch_str,                        ""),
             ("Semi-Major Axis",   format_value(semi_major_axis),    "km"),
@@ -56,7 +50,7 @@ function SatelliteToolboxBase.print_tree_body(io::IO, sgp4d::Sgp4Propagator)
             ("RA of Asc. Node",   format_value(rad2deg(sgp4d.Ω₀)),  "°"),
             ("Arg. of Periapsis", format_value(rad2deg(sgp4d.ω₀)),  "°"),
             ("Mean Anomaly",      format_value(rad2deg(sgp4d.M₀)),  "°"),
-            ("B*",                format_value(sgp4d.bstar),        "1/er"),
+            ("B*",                format_value(sgp4d.bstar),        "1/ER"),
         ],
         "Constants" => [
             ("R₀",  format_value(sgp4c.R0),  "km"),
@@ -70,7 +64,7 @@ function SatelliteToolboxBase.print_tree_body(io::IO, sgp4d::Sgp4Propagator)
         ],
     ]
 
-    SatelliteToolboxBase.print_tree_body(io, SatelliteToolboxBase.PrintedField[], sections)
+    print_tree_body(io, PrintedField[], sections)
 
     return nothing
 end
@@ -92,14 +86,14 @@ function _sgp4_algorithm_name(algorithm::Symbol)
 end
 
 """
-    _sgp4_propagator_name(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T} -> String
+    _sgp4_propagator_name(sgp4d::Sgp4Propagator) -> String
 
 Return the name of the propagator structure `sgp4d` with its type parameters, followed by
 the selected algorithm in parentheses if `sgp4d` has been initialized, as used in the
 headers of the printed representations.
 """
-function _sgp4_propagator_name(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, T}
-    name = string("Sgp4Propagator{", Tepoch, ", ", T, "}")
-    isdefined(sgp4d, :algorithm) || return name
+function _sgp4_propagator_name(sgp4d::Sgp4Propagator)
+    name = type_name(sgp4d)
+    sgp4_is_initialized(sgp4d) || return name
     return string(name, " (", _sgp4_algorithm_name(sgp4d.algorithm), ")")
 end

@@ -29,6 +29,11 @@ PrecompileTools.@compile_workload begin
         sgp4(10.0f0, tle; sgp4c = Sgp4Constants{Float32}(SGP4C_WGS84))
     end
 
+    # Exercise the compact and the rich representations of the propagator.
+    sgp4d = sgp4_init(first(tles))
+    show(IOBuffer(), sgp4d)
+    show(IOBuffer(), MIME("text/plain"), sgp4d)
+
     # == Orbit Propagation Using OMM =======================================================
 
     # Exercise the initialization from an Orbit Mean-Elements Message.

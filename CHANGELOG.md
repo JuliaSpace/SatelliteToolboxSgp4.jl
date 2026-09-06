@@ -46,6 +46,8 @@ Version 3.0.0
   Mean-Elements Message (OMM) from **SatelliteToolboxOrbitDataMessages.jl** through the
   new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`. The
   package **SatelliteToolboxOrbitDataMessages.jl** is now re-exported.
+- ![Feature][badge-feature] Add the public, non-exported predicate `sgp4_is_initialized`,
+  which tells whether an `Sgp4Propagator` has been initialized by `sgp4_init!`.
 - ![Feature][badge-feature] Add `show` methods to `Sgp4Propagator`, which print the
   algorithm and the sections with the mean elements and their epoch, including the
   semi-major axis recovered from the mean motion and B*, the gravitational constants, and
