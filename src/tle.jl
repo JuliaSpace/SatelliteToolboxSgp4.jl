@@ -395,11 +395,9 @@ function fit_sgp4_tle!(
         throw(ArgumentError("The maximum number of iterations must be at least 1."))
     end
 
-    # Check if stdout supports colors.
+    # Check if `stdout` supports colors. This flag also selects whether the progress line
+    # is updated in place using terminal escape sequences.
     has_color = get(stdout, :color, false)::Bool
-    cd = has_color ? _D : ""
-    cb = has_color ? _B : ""
-    cy = has_color ? _Y : ""
 
     # Assemble the weight vector (diagonal of the weight matrix).
     W = @SVector T[
@@ -419,8 +417,9 @@ function fit_sgp4_tle!(
 
         # The user can provide a TLE or the initial mean state vector.
         if initial_guess isa TLE
-            verbose && println(
-                "$(cy)ACTION:$(cd)   Updating the epoch of the initial TLE guess to match the desired one.",
+            verbose && _fit_print_action(
+                has_color,
+                "Updating the epoch of the initial TLE guess to match the desired one.",
             )
 
             # If a TLE is provided, we need to update its epoch to match the desired one.
@@ -480,28 +479,8 @@ function fit_sgp4_tle!(
 
     # Header.
     if verbose
-        println("$(cy)ACTION:$(cd)   Fitting the TLE.")
-        @printf(
-            "          %s%10s %20s %20s %20s %20s%s\n",
-            cy,
-            "Iteration",
-            "Position RMSE",
-            "Velocity RMSE",
-            "Total RMSE",
-            "RMSE Variation",
-            cd
-        )
-        @printf(
-            "          %s%10s %20s %20s %20s %20s%s\n",
-            cb,
-            "",
-            "[km]",
-            "[km / s]",
-            "[ ]",
-            "",
-            cd
-        )
-        println()
+        _fit_print_action(has_color, "Fitting the TLE.")
+        _fit_print_header(has_color)
     end
 
     # We need a reference to the covariance inverse because we will invert it and return
@@ -593,30 +572,18 @@ function fit_sgp4_tle!(
 
         # We cannot compute the RMSE variation in the first iteration.
         if it == 1
-            verbose && @printf(
-                "\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20s\n",
-                cb,
-                cd,
-                it,
-                σp_i,
-                σv_i,
-                σ_i,
-                "---"
+            verbose && _fit_print_progress(
+                has_color,
+                @sprintf("%10d %20g %20g %20g %20s", it, σp_i, σv_i, σ_i, "---")
             )
 
         else
             # Compute the RMSE variation.
             Δσ = (σ_i - σ_i_₁) / σ_i_₁
 
-            verbose && @printf(
-                "\x1b[A\x1b[2K\r%sPROGRESS:%s %10d %20g %20g %20g %20g %%\n",
-                cb,
-                cd,
-                it,
-                σp_i,
-                σv_i,
-                σ_i,
-                100 * Δσ
+            verbose && _fit_print_progress(
+                has_color,
+                @sprintf("%10d %20g %20g %20g %20g %%", it, σp_i, σv_i, σ_i, 100 * Δσ)
             )
 
             # Check if the RMSE is increasing.
@@ -654,8 +621,8 @@ function fit_sgp4_tle!(
 
     # Update the epoch of the fitted TLE to match the desired one.
     if abs(epoch - mean_elements_epoch) > 0.001 / 86400
-        verbose && println(
-            "$(cy)ACTION:$(cd)   Updating the epoch of the fitted TLE to match the desired one.",
+        verbose && _fit_print_action(
+            has_color, "Updating the epoch of the fitted TLE to match the desired one."
         )
         tle = update_sgp4_tle_epoch!(sgp4d, tle, mean_elements_epoch; verbose = verbose)
     end
@@ -1241,4 +1208,71 @@ function _sgp4_fwd_jacobian_eval(
     return SMatrix{6, N, T}(
         ntuple(k -> ForwardDiff.partials(y_dual[mod1(k, 6)], cld(k, 6)), Val(6 * N))
     )
+end
+
+# == Printing Helpers ======================================================================
+
+"""
+    _fit_print_action(has_color::Bool, msg::AbstractString) -> Nothing
+
+Print to `stdout` the action message `msg` of the fitting algorithm, prefixed by an
+`ACTION:` tag, which is highlighted if `has_color` is `true`.
+"""
+# The helper is not inlined so that its allocation sites, which are only reachable when the
+# algorithm is verbose, are counted once regardless of the number of call sites.
+@noinline function _fit_print_action(has_color::Bool, msg::AbstractString)
+    println(_fit_decorated(_FIT_ACTION_TAG, has_color), "   ", msg)
+    return nothing
+end
+
+"""
+    _fit_print_header(has_color::Bool) -> Nothing
+
+Print to `stdout` the header of the progress table of the fitting algorithm. The header is
+decorated if `has_color` is `true`. In this case, it is followed by an empty line that the
+first progress line overwrites.
+"""
+# The helper is not inlined so that its allocation sites, which are only reachable when the
+# algorithm is verbose, are counted once regardless of the number of call sites.
+@noinline function _fit_print_header(has_color::Bool)
+    print(
+        "          ",
+        _fit_decorated(_FIT_HEADER, has_color),
+        "\n          ",
+        _fit_decorated(_FIT_UNITS, has_color),
+        "\n",
+    )
+
+    # The empty line is only required if the progress line is updated in place.
+    has_color && println()
+
+    return nothing
+end
+
+"""
+    _fit_print_progress(has_color::Bool, msg::AbstractString) -> Nothing
+
+Print to `stdout` the progress line `msg` of the fitting algorithm, prefixed by a
+`PROGRESS:` tag. If `has_color` is `true`, the tag is highlighted and the previous line is
+erased first using terminal escape sequences, so consecutive calls update the same terminal
+line. Otherwise, each call prints a new line, keeping the output readable when it is
+redirected to a file.
+"""
+# The helper is not inlined so that its allocation sites, which are only reachable when the
+# algorithm is verbose, are counted once regardless of the number of call sites.
+@noinline function _fit_print_progress(has_color::Bool, msg::AbstractString)
+    has_color && print("\x1b[A\x1b[2K\r")
+    println(_fit_decorated(_FIT_PROGRESS_TAG, has_color), " ", msg)
+    return nothing
+end
+
+"""
+    _fit_decorated(versions::Tuple{String, String}, has_color::Bool) -> String
+
+Return the colored version of a string printed by the fitting algorithm, stored as the
+second element of `versions`, if `has_color` is `true`. Otherwise, return the plain version
+stored as its first element.
+"""
+function _fit_decorated(versions::Tuple{String, String}, has_color::Bool)
+    return versions[has_color ? 2 : 1]
 end
