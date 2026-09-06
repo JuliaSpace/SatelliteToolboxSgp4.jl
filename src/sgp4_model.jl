@@ -396,7 +396,11 @@ function sgp4_init!(
 
     # If the orbit period is higher than 225 min., then we must consider the deep space
     # perturbations. This is indicated by selecting the algorithm `:sdp4`.
-    if 2π / T(n₀) >= 225.0
+    #
+    # NOTE: Vallado's implementation [2] evaluates the period using the mean motion after
+    # removing the Kozai correction (`nll₀`), whereas the driver of the original SGP4
+    # technical report [1] used the input mean motion (`n₀`). We follow [2] here.
+    if 2π / nll₀ >= 225
         algorithm = :sdp4
 
         # Initialize the values for the SDP4 (deep space) algorithm.
