@@ -1038,8 +1038,9 @@ function _dsinit!(
 
     # == Initial Configuration =============================================================
 
-    # Drop terms if inclination is smaller than 3 deg.
-    ishq = (i₀ >= 3π / 180) ? true : false
+    # Drop the lunar-solar node term (`sh / sin(i₀)`) if the inclination is closer than 3°
+    # to the equator, either prograde or retrograde, as in Vallado's implementation [2].
+    ishq = T(3π / 180) <= i₀ <= T(π - 3π / 180)
 
     # Do not let `sin_i₀` be 0.
     abs(sin_i₀) < 1e-12 && (sin_i₀ = sign(sin_i₀) * T(1e-12))
