@@ -27,12 +27,19 @@ const _INITIAL_GUESS_T = Union{Nothing, AbstractVector, TLE, OrbitMeanElementsMe
         vv_teme::AbstractVector{Tv};
         kwargs...,
     ) where {S <: Union{TLE, OrbitMeanElementsMessage}, Tjd <: Number, Tv <: AbstractVector} -> S, SMatrix{7, 7, Float64}
+    fit_sgp4_mean_elements(
+        vjd::AbstractVector{Tjd},
+        vr_teme::AbstractVector{Tv},
+        vv_teme::AbstractVector{Tv};
+        kwargs...,
+    ) where {Tjd <: Number, Tv <: AbstractVector} -> OrbitMeanElementsMessage, SMatrix{7, 7, Float64}
 
 Fit a set of SGP4 mean elements represented as an object of type `S`, which can be `TLE` or
 `OrbitMeanElementsMessage`, using the osculating elements represented by a set of position
 vectors `vr_teme` [km] and a set of velocity vectors `vv_teme` [km / s] represented in the
 True-Equator, Mean-Equinox reference frame (TEME) at instants in the array `vjd` [Julian
-Day, UTC].
+Day, UTC]. If `S` is omitted, the mean elements are returned as an
+`OrbitMeanElementsMessage`.
 
 This algorithm was based on **[1]**. It can fail if the least-square iterations diverge.
 
@@ -127,6 +134,17 @@ function fit_sgp4_mean_elements(
     return fit_sgp4_mean_elements!(sgp4d, S, vjd, vr_teme, vv_teme; kwargs...)
 end
 
+function fit_sgp4_mean_elements(
+    vjd::AbstractVector{Tjd},
+    vr_teme::AbstractVector{Tv},
+    vv_teme::AbstractVector{Tv};
+    kwargs...,
+) where {Tjd <: Number, Tv <: AbstractVector}
+    return fit_sgp4_mean_elements(
+        OrbitMeanElementsMessage, vjd, vr_teme, vv_teme; kwargs...
+    )
+end
+
 """
     fit_sgp4_mean_elements!(
         sgp4d::Sgp4Propagator{Tepoch, T},
@@ -142,12 +160,25 @@ end
         Tjd <: Number,
         Tv <: AbstractVector,
     } -> S, SMatrix{7, 7, T}
+    fit_sgp4_mean_elements!(
+        sgp4d::Sgp4Propagator{Tepoch, T},
+        vjd::AbstractVector{Tjd},
+        vr_teme::AbstractVector{Tv},
+        vv_teme::AbstractVector{Tv};
+        kwargs...,
+    ) where {
+        Tepoch <: Number,
+        T <: Number,
+        Tjd <: Number,
+        Tv <: AbstractVector,
+    } -> OrbitMeanElementsMessage, SMatrix{7, 7, T}
 
 Fit a set of SGP4 mean elements for the propagator `sgp4d`, represented as an object of
 type `S`, which can be `TLE` or `OrbitMeanElementsMessage`, using the osculating elements
 represented by a set of position vectors `vr_teme` [km] and a set of velocity vectors
 `vv_teme` [km / s] represented in the True-Equator, Mean-Equinox reference frame (TEME) at
-instants in the array `vjd` [Julian Day, UTC].
+instants in the array `vjd` [Julian Day, UTC]. If `S` is omitted, the mean elements are
+returned as an `OrbitMeanElementsMessage`.
 
 This algorithm was based on **[1]**. It can fail if the least-square iterations diverge.
 
@@ -492,6 +523,18 @@ function fit_sgp4_mean_elements!(
     sgp4_init!(sgp4d, me)
 
     return me, P
+end
+
+function fit_sgp4_mean_elements!(
+    sgp4d::Sgp4Propagator,
+    vjd::AbstractVector{Tjd},
+    vr_teme::AbstractVector{Tv},
+    vv_teme::AbstractVector{Tv};
+    kwargs...,
+) where {Tjd <: Number, Tv <: AbstractVector}
+    return fit_sgp4_mean_elements!(
+        sgp4d, OrbitMeanElementsMessage, vjd, vr_teme, vv_teme; kwargs...
+    )
 end
 
 """

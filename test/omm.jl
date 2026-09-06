@@ -264,6 +264,35 @@ end
         @test ODM.bstar(omm) ≈ tle.bstar atol = 1e-12
     end
 
+    @testset "Default Sink" begin
+        kwargs = (;
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 1000,
+            verbose             = false,
+        )
+
+        # Without a sink type, the mean elements must be returned as an OMM.
+        omm_ref, P_ref = fit_sgp4_mean_elements(
+            OrbitMeanElementsMessage, vjd, vr_teme, vv_teme; kwargs...
+        )
+        omm, P = fit_sgp4_mean_elements(vjd, vr_teme, vv_teme; kwargs...)
+
+        @test omm isa OrbitMeanElementsMessage
+        @test P == P_ref
+        @test ODM.mean_motion(omm) == ODM.mean_motion(omm_ref)
+        @test ODM.mean_anomaly(omm) == ODM.mean_anomaly(omm_ref)
+        @test ODM.covariance_matrix(omm) == ODM.covariance_matrix(omm_ref)
+
+        sgp4d  = Sgp4Propagator{Float64}(SGP4C_WGS84)
+        omm, P = fit_sgp4_mean_elements!(sgp4d, vjd, vr_teme, vv_teme; kwargs...)
+
+        @test omm isa OrbitMeanElementsMessage
+        @test P == P_ref
+        @test sgp4d.epoch ≈ vjd[begin] atol = 1e-9
+    end
+
     @testset "Epoch Update" begin
         new_epoch = DateTime(ODM.epoch(omm_input)) + Day(1)
 
