@@ -262,15 +262,19 @@ function sgp4_init!(
 
     sin_i₀, θ = sincos(T(i₀))
     θ²        = θ * θ
-    θ³        = θ² * θ
-    θ⁴        = θ² * θ²
+
+    # Trigonometric functions of the initial elements used in every propagation step.
+    sin_M₀, cos_M₀ = sincos(T(M₀))
+    cos_ω₀         = cos(T(ω₀))
+    θ³             = θ² * θ
+    θ⁴             = θ² * θ²
 
     # ======================================================================================
 
     # Recover the original mean motion (nll₀) and semi-major axis (all₀) from the input
     # elements.
     aux = (3θ² - 1) / √((1 - e₀²)^3)
-    a₁  = (XKE / T(n₀))^(2 // 3)
+    a₁  = cbrt(XKE / T(n₀))^2
     δ₁  = (3 // 2) * k₂ / (a₁ * a₁) * aux
     a₀  = a₁ * @evalpoly(δ₁, 1, -(1 // 3), -1, -(134 // 81))
     δ₀  = (3 // 2) * k₂ / (T(a₀) * T(a₀)) * aux
@@ -284,7 +288,7 @@ function sgp4_init!(
     #   all₀ = a₀ / (1 - δ₀)
     #
 
-    all₀  = (XKE / nll₀)^(2 // 3)
+    all₀  = cbrt(XKE / nll₀)^2
     all₀² = all₀ * all₀
     all₀⁴ = all₀² * all₀²
 
@@ -357,7 +361,7 @@ function sgp4_init!(
             2η * (1 + T(e₀) * η) + (1 // 2) * (T(e₀) + η³) -
             2k₂ * ξ / (all₀ * aux0) * (
                 3 * (1 - 3θ²) * (1 + (3 // 2) * η² - 2T(e₀) * η - (1 // 2) * T(e₀) * η³) +
-                (3 // 4) * (1 - θ²) * (2η² - T(e₀) * η - T(e₀) * η³) * cos(2T(ω₀))
+                (3 // 4) * (1 - θ²) * (2η² - T(e₀) * η - T(e₀) * η³) * (2cos_ω₀^2 - 1)
             )
         )
 
@@ -451,6 +455,9 @@ function sgp4_init!(
     sgp4d.η         = η
     sgp4d.sin_i₀    = sin_i₀
     sgp4d.θ         = θ
+    sgp4d.sin_M₀    = sin_M₀
+    sgp4d.cos_M₀    = cos_M₀
+    sgp4d.cos_ω₀    = cos_ω₀
     sgp4d.A₃₀       = A₃₀
     sgp4d.k₂        = k₂
     sgp4d.C1        = C1
@@ -605,6 +612,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     η         = sgp4d.η
     sin_i₀    = sgp4d.sin_i₀
     θ         = sgp4d.θ
+    sin_M₀    = sgp4d.sin_M₀
+    cos_M₀    = sgp4d.cos_M₀
+    cos_ω₀    = sgp4d.cos_ω₀
     A₃₀       = sgp4d.A₃₀
     k₂        = sgp4d.k₂
     C1        = sgp4d.C1
@@ -661,14 +671,13 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
             sgp4ds, nll₀, e₀, i₀, ω₀, Ω_k, ω_k, M_k, ∂ω, Δt
         )
 
-        a_k = (XKE / n_k)^(2 // 3) * (1 - C1 * Δt)^2
+        a_k = cbrt(XKE / n_k)^2 * (1 - C1 * Δt)^2
         e_k += -bstar * C4 * Δt
         M_k += (3 // 2) * nll₀ * C1 * Δt^2
 
     elseif algorithm === :sgp4
         # In this case, the perigee is above 220 km and we use the complete set of terms.
-        sin_M₀, cos_M₀ = sincos(M₀)
-        δω = bstar * C3 * cos(ω₀) * Δt
+        δω = bstar * C3 * cos_ω₀ * Δt
 
         # NOTE: `cos(M_k)` is evaluated at the mean anomaly before the δω and δM corrections,
         # whereas `sin(M_k)` in the eccentricity update is evaluated after them. Hence, they
@@ -736,7 +745,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     β = √(1 - e_k^2)
 
     # Compute the angular velocity [rad/min].
-    n_k = XKE / √(a_k^3)
+    n_k = XKE / (a_k * √a_k)
 
     # == Long-Period Periodic Term =========================================================
 

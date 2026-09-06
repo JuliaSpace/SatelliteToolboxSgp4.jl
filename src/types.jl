@@ -140,6 +140,9 @@ mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
     η::T
     sin_i₀::T
     θ::T
+    sin_M₀::T
+    cos_M₀::T
+    cos_ω₀::T
     A₃₀::T
     k₂::T
     C1::T
