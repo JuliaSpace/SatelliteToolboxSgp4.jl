@@ -470,8 +470,8 @@ function fit_sgp4_tle!(
     # Number of states in the input vector.
     num_states = 7
 
-    # Variable to store the last residue.
-    local σ_i_₁
+    # Variable to store the last residue. It is only read from the second iteration on.
+    σ_i_₁ = T(0)
 
     # Variable to store how many iterations the residue increased. This is used to account
     # for divergence.
@@ -485,7 +485,7 @@ function fit_sgp4_tle!(
 
     # We need a reference to the covariance inverse because we will invert it and return
     # after the iterations.
-    local ΣJ′WJ
+    ΣJ′WJ = @SMatrix zeros(T, num_states, num_states)
 
     # Pre-allocate the Dual-typed propagator for ForwardDiff Jacobian computation so it is
     # reused across all iterations instead of being heap-allocated on every call.

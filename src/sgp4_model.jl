@@ -675,6 +675,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
         e_k += -bstar * C4 * Δt
         M_k += (3 // 2) * nll₀ * C1 * Δt^2
 
+        # The mean longitude is computed after applying the lunar-solar periodics.
+        IL = T(0)
+
     elseif algorithm === :sgp4
         # In this case, the perigee is above 220 km and we use the complete set of terms.
         δω = bstar * C3 * cos_ω₀ * Δt
@@ -963,6 +966,7 @@ function _dsinit!(
     xh3    = T(0)
     isynfl = false
     iresfl = false
+    bfact  = T(0)
 
     # == Constants =========================================================================
 
