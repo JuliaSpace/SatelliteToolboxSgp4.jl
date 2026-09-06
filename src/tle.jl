@@ -1107,9 +1107,7 @@ function _create_ad_propagator(sgp4d::Sgp4Propagator{Tepoch, T}) where {Tepoch, 
     sgp4c = sgp4d.sgp4c
 
     ad = Sgp4Propagator{Tepoch, D}()
-    ad.sgp4c = Sgp4Constants{D}(
-        D(sgp4c.R0), D(sgp4c.XKE), D(sgp4c.J2), D(sgp4c.J3), D(sgp4c.J4)
-    )
+    ad.sgp4c = Sgp4Constants{D}(sgp4c)
     ad.sgp4ds = Sgp4DeepSpace{D}()
 
     return ad

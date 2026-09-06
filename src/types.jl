@@ -28,6 +28,15 @@ struct Sgp4Constants{T}
 end
 
 """
+    Sgp4Constants{T}(sgp4c::Sgp4Constants) where {T} -> Sgp4Constants{T}
+
+Convert the SGP4 gravitational constants `sgp4c` to the number type `T`.
+"""
+function Sgp4Constants{T}(sgp4c::Sgp4Constants) where {T}
+    return Sgp4Constants{T}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+end
+
+"""
     struct Sgp4DeepSpace{T}
 
 Store the internal SGP4 variables to account for deep space perturbations.

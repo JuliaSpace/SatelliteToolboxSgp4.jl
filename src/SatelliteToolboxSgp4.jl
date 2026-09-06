@@ -1,13 +1,13 @@
 module SatelliteToolboxSgp4
 
-using Crayons
 using Dates
-using ForwardDiff
 using LinearAlgebra
-using Reexport
 using Printf
+
+using Crayons
+using ForwardDiff
+using Reexport
 using StaticArrays
-using SatelliteToolboxBase
 
 @reexport using SatelliteToolboxBase
 @reexport using SatelliteToolboxTle

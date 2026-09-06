@@ -124,7 +124,7 @@ function sgp4_init(
     T <: Number,
 }
     sgp4d = Sgp4Propagator{Tepoch, T}()
-    sgp4d.sgp4c = Sgp4Constants{T}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+    sgp4d.sgp4c = sgp4c
     sgp4d.sgp4ds = Sgp4DeepSpace{T}()
 
     sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
@@ -154,7 +154,7 @@ function sgp4_init(
     )
 
     sgp4d = Sgp4Propagator{Tepoch, Tprom}()
-    sgp4d.sgp4c = Sgp4Constants{Tprom}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+    sgp4d.sgp4c = Sgp4Constants{Tprom}(sgp4c)
     sgp4d.sgp4ds = Sgp4DeepSpace{Tprom}()
 
     sgp4_init!(sgp4d, epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar)
@@ -567,7 +567,7 @@ function sgp4(
         typeof(M₀),
         typeof(bstar),
     )
-    sgp4c_p = Sgp4Constants{Tprom}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
+    sgp4c_p = Sgp4Constants{Tprom}(sgp4c)
 
     sgp4d = sgp4_init(epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar; sgp4c = sgp4c_p)
     r_teme, v_teme = sgp4!(sgp4d, Δt)
@@ -597,13 +597,6 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     ω₀        = sgp4d.ω₀
     M₀        = sgp4d.M₀
     bstar     = sgp4d.bstar
-    a_k       = sgp4d.a_k
-    e_k       = sgp4d.e_k
-    i_k       = sgp4d.i_k
-    Ω_k       = sgp4d.Ω_k
-    ω_k       = sgp4d.ω_k
-    M_k       = sgp4d.M_k
-    n_k       = sgp4d.n_k
     all₀      = sgp4d.all₀
     nll₀      = sgp4d.nll₀
     QOMS2T    = sgp4d.QOMS2T
@@ -631,7 +624,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     R0  = sgp4c.R0
     XKE = sgp4c.XKE
 
-    # After unpacking sgp4d, we have two sets of orbit elements:
+    # This function works with two sets of orbit elements:
     #
     #   (n₀, e₀, i₀, Ω₀, ω₀, M₀),
     #
@@ -639,9 +632,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     #
     #   (n_k, e_k, i_k, Ω_k, ω_k, M_k).
     #
-    # The first are those initial elements from the orbit defined in `sgp4_init` function.
-    # The second are the current elements. During this functions, the second set is updated
-    # by adding the many effects considered in SGP4.
+    # The first are the initial elements of the orbit defined in `sgp4_init!`. The second
+    # are the current elements, which are obtained by adding the many effects considered in
+    # SGP4 to the initial ones.
 
     # Time elapsed since epoch.
     #
@@ -650,16 +643,9 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     #   https://github.com/JuliaLang/julia/issues/27355
     Δt = T(t)
 
-    # Initialization of the current elements with the values of the epoch.
-    n_k = nll₀
-    a_k = all₀
-    e_k = e₀
-    i_k = i₀
-    Ω_k = Ω₀
-    ω_k = ω₀
-    M_k = M₀
-
-    # Auxiliary variables to improve code performance.
+    # The inclination is only modified by the deep space perturbations. Hence, we initialize
+    # it here with the epoch value together with its sine, which is used in many terms.
+    i_k     = i₀
     sin_i_k = sin_i₀
 
     # == Secular Effects of Atmospheric Drag and Gravitation ===============================
@@ -894,30 +880,19 @@ functions `_dsper` and `_dssec!`.
 - `∂Ω::T`: Time-derivative of the RAAN [rad/min].
 """
 function _dsinit!(
-    sgp4ds::Sgp4DeepSpace{ST},
-    epoch::Tepoch,
-    nll₀::NT,
-    all₀::AT,
-    e₀::ET,
-    i₀::IT,
-    Ω₀::OT,
-    ω₀::WT,
-    M₀::MT,
-    ∂M::MT,
-    ∂ω::WT,
-    ∂Ω::OT,
-) where {
-    Tepoch <: Number,
-    NT <: Number,
-    AT <: Number,
-    ET <: Number,
-    IT <: Number,
-    OT <: Number,
-    WT <: Number,
-    MT <: Number,
-    ST <: Number,
-}
-    T = ST
+    sgp4ds::Sgp4DeepSpace{T},
+    epoch::Number,
+    nll₀::Number,
+    all₀::Number,
+    e₀::Number,
+    i₀::Number,
+    Ω₀::Number,
+    ω₀::Number,
+    M₀::Number,
+    ∂M::Number,
+    ∂ω::Number,
+    ∂Ω::Number,
+) where {T <: Number}
 
     # Initialize the variables that will be stored in `sgp4ds`.
     #
@@ -1142,37 +1117,37 @@ function _dsinit!(
         xh2  = -2s2 * z22
         xh3  = -2s2 * (z23 - z21)
 
-        ls == 1 && break
-
-        # == Do Lunar Terms ================================================================
-
-        sse   = se
-        ssi   = si
-        ssl   = sl
-        ssh   = shdq
-        ssg   = sgh - cos_i₀ * ssh
-        se2   = ee2
-        si2   = xi2
-        sl2   = xl2
-        sgh2  = xgh2
-        sh2   = xh2
-        se3   = e3
-        si3   = xi3
-        sl3   = xl3
-        sgh3  = xgh3
-        sh3   = xh3
-        sl4   = xl4
-        sgh4  = xgh4
-        zcosg = zcosgl
-        zsing = zsingl
-        zcosi = zcosil
-        zsini = zsinil
-        zcosh = cos_Ω₀ * zcoshl + sin_Ω₀ * zsinhl
-        zsinh = sin_Ω₀ * zcoshl - cos_Ω₀ * zsinhl
-        zn    = ZNL
-        cc    = C1L
-        ze    = ZEL
-        zmo   = zmol
+        # After the first pass, save the solar terms and switch the constants to compute
+        # the lunar terms in the second pass.
+        if ls == 0
+            sse   = se
+            ssi   = si
+            ssl   = sl
+            ssh   = shdq
+            ssg   = sgh - cos_i₀ * ssh
+            se2   = ee2
+            si2   = xi2
+            sl2   = xl2
+            sgh2  = xgh2
+            sh2   = xh2
+            se3   = e3
+            si3   = xi3
+            sl3   = xl3
+            sgh3  = xgh3
+            sh3   = xh3
+            sl4   = xl4
+            sgh4  = xgh4
+            zcosg = zcosgl
+            zsing = zsingl
+            zcosi = zcosil
+            zsini = zsinil
+            zcosh = cos_Ω₀ * zcoshl + sin_Ω₀ * zsinhl
+            zsinh = sin_Ω₀ * zcoshl - cos_Ω₀ * zsinhl
+            zn    = ZNL
+            cc    = C1L
+            ze    = ZEL
+            zmo   = zmol
+        end
     end
 
     sse += se
