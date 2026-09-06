@@ -1,6 +1,43 @@
 SatelliteToolboxSgp4.jl Changelog
 =================================
 
+Version 3.0.0
+-------------
+
+- ![BREAKING][badge-breaking] Remove the fields `AE`, `θ²`, and `k₄` from
+  `Sgp4Propagator` and the fields `xnddt`, `xndot`, `xldot`, `pe`, `pinc`, `pgh`, `ph`,
+  and `pl` from the internal structure `Sgp4DeepSpace`, since they were never read after
+  being stored. The fields `sin_M₀`, `cos_M₀`, and `cos_ω₀` were added to
+  `Sgp4Propagator` to avoid evaluating trigonometric functions of the initial elements in
+  every propagation. Hence, the positional constructor of `Sgp4Propagator` changed.
+- ![Feature][badge-feature] The SGP4 propagator can now be initialized using an Orbit
+  Mean-Elements Message (OMM) from **SatelliteToolboxOrbitDataMessages.jl** through the
+  new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`.
+- ![Enhancement][badge-enhancement] Replace **Crayons.jl** with **StyledStrings.jl** to
+  decorate the output of the TLE fitting algorithm.
+- ![Enhancement][badge-enhancement] The progress line of the TLE fitting algorithm is
+  updated in place only when `stdout` supports colors. Otherwise, each iteration prints a
+  new line, keeping the output readable when it is redirected to a file.
+- ![Enhancement][badge-enhancement] Improve the performance of `sgp4_init!` and `sgp4!` by
+  using `cbrt` to compute the semi-major axis and by precomputing the trigonometric
+  functions of the initial elements.
+- ![Enhancement][badge-enhancement] Simplify the propagation code by removing dead code and
+  by adding a converting constructor to `Sgp4Constants`.
+- ![Enhancement][badge-enhancement] Allow **SatelliteToolboxBase.jl** v2.
+- ![Bugfix][badge-bugfix] Fix the selection between the SGP4 and SDP4 algorithms, which
+  compared the 225 min period threshold against the Kozai mean motion instead of the mean
+  motion without the Kozai correction, as in Vallado's implementation.
+- ![Bugfix][badge-bugfix] Fix a division by zero in the long-period periodic term for
+  orbits with 180° inclination, which returned NaN position and velocity vectors.
+- ![Bugfix][badge-bugfix] Fix the deep space initialization, which did not drop the
+  lunar-solar node term for retrograde orbits with inclination above 177°, as in Vallado's
+  implementation.
+- ![Bugfix][badge-bugfix] Fix the clamp that keeps `sin(i₀)` away from zero in the deep
+  space initialization, which had no effect when the inclination was exactly 0 or π.
+- ![Bugfix][badge-bugfix] Fix `fit_sgp4_tle!`, which threw `UndefVarError` when
+  `max_iterations` was lower than 1. An `ArgumentError` is now thrown.
+- ![Bugfix][badge-bugfix] Fix wrong and stale comments in the SGP4 model.
+
 Version 2.5.0
 -------------
 
