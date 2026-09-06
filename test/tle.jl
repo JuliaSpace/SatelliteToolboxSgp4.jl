@@ -638,6 +638,10 @@
         @test_throws ArgumentError fit_sgp4_tle(
             vjd, vr_teme, vv_teme; initial_guess = [1, 2, 3, 4, 5, 6]
         )
+
+        # == Invalid Maximum Number of Iterations ==========================================
+
+        @test_throws ArgumentError fit_sgp4_tle(vjd, vr_teme, vv_teme; max_iterations = 0)
     end
 end
 

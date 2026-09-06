@@ -391,6 +391,10 @@ function fit_sgp4_tle!(
         throw(ArgumentError("The initial guess state vector must have 7 elements."))
     end
 
+    if max_iterations < 1
+        throw(ArgumentError("The maximum number of iterations must be at least 1."))
+    end
+
     # Check if stdout supports colors.
     has_color = get(stdout, :color, false)::Bool
     cd = has_color ? _D : ""
