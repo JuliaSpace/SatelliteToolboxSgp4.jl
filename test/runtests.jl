@@ -7,6 +7,7 @@ using JET
 using Printf
 using SatelliteToolboxOrbitDataMessages
 using SatelliteToolboxTle
+using StaticArrays
 using SatelliteToolboxSgp4
 
 @testset "SGP4 Propagator" verbose = true begin
@@ -37,7 +38,6 @@ if isempty(VERSION.prerelease)
     using AllocCheck
 
     using ForwardDiff
-    using StaticArrays
 
     @testset "Performance Tests" verbose = true begin
         include("./performance.jl")
