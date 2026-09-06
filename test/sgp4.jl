@@ -315,12 +315,17 @@ end
     str = sprint(show, MIME("text/plain"), sgp4d)
 
     @test occursin("Sgp4Propagator{Float64, Float64} (SGP4):", str)
-    @test occursin("Epoch :   2.46003e6 (2023-03-24T16:28:40.388)", str)
-    @test occursin("Mean motion :  14.40814394 rev / day", str)
-    @test occursin("Eccentricity :   0.00012470", str)
-    @test occursin("Inclination :  98.43040000 °", str)
-    @test occursin("B* :   4.3e-5     1 / er", str)
-    @test occursin("Last propagation :  10.0        min", str)
+    @test occursin("Epoch :    2.46003e6 (2023-03-24T16:28:40.388)", str)
+    @test occursin("R₀ : 6378.14       km", str)
+    @test occursin("XKE :    0.0743669  er^(3/2) / min", str)
+    @test occursin("J₂ :    0.00108263", str)
+    @test occursin("J₄ :   -1.61099e-6", str)
+    @test occursin("Semi-major axis : 7133.94631434 km", str)
+    @test occursin("Eccentricity :    0.00012470", str)
+    @test occursin("Inclination :   98.43040000 °", str)
+    @test occursin("Mean motion :   14.40814394 rev / day", str)
+    @test occursin("B* :    4.3e-5     1 / er", str)
+    @test occursin("Last propagation :   10.0        min", str)
 
     # The labels must be highlighted when the output supports colors.
     str_color = sprint(show, MIME("text/plain"), sgp4d; context = :color => true)

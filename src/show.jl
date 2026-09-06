@@ -24,29 +24,60 @@ function Base.show(io::IO, ::MIME"text/plain", sgp4d::Sgp4Propagator)
         return nothing
     end
 
+    sgp4c = sgp4d.sgp4c
+
     labels = (
-        "Mean motion",
+        "R₀",
+        "XKE",
+        "J₂",
+        "J₃",
+        "J₄",
+        "Semi-major axis",
         "Eccentricity",
         "Inclination",
         "RAAN",
         "Arg. of perigee",
         "Mean anomaly",
+        "Mean motion",
         "B*",
         "Last propagation",
     )
 
+    # The semi-major axis is recovered from the mean motion as in the SGP4 theory, and it is
+    # printed in the same position as in the other propagators of the ecosystem.
     values = (
-        _sgp4_show_number(720 * sgp4d.n₀ / π),
+        SatelliteToolboxBase.compact_string(io, sgp4c.R0),
+        SatelliteToolboxBase.compact_string(io, sgp4c.XKE),
+        SatelliteToolboxBase.compact_string(io, sgp4c.J2),
+        SatelliteToolboxBase.compact_string(io, sgp4c.J3),
+        SatelliteToolboxBase.compact_string(io, sgp4c.J4),
+        _sgp4_show_number((sgp4c.XKE / sgp4d.n₀)^(2 // 3) * sgp4c.R0),
         _sgp4_show_number(sgp4d.e₀),
         _sgp4_show_number(rad2deg(sgp4d.i₀)),
         _sgp4_show_number(rad2deg(sgp4d.Ω₀)),
         _sgp4_show_number(rad2deg(sgp4d.ω₀)),
         _sgp4_show_number(rad2deg(sgp4d.M₀)),
+        _sgp4_show_number(720 * sgp4d.n₀ / π),
         SatelliteToolboxBase.compact_string(io, sgp4d.bstar),
         SatelliteToolboxBase.compact_string(io, sgp4d.Δt),
     )
 
-    units = ("rev / day", "", "°", "°", "°", "°", "1 / er", "min")
+    units = (
+        "km",
+        "er^(3/2) / min",
+        "",
+        "",
+        "",
+        "km",
+        "",
+        "°",
+        "°",
+        "°",
+        "°",
+        "rev / day",
+        "1 / er",
+        "min",
+    )
 
     SatelliteToolboxBase.print_elements(
         io, _sgp4_propagator_name(sgp4d), sgp4d.epoch, labels, values, units
