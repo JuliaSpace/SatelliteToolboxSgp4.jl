@@ -2,8 +2,8 @@ name = "SatelliteToolboxSgp4"
 uuid = "ba14ac17-bfc9-4710-a76f-b32930ef2339"
 license = "MIT"
 desc = "The SGP4/SDP4 orbit propagator for Julia."
-authors = ["Ronan Arraes Jardim Chagas <ronisbr@gmail.com>"]
 version = "2.5.0"
+authors = ["Ronan Arraes Jardim Chagas <ronisbr@gmail.com>"]
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -26,7 +26,7 @@ DelimitedFiles = "1.9"
 ForwardDiff = "1"
 JET = "0.9, 0.10, 0.11, 0.12"
 LinearAlgebra = "1"
-NanoDates = "1"
+NanoDates = "1, 2"
 Pkg = "1.10"
 PrecompileTools = "1"
 Printf = "1"
