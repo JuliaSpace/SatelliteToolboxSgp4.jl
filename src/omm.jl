@@ -210,7 +210,7 @@ message does not contain the required information.
     together with the gravitational coefficient.
 """
 function _omm_sgp4_elements(omm::OrbitMeanElementsMessage)
-    theory = ODM.mean_element_theory(omm)
+    theory = omm.mean_element_theory
 
     theory != "SGP4" && throw(
         ArgumentError(
@@ -220,11 +220,11 @@ function _omm_sgp4_elements(omm::OrbitMeanElementsMessage)
 
     # Obtain the mean motion [rev/day], which can be provided directly or computed from the
     # semi-major axis and the gravitational coefficient.
-    mean_motion = ODM.mean_motion(omm)
+    mean_motion = omm.mean_motion
 
     if isnothing(mean_motion)
-        a  = ODM.semi_major_axis(omm)
-        GM = ODM.GM(omm)
+        a  = omm.semi_major_axis
+        GM = omm.GM
 
         (isnothing(a) || isnothing(GM)) && throw(
             ArgumentError(
@@ -238,16 +238,16 @@ function _omm_sgp4_elements(omm::OrbitMeanElementsMessage)
 
     # The drag term is optional in the OMM. If it is absent, we assume a drag-free
     # propagation.
-    bstar = something(ODM.bstar(omm), 0.0)
+    bstar = something(omm.bstar, 0.0)
 
     return (
         _omm_epoch_to_julian_day(omm),
         mean_motion,
-        ODM.eccentricity(omm),
-        ODM.inclination(omm),
-        ODM.raan(omm),
-        ODM.arg_of_pericenter(omm),
-        ODM.mean_anomaly(omm),
+        omm.eccentricity,
+        omm.inclination,
+        omm.raan,
+        omm.arg_of_pericenter,
+        omm.mean_anomaly,
         bstar,
     )
 end
@@ -259,7 +259,7 @@ Convert the epoch of the mean elements in the Orbit Mean-Elements Message `omm` 
 Julian Day in the time system of the message, keeping the sub-millisecond information.
 """
 function _omm_epoch_to_julian_day(omm::OrbitMeanElementsMessage)
-    epoch = ODM.epoch(omm)
+    epoch = omm.epoch
 
     # The `DateTime` conversion truncates the epoch to milliseconds. Hence, we must add the
     # remaining microseconds and nanoseconds provided by the `NanoDate`.

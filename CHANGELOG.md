@@ -46,6 +46,10 @@ Version 3.0.0
   Mean-Elements Message (OMM) from **SatelliteToolboxOrbitDataMessages.jl** through the
   new methods `sgp4_init(omm)`, `sgp4_init!(sgp4d, omm)`, and `sgp4(Δt, omm)`. The
   package **SatelliteToolboxOrbitDataMessages.jl** is now re-exported.
+- ![BREAKING][badge-breaking] The package now requires **SatelliteToolboxTle.jl** v2 and
+  **SatelliteToolboxOrbitDataMessages.jl** v0.2, whose breaking changes (e.g. the removal
+  of the accessor module `ODM` in favor of the message properties) propagate to the
+  re-exported API.
 - ![Feature][badge-feature] Add the public, non-exported predicate `sgp4_is_initialized`,
   which tells whether an `Sgp4Propagator` has been initialized by `sgp4_init!`.
 - ![Feature][badge-feature] Add `show` methods to `Sgp4Propagator`, which print the
