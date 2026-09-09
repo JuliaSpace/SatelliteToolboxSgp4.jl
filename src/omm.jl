@@ -332,8 +332,9 @@ function _build_mean_elements(
 )
     n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar = _mean_state_vector_to_elements(sv, sgp4c)
 
-    # Assemble the covariance matrix section, if requested.
-    P = covariance
+    # Assemble the covariance matrix section, if requested. The message stores the elements
+    # as `Float64`, so the matrix is converted here.
+    P = isnothing(covariance) ? nothing : SMatrix{6, 6, Float64}(covariance)
 
     covariance_matrix =
         isnothing(P) ? nothing :

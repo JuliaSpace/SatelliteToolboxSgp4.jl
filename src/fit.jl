@@ -1239,7 +1239,17 @@ function _mean_state_vector_to_elements(sv::SVector{7}, sgp4c::Sgp4Constants)
     # Obtain the mean motion [rad/min] and convert it to [rev/day].
     n₀ = sgp4c.XKE / √(a₀^3)
 
-    return (720n₀ / π, e₀, i₀, Ω₀, ω₀, M₀, sv[7])
+    # The TLE and the OMM store the elements as `Float64`. Hence, we convert them here so
+    # that the fitting also works with other number types, e.g. `Float32`.
+    return (
+        Float64(720n₀ / π),
+        Float64(e₀),
+        Float64(i₀),
+        Float64(Ω₀),
+        Float64(ω₀),
+        Float64(M₀),
+        Float64(sv[7]),
+    )
 end
 
 """
