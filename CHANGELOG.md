@@ -43,6 +43,13 @@ Version 3.0.0
   `total_rmse`. Previously, the caller could not tell whether the iterations converged or
   stopped by reaching `max_iterations`. The epoch update functions keep returning only the
   mean elements.
+- ![Feature][badge-feature] The functions `fit_sgp4_mean_elements` and
+  `update_sgp4_mean_elements_epoch` accept the keyword `sgp4c` to select the constants of
+  the propagator they allocate, as `sgp4_init` and `sgp4`. The keyword
+  `mean_elements_epoch` of the fitting functions now accepts a `DateTime`, as the argument
+  `new_epoch` of the epoch update functions. The epoch update functions also accept the
+  keywords `jacobian_method`, `jacobian_perturbation`, and `jacobian_perturbation_tol`,
+  which were only available in the fitting functions.
 - ![BREAKING][badge-breaking] Remove the fields `AE`, `θ²`, and `k₄` from
   `Sgp4Propagator` and the fields `xnddt`, `xndot`, `xldot`, `pe`, `pinc`, `pgh`, `ph`,
   and `pl` from the internal structure `Sgp4DeepSpace`, since they were never read after

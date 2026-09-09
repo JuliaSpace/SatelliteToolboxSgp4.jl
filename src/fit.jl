@@ -53,15 +53,19 @@ This algorithm was based on **[1]**. It can fail if the least-square iterations 
 
 !!! note
 
-    This algorithm version will allocate a new SGP4 propagator with the default constants
-    `SGP4C_WGS84`. If another set of constants is required, use the function
-    [`fit_sgp4_mean_elements!`](@ref) instead.
+    This algorithm version will allocate a new SGP4 propagator with the constants `sgp4c`.
+    If the allocation must be avoided, use the function [`fit_sgp4_mean_elements!`](@ref)
+    instead.
 
 See also: [`fit_sgp4_mean_elements!`](@ref), [`update_sgp4_mean_elements_epoch`](@ref).
 
 # Keywords
 
-See [`fit_sgp4_mean_elements!`](@ref).
+- `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)),
+    whose number type `T` is used in the fitting.
+    (**Default**: `SGP4C_WGS84`)
+
+The other keywords are the same as in [`fit_sgp4_mean_elements!`](@ref).
 
 # Returns
 
@@ -140,9 +144,10 @@ function fit_sgp4_mean_elements(
     vjd::AbstractVector{Tjd},
     vr_teme::AbstractVector{Tv},
     vv_teme::AbstractVector{Tv};
+    sgp4c::Sgp4Constants = SGP4C_WGS84,
     kwargs...,
 ) where {S <: _SGP4_MEAN_ELEMENTS, Tjd <: Number, Tv <: AbstractVector}
-    sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
+    sgp4d = Sgp4Propagator(sgp4c)
     return fit_sgp4_mean_elements!(sgp4d, S, vjd, vr_teme, vv_teme; kwargs...)
 end
 
@@ -240,7 +245,8 @@ See also: [`fit_sgp4_mean_elements`](@ref), [`update_sgp4_mean_elements_epoch!`]
     (**Default**: 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default**: 50)
-- `mean_elements_epoch::Number`: Epoch of the fitted mean elements [Julian Day, UTC].
+- `mean_elements_epoch::Union{Number, DateTime}`: Epoch of the fitted mean elements,
+    represented by a Julian Day [UTC] or a `DateTime` [UTC].
     (**Default**: `vjd[end]`)
 - `template::Union{Nothing, S, NamedTuple}`: Source of the metadata of the output. If it
     is an object of type `S`, its metadata is copied, e.g. the satellite name and number of
@@ -382,19 +388,19 @@ function fit_sgp4_mean_elements!(
     vjd::AbstractVector{Tjd},
     vr_teme::AbstractVector{Tv},
     vv_teme::AbstractVector{Tv};
-    atol::Number                            = 2e-4,
-    rtol::Number                            = 2e-4,
-    estimate_bstar::Bool                    = true,
-    include_covariance::Bool                = true,
-    initial_guess::_INITIAL_GUESS_T         = nothing,
-    jacobian_method::AbstractJacobianMethod = FiniteDiffJacobian(),
-    jacobian_perturbation::Number           = 1e-3,
-    jacobian_perturbation_tol::Number       = 1e-7,
-    max_iterations::Int                     = 50,
-    mean_elements_epoch::Number             = vjd[end],
-    template::Union{Nothing, S, NamedTuple} = nothing,
-    verbose::Bool                           = true,
-    weight_vector::AbstractVector           = SVector{6, Bool}(true, true, true, true, true, true),
+    atol::Number                                 = 2e-4,
+    rtol::Number                                 = 2e-4,
+    estimate_bstar::Bool                         = true,
+    include_covariance::Bool                     = true,
+    initial_guess::_INITIAL_GUESS_T              = nothing,
+    jacobian_method::AbstractJacobianMethod      = FiniteDiffJacobian(),
+    jacobian_perturbation::Number                = 1e-3,
+    jacobian_perturbation_tol::Number            = 1e-7,
+    max_iterations::Int                          = 50,
+    mean_elements_epoch::Union{Number, DateTime} = vjd[end],
+    template::Union{Nothing, S, NamedTuple}      = nothing,
+    verbose::Bool                                = true,
+    weight_vector::AbstractVector                = SVector{6, Bool}(true, true, true, true, true, true),
 ) where {
     Tepoch <: Number,
     T <: Number,
@@ -404,6 +410,9 @@ function fit_sgp4_mean_elements!(
 }
     # Unpack.
     sgp4c = sgp4d.sgp4c
+
+    # Desired epoch of the mean elements [Julian Day].
+    desired_epoch = _julian_day(mean_elements_epoch)
 
     # Number of available measurements.
     num_measurements = length(vjd)
@@ -471,7 +480,7 @@ function fit_sgp4_mean_elements!(
     # == Initial Guess of the Mean Elements ================================================
 
     if initial_guess isa _SGP4_MEAN_ELEMENTS
-        epoch = mean_elements_epoch
+        epoch = desired_epoch
 
         verbose && _fit_print_action(
             has_color,
@@ -491,12 +500,12 @@ function fit_sgp4_mean_elements!(
     elseif initial_guess isa AbstractVector
         # In this case, the user must ensure that the provided mean elements are related to
         # the selected `mean_elements_epoch`.
-        epoch = mean_elements_epoch
+        epoch = desired_epoch
         x₁    = SVector{7, T}(initial_guess...)
 
     else
         # In this case, we must find the closest osculating vector to the desired epoch.
-        id = _closest_measurement(vjd, mean_elements_epoch)
+        id = _closest_measurement(vjd, desired_epoch)
 
         epoch = vjd[id]
         x₁    = SVector{7, T}(vr_teme[id]..., vv_teme[id]..., estimate_bstar ? T(0.00001) : T(0))
@@ -527,14 +536,14 @@ function fit_sgp4_mean_elements!(
     # == Epoch Update ======================================================================
 
     # Update the epoch of the fitted mean elements to match the desired one.
-    if abs(epoch - mean_elements_epoch) > 0.001 / 86400
+    if abs(epoch - desired_epoch) > 0.001 / 86400
         verbose && _fit_print_action(
             has_color,
             "Updating the epoch of the fitted mean elements to match the desired one.",
         )
 
-        x₂    = _update_sgp4_mean_state_vector!(sgp4d, x₂, epoch, mean_elements_epoch; update_kwargs...)
-        epoch = mean_elements_epoch
+        x₂    = _update_sgp4_mean_state_vector!(sgp4d, x₂, epoch, desired_epoch; update_kwargs...)
+        epoch = desired_epoch
     end
 
     # == Output ============================================================================
@@ -580,8 +589,8 @@ Update the epoch of the SGP4 mean elements `me`, which can be a `TLE` or an
 
 !!! note
 
-    This algorithm version will allocate a new SGP4 propagator with the default constants
-    `SGP4C_WGS84`. If another set of constants is required, use the function
+    This algorithm version will allocate a new SGP4 propagator with the constants `sgp4c`.
+    If the allocation must be avoided, use the function
     [`update_sgp4_mean_elements_epoch!`](@ref) instead.
 
 This function uses the following algorithm to update the epoch:
@@ -600,6 +609,9 @@ which is removed.
 
 # Keywords
 
+- `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)),
+    whose number type is used in the fitting.
+    (**Default**: `SGP4C_WGS84`)
 - `atol::Number`: Tolerance for the residue absolute value. If, at any iteration, the
     residue is lower than `atol`, the computation loop stops.
     (**Default**: 2e-4)
@@ -607,6 +619,19 @@ which is removed.
     iteration, the relative difference between the residues in two consecutive iterations is
     lower than `rtol`, the computation loop stops.
     (**Default**: 2e-4)
+- `jacobian_method::AbstractJacobianMethod`: Method used to compute the Jacobian matrix.
+    Use `FiniteDiffJacobian()` for finite differences or `ForwardDiffJacobian()` for
+    **ForwardDiff.jl** automatic differentiation.
+    (**Default**: `FiniteDiffJacobian()`)
+- `jacobian_perturbation::Number`: Initial state perturbation to compute the
+    finite-difference when calculating the Jacobian matrix. Only used with
+    `FiniteDiffJacobian()`.
+    (**Default**: 1e-3)
+- `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
+    the Jacobian matrix. If the computed perturbation is lower than
+    `jacobian_perturbation_tol`, we increase it until its absolute value is higher than
+    `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
+    (**Default**: 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default**: 50)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
@@ -669,9 +694,12 @@ TLE:
 ```
 """
 function update_sgp4_mean_elements_epoch(
-    me::_SGP4_MEAN_ELEMENTS, new_epoch::Union{Number, DateTime}; kwargs...
+    me::_SGP4_MEAN_ELEMENTS,
+    new_epoch::Union{Number, DateTime};
+    sgp4c::Sgp4Constants = SGP4C_WGS84,
+    kwargs...,
 )
-    sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
+    sgp4d = Sgp4Propagator(sgp4c)
     return update_sgp4_mean_elements_epoch!(sgp4d, me, new_epoch; kwargs...)
 end
 
@@ -693,8 +721,8 @@ Update the epoch of the SGP4 mean elements `me`, which can be a `TLE` or an
     by the function.
 
 For more information about the algorithm and the keywords, see
-[`update_sgp4_mean_elements_epoch`](@ref). The function can fail if the least-square
-iterations diverge.
+[`update_sgp4_mean_elements_epoch`](@ref), except for `sgp4c`, since the constants are
+those in `sgp4d`. The function can fail if the least-square iterations diverge.
 
 # Extended help
 
@@ -704,21 +732,16 @@ iterations diverge.
 - `Sgp4FitDivergenceError`: If the least-square iterations diverge.
 """
 function update_sgp4_mean_elements_epoch!(
-    sgp4d::Sgp4Propagator, me::_SGP4_MEAN_ELEMENTS, new_epoch::DateTime; kwargs...
-)
-    return update_sgp4_mean_elements_epoch!(
-        sgp4d, me, datetime2julian(new_epoch); kwargs...
-    )
-end
-
-function update_sgp4_mean_elements_epoch!(
     sgp4d::Sgp4Propagator{Tepoch, T},
     me::S,
-    new_epoch::Number;
-    atol::Number        = 2e-4,
-    rtol::Number        = 2e-4,
-    max_iterations::Int = 50,
-    verbose::Bool       = true,
+    new_epoch::Union{Number, DateTime};
+    atol::Number                            = 2e-4,
+    rtol::Number                            = 2e-4,
+    jacobian_method::AbstractJacobianMethod = FiniteDiffJacobian(),
+    jacobian_perturbation::Number           = 1e-3,
+    jacobian_perturbation_tol::Number       = 1e-7,
+    max_iterations::Int                     = 50,
+    verbose::Bool                           = true,
 ) where {Tepoch <: Number, T <: Number, S <: _SGP4_MEAN_ELEMENTS}
     if max_iterations < 1
         throw(ArgumentError("The maximum number of iterations must be at least 1."))
@@ -726,6 +749,9 @@ function update_sgp4_mean_elements_epoch!(
 
     # Unpack.
     sgp4c = sgp4d.sgp4c
+
+    # New epoch of the mean elements [Julian Day].
+    epoch = _julian_day(new_epoch)
 
     # Check if `stdout` supports colors. This flag also selects whether the progress line
     # is updated in place using terminal escape sequences.
@@ -738,9 +764,12 @@ function update_sgp4_mean_elements_epoch!(
         sgp4d,
         _mean_state_vector(me; sgp4c = sgp4c),
         _mean_elements_epoch(me),
-        new_epoch;
+        epoch;
         atol,
         rtol,
+        jacobian_method,
+        jacobian_perturbation,
+        jacobian_perturbation_tol,
         max_iterations,
         verbose,
         has_color,
@@ -748,7 +777,7 @@ function update_sgp4_mean_elements_epoch!(
 
     # Build the mean elements keeping the metadata of the input.
     new_me = _build_mean_elements(
-        S, x, new_epoch; sgp4c = sgp4c, template = me, covariance = nothing
+        S, x, epoch; sgp4c = sgp4c, template = me, covariance = nothing
     )
 
     # Initialize the propagator with the updated mean elements.
@@ -1133,6 +1162,14 @@ function _check_template(template::NamedTuple, reserved::Tuple)
 
     return nothing
 end
+
+"""
+    _julian_day(epoch::Union{Number, DateTime}) -> Number
+
+Return the `epoch` as a Julian Day, converting it if it is a `DateTime` [UTC].
+"""
+_julian_day(epoch::Number) = epoch
+_julian_day(epoch::DateTime) = datetime2julian(epoch)
 
 """
     _closest_measurement(vjd::AbstractVector, epoch::Number) -> Int

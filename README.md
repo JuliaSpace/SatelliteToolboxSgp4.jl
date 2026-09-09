@@ -137,12 +137,16 @@ covariance matrix section of the message, unless the keyword `include_covariance
 `false`.
 
 > **Note**
-> This algorithm version will allocate a new SGP4 propagator with the default constants
-> `SGP4C_WGS84`. If another set of constants are required or if the user wants to reduce the
-> allocations, use the function `fit_sgp4_mean_elements!` instead.
+> This algorithm version will allocate a new SGP4 propagator with the constants selected by
+> the keyword `sgp4c`. If the user wants to reduce the allocations, use the function
+> `fit_sgp4_mean_elements!` instead.
 
 The following keywords are available:
 
+- `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants, whose number type `T` is used in
+    the fitting. Only available in `fit_sgp4_mean_elements`, since
+    `fit_sgp4_mean_elements!` uses the constants of the propagator.
+    (**Default**: `SGP4C_WGS84`)
 - `atol::Number`: Tolerance for the residue absolute value. If the residue is lower than
     `atol` at any iteration, the computation loop stops.
     (**Default** = 2e-4)
@@ -176,9 +180,10 @@ The following keywords are available:
     `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default** = 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
-    (**Default** = 50)
-- `mean_elements_epoch::Number`: Epoch for the fitted mean elements.
-    (**Default** = vjd[end])
+    (**Default**: 50)
+- `mean_elements_epoch::Union{Number, DateTime}`: Epoch for the fitted mean elements,
+    represented by a Julian Day [UTC] or a `DateTime` [UTC].
+    (**Default**: vjd[end])
 - `template::Union{Nothing, S, NamedTuple}`: Source of the metadata of the output. If it
     is an object of type `S`, its metadata is copied, e.g. the satellite name and number of
     a `TLE` or the header, the metadata, and the TLE-related parameters of an
@@ -290,19 +295,36 @@ which returns a new object of the same type obtained by updating the epoch of `m
 `new_epoch`.
 
 > **Note**
-> This algorithm version will allocate a new SGP4 propagator with the default constants
-> `SGP4C_WGS84`. If another set of constants are required or if the user wants to reduce the
-> allocations, use the function `update_sgp4_mean_elements_epoch!` instead.
+> This algorithm version will allocate a new SGP4 propagator with the constants selected by
+> the keyword `sgp4c`. If the user wants to reduce the allocations, use the function
+> `update_sgp4_mean_elements_epoch!` instead.
 
 The following keywords are available:
 
+- `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants, whose number type is used in the
+    fitting. Only available in `update_sgp4_mean_elements_epoch`, since
+    `update_sgp4_mean_elements_epoch!` uses the constants of the propagator.
+    (**Default**: `SGP4C_WGS84`)
 - `atol::Number`: Tolerance for the residue absolute value. If, at any iteration, the
     residue is lower than `atol`, the computation loop stops.
     (**Default** = 2e-4)
 - `rtol::Number`: Tolerance for the relative difference between the residues. If, at any
     iteration, the relative difference between the residues in two consecutive iterations is
     lower than `rtol`, the computation loop stops.
-    (**Default** = 2e-4)
+    (**Default**: 2e-4)
+- `jacobian_method::AbstractJacobianMethod`: Method used to compute the Jacobian matrix.
+    Use `FiniteDiffJacobian()` for finite differences or `ForwardDiffJacobian()` for
+    `ForwardDiff.jl` automatic differentiation.
+    (**Default**: `FiniteDiffJacobian()`)
+- `jacobian_perturbation::Number`: Initial state perturbation to compute the
+    finite-difference when calculating the Jacobian matrix. Only used with
+    `FiniteDiffJacobian()`.
+    (**Default**: 1e-3)
+- `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
+    the Jacobian matrix. If the computed perturbation is lower than
+    `jacobian_perturbation_tol`, we increase it until its absolute value is higher than
+    `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
+    (**Default**: 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default** = 50)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.

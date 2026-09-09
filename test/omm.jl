@@ -332,6 +332,78 @@ end
 
         @test !stats.converged
         @test stats.iterations == 3
+
+        # The number type of the statistics must follow the constants. The drag term is not
+        # estimated and the Jacobian is obtained by automatic differentiation, since the
+        # finite differences are not accurate enough in `Float32` to keep the normal
+        # equations well conditioned.
+        omm, P, stats = fit_sgp4_mean_elements(
+            vjd,
+            vr_teme,
+            vv_teme;
+            sgp4c               = Sgp4Constants{Float32}(SGP4C_WGS84),
+            estimate_bstar      = false,
+            jacobian_method     = ForwardDiffJacobian(),
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 2,
+            verbose             = false,
+        )
+
+        @test P isa SMatrix{7, 7, Float32}
+        @test stats.total_rmse isa Float32
+    end
+
+    @testset "Constants" begin
+        kwargs = (;
+            atol                = 1e-10,
+            rtol                = 1e-10,
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 1000,
+            verbose             = false,
+        )
+
+        # The non-allocating version must use the constants of the propagator.
+        sgp4d = Sgp4Propagator(SGP4C_WGS72)
+        omm_ref, P_ref, stats_ref = fit_sgp4_mean_elements!(
+            sgp4d, vjd, vr_teme, vv_teme; kwargs...
+        )
+
+        @test sgp4d.sgp4c === SGP4C_WGS72
+
+        # The allocating version must accept the constants through the keyword.
+        omm, P, stats = fit_sgp4_mean_elements(
+            vjd, vr_teme, vv_teme; sgp4c = SGP4C_WGS72, kwargs...
+        )
+
+        @test omm.mean_motion == omm_ref.mean_motion
+        @test omm.mean_anomaly == omm_ref.mean_anomaly
+        @test P == P_ref
+        @test stats == stats_ref
+
+        # Different constants must lead to different mean elements.
+        omm_wgs84, ~ = fit_sgp4_mean_elements(vjd, vr_teme, vv_teme; kwargs...)
+
+        @test omm_wgs84.mean_motion != omm.mean_motion
+    end
+
+    @testset "DateTime Epoch" begin
+        kwargs = (; atol = 1e-10, rtol = 1e-10, max_iterations = 1000, verbose = false)
+
+        epoch_jd = vjd[begin]
+        epoch_dt = julian2datetime(epoch_jd)
+
+        omm_ref, ~ = fit_sgp4_mean_elements(
+            vjd, vr_teme, vv_teme; mean_elements_epoch = epoch_jd, kwargs...
+        )
+
+        omm, ~ = fit_sgp4_mean_elements(
+            vjd, vr_teme, vv_teme; mean_elements_epoch = epoch_dt, kwargs...
+        )
+
+        # The `DateTime` conversion truncates the epoch to milliseconds.
+        @test DateTime(omm.epoch) == DateTime(omm_ref.epoch)
+        @test omm.mean_motion ≈ omm_ref.mean_motion atol = 1e-10
+        @test omm.mean_anomaly ≈ omm_ref.mean_anomaly atol = 1e-6
     end
 
     @testset "NamedTuple Template" begin
@@ -423,5 +495,38 @@ end
 
         @test sgp4d.epoch ≈ datetime2julian(new_epoch) atol = 1e-9
         @test omm!.mean_motion == omm.mean_motion
+
+        # The Jacobian can also be computed by automatic differentiation.
+        omm_ad = update_sgp4_mean_elements_epoch(
+            omm_input, new_epoch; jacobian_method = ForwardDiffJacobian(), verbose = false
+        )
+
+        @test omm_ad.mean_motion ≈ omm.mean_motion atol = 1e-10
+        @test omm_ad.mean_anomaly ≈ omm.mean_anomaly atol = 1e-6
+
+        # The finite-difference settings must be forwarded.
+        omm_fd = update_sgp4_mean_elements_epoch(
+            omm_input,
+            new_epoch;
+            jacobian_perturbation     = 1e-4,
+            jacobian_perturbation_tol = 1e-8,
+            verbose                   = false,
+        )
+
+        @test omm_fd.mean_motion ≈ omm.mean_motion atol = 1e-10
+        @test omm_fd.mean_anomaly ≈ omm.mean_anomaly atol = 1e-6
+
+        # The constants can be selected in the allocating version.
+        omm_wgs72 = update_sgp4_mean_elements_epoch(
+            omm_input, new_epoch; sgp4c = SGP4C_WGS72, verbose = false
+        )
+
+        sgp4d = Sgp4Propagator(SGP4C_WGS72)
+        omm_wgs72! = update_sgp4_mean_elements_epoch!(
+            sgp4d, omm_input, new_epoch; verbose = false
+        )
+
+        @test omm_wgs72.mean_motion == omm_wgs72!.mean_motion
+        @test omm_wgs72.mean_motion != omm.mean_motion
     end
 end
