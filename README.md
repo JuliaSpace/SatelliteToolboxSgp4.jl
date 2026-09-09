@@ -106,7 +106,8 @@ julia> v_teme
 `sgp4` also supports the same keywords arguments as `sgp4!`.
 
 We also have the function `sgp4_init!` that initializes a SGP4 propagator structure
-in-place, avoiding unnecessary allocations in some cases. For more information, see the
+in-place, avoiding unnecessary allocations in some cases. The structure can be created with
+`Sgp4Propagator(sgp4c)`, which only sets the constants. For more information, see the
 function documentation.
 
 ### Mean Elements Fitting

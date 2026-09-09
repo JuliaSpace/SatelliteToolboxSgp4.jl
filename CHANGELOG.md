@@ -17,13 +17,14 @@ Version 3.0.0
   be selected by converting the constants with `Sgp4Constants{T}(sgp4c)`.
 - ![BREAKING][badge-breaking] The internal structure `Sgp4DeepSpace` is now immutable and
   stored inline in `Sgp4Propagator`, which gained the resonance integrator state fields
-  `atime`, `xli`, and `xni`. The new constructor `Sgp4Propagator{Tepoch}(sgp4c)` returns a
-  propagator ready to be initialized by `sgp4_init!`, so the field `sgp4ds` no longer needs
-  to be set manually. Measured with BenchmarkTools.jl on an Apple M-series CPU (Julia
-  1.12.6), `sgp4!` became 3% to 12% faster for deep space orbits (e.g. 407 ns to 358 ns for
-  the 12 h resonant case from AIAA 2006-6753), `copy` became 28% faster (27 ns to 19 ns),
-  and `sgp4_init` performs one allocation instead of two, while the initialization time
-  and the near-Earth propagation are unchanged.
+  `atime`, `xli`, and `xni`. The new constructors `Sgp4Propagator{Tepoch}(sgp4c)` and
+  `Sgp4Propagator(sgp4c)`, which uses `Float64` for the epoch, return a propagator ready to
+  be initialized by `sgp4_init!`, so the field `sgp4ds` no longer needs to be set manually.
+  Measured with BenchmarkTools.jl on an Apple M-series CPU (Julia 1.12.6), `sgp4!` became
+  3% to 12% faster for deep space orbits (e.g. 407 ns to 358 ns for the 12 h resonant case
+  from AIAA 2006-6753), `copy` became 28% faster (27 ns to 19 ns), and `sgp4_init` performs
+  one allocation instead of two, while the initialization time and the near-Earth
+  propagation are unchanged.
 - ![BREAKING][badge-breaking] Replace `fit_sgp4_tle`, `fit_sgp4_tle!`,
   `update_sgp4_tle_epoch`, and `update_sgp4_tle_epoch!` by `fit_sgp4_mean_elements`,
   `fit_sgp4_mean_elements!`, `update_sgp4_mean_elements_epoch`, and
@@ -53,6 +54,9 @@ Version 3.0.0
 - ![Feature][badge-feature] Add the public, non-exported predicate
   `SatelliteToolboxSgp4.is_initialized`, which tells whether an `Sgp4Propagator` has been
   initialized by `sgp4_init!`.
+- ![Enhancement][badge-enhancement] The type parameter of `Sgp4Constants{T}` is now bound
+  to `T <: Number`, as in `Sgp4Propagator`, so that invalid constants are rejected when they
+  are created instead of when the propagator is initialized.
 - ![Feature][badge-feature] Add `show` methods to `Sgp4Propagator`, which print the
   algorithm and the sections with the mean elements and their epoch, including the
   semi-major axis recovered from the mean motion and B*, the gravitational constants, and

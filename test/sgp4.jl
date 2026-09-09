@@ -133,6 +133,20 @@
     sgp4d = Sgp4Propagator{Float32}(Sgp4Constants{Float32}(SGP4C_WGS72))
 
     @test sgp4d isa Sgp4Propagator{Float32, Float32}
+
+    # Constructor that uses `Float64` for the epoch.
+    sgp4d = Sgp4Propagator(SGP4C_WGS72)
+
+    @test sgp4d isa Sgp4Propagator{Float64, Float64}
+    @test sgp4d.sgp4c === SGP4C_WGS72
+    @test !SatelliteToolboxSgp4.is_initialized(sgp4d)
+
+    sgp4d = Sgp4Propagator(Sgp4Constants{Float32}(SGP4C_WGS72))
+
+    @test sgp4d isa Sgp4Propagator{Float64, Float32}
+
+    # The constants must have a numeric type.
+    @test_throws TypeError Sgp4Constants{String}
 end
 
 @testset "Tests from the Paper AIAA 2006-6753" verbose = true begin

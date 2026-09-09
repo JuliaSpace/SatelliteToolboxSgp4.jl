@@ -7,7 +7,7 @@
 export Sgp4Constants, Sgp4FitDivergenceError, Sgp4Propagator
 
 """
-    struct Sgp4Constants{T}
+    struct Sgp4Constants{T <: Number}
 
 Gravitational constants for SGP4.
 
@@ -19,7 +19,7 @@ Gravitational constants for SGP4.
 - `J3::T`: The third gravitational zonal harmonic of the Earth.
 - `J4::T`: The fourth gravitational zonal harmonic of the Earth.
 """
-struct Sgp4Constants{T}
+struct Sgp4Constants{T <: Number}
     R0::T
     XKE::T
     J2::T
@@ -28,11 +28,11 @@ struct Sgp4Constants{T}
 end
 
 """
-    Sgp4Constants{T}(sgp4c::Sgp4Constants) where {T} -> Sgp4Constants{T}
+    Sgp4Constants{T}(sgp4c::Sgp4Constants) where {T <: Number} -> Sgp4Constants{T}
 
 Convert the SGP4 gravitational constants `sgp4c` to the number type `T`.
 """
-function Sgp4Constants{T}(sgp4c::Sgp4Constants) where {T}
+function Sgp4Constants{T}(sgp4c::Sgp4Constants) where {T <: Number}
     return Sgp4Constants{T}(sgp4c.R0, sgp4c.XKE, sgp4c.J2, sgp4c.J3, sgp4c.J4)
 end
 
@@ -118,8 +118,10 @@ Low-level SGP4 propagator structure, in which `Tepoch` is the number type of the
 
 The constructor `Sgp4Propagator{Tepoch}(sgp4c::Sgp4Constants{T})` returns a structure with
 the gravitational constants `sgp4c` set and the deep space structure zeroed, ready to be
-initialized by [`sgp4_init!`](@ref). The constructor `Sgp4Propagator{Tepoch, T}()` returns
-a structure with all fields uninitialized.
+initialized by [`sgp4_init!`](@ref). The constructor `Sgp4Propagator(sgp4c)` does the same
+using `Float64` for the epoch, which is the type used by every initializer that receives a
+`TLE` or an Orbit Mean-Elements Message. The constructor `Sgp4Propagator{Tepoch, T}()`
+returns a structure with all fields uninitialized.
 """
 mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
     # TLE parameters.
@@ -191,6 +193,8 @@ mutable struct Sgp4Propagator{Tepoch <: Number, T <: Number}
         return sgp4d
     end
 end
+
+Sgp4Propagator(sgp4c::Sgp4Constants{T}) where {T <: Number} = Sgp4Propagator{Float64}(sgp4c)
 
 """
     struct Sgp4FitDivergenceError <: Exception
