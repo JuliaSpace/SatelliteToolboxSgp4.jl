@@ -105,8 +105,8 @@ propagation.
 
 - [`Sgp4Propagator`](@ref): The structure with the initialized parameters.
 """
-function sgp4_init(tle::TLE; sgp4c::Sgp4Constants{T} = SGP4C_WGS84) where {T <: Number}
-    sgp4d = Sgp4Propagator{typeof(tle_epoch(tle))}(sgp4c)
+function sgp4_init(tle::TLE; sgp4c::Sgp4Constants = SGP4C_WGS84)
+    sgp4d = Sgp4Propagator(sgp4c)
     sgp4_init!(sgp4d, tle)
     return sgp4d
 end
@@ -186,29 +186,16 @@ function sgp4_init!(
 end
 
 function sgp4_init!(
-    sgp4d::Sgp4Propagator{Tepoch, ST},
-    epoch::EpT,
-    n₀::NT,
-    e₀::ET,
-    i₀::IT,
-    Ω₀::OT,
-    ω₀::WT,
-    M₀::MT,
-    bstar::BT,
-) where {
-    Tepoch <: Number,
-    EpT <: Number,
-    NT <: Number,
-    ET <: Number,
-    IT <: Number,
-    OT <: Number,
-    WT <: Number,
-    MT <: Number,
-    BT <: Number,
-    ST <: Number,
-}
-    T = ST
-
+    sgp4d::Sgp4Propagator{Tepoch, T},
+    epoch::Number,
+    n₀::Number,
+    e₀::Number,
+    i₀::Number,
+    Ω₀::Number,
+    ω₀::Number,
+    M₀::Number,
+    bstar::Number,
+) where {Tepoch <: Number, T <: Number}
     # Unpack the gravitational constants to improve code readability.
     sgp4c = sgp4d.sgp4c
     R0    = sgp4c.R0
@@ -499,22 +486,10 @@ more information, see [`sgp4_init`](@ref).
 - `SVector{3, T}`: The velocity vector [km/s].
 - [`Sgp4Propagator`](@ref): The SGP4 orbit propagator structure.
 """
-function sgp4(
-    Δt::Number, tle::TLE; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
-) where {T <: Number}
-    d2r = T(π / 180)
-    return sgp4(
-        Δt,
-        tle_epoch(tle),
-        tle.mean_motion * T(2π / (24 * 60)),
-        tle.eccentricity,
-        tle.inclination * d2r,
-        tle.raan * d2r,
-        tle.argument_of_perigee * d2r,
-        tle.mean_anomaly * d2r,
-        tle.bstar;
-        sgp4c = sgp4c,
-    )
+function sgp4(Δt::Number, tle::TLE; sgp4c::Sgp4Constants = SGP4C_WGS84)
+    sgp4d = sgp4_init(tle; sgp4c)
+    r_teme, v_teme = sgp4!(sgp4d, Δt)
+    return r_teme, v_teme, sgp4d
 end
 
 function sgp4(

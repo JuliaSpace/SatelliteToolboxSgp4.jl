@@ -57,10 +57,8 @@ julia> sgp4d = sgp4_init(omm);
 julia> r_teme, v_teme = sgp4!(sgp4d, 10)
 ```
 """
-function sgp4_init(
-    omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
-) where {T <: Number}
-    sgp4d = Sgp4Propagator{Float64}(sgp4c)
+function sgp4_init(omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants = SGP4C_WGS84)
+    sgp4d = Sgp4Propagator(sgp4c)
     sgp4_init!(sgp4d, omm)
     return sgp4d
 end
@@ -159,24 +157,10 @@ function can fail if the message does not contain the required information.
 - `ArgumentError`: If `omm` provides neither the mean motion nor the semi-major axis
     together with the gravitational coefficient.
 """
-function sgp4(
-    Δt::Number, omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = SGP4C_WGS84
-) where {T <: Number}
-    epoch, n₀, e₀, i₀, Ω₀, ω₀, M₀, bstar = _omm_sgp4_elements(omm)
-
-    d2r = T(π / 180)
-    return sgp4(
-        Δt,
-        epoch,
-        n₀ * T(2π / (24 * 60)),
-        e₀,
-        i₀ * d2r,
-        Ω₀ * d2r,
-        ω₀ * d2r,
-        M₀ * d2r,
-        bstar;
-        sgp4c = sgp4c,
-    )
+function sgp4(Δt::Number, omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants = SGP4C_WGS84)
+    sgp4d = sgp4_init(omm; sgp4c)
+    r_teme, v_teme = sgp4!(sgp4d, Δt)
+    return r_teme, v_teme, sgp4d
 end
 
 ############################################################################################
