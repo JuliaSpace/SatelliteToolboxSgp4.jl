@@ -37,6 +37,12 @@ Version 3.0.0
   covariance matrix section of the message, unless the new keyword `include_covariance` is
   `false`. The initial guess can also be an OMM. The fitting now throws the new exception
   `Sgp4FitDivergenceError` instead of an `ErrorException` when the iterations diverge.
+- ![BREAKING][badge-breaking] `fit_sgp4_mean_elements` and `fit_sgp4_mean_elements!` now
+  return a third value with the statistics of the least-square algorithm, a `NamedTuple`
+  with the fields `converged`, `iterations`, `position_rmse`, `velocity_rmse`, and
+  `total_rmse`. Previously, the caller could not tell whether the iterations converged or
+  stopped by reaching `max_iterations`. The epoch update functions keep returning only the
+  mean elements.
 - ![BREAKING][badge-breaking] Remove the fields `AE`, `θ²`, and `k₄` from
   `Sgp4Propagator` and the fields `xnddt`, `xndot`, `xldot`, `pe`, `pinc`, `pgh`, `ph`,
   and `pl` from the internal structure `Sgp4DeepSpace`, since they were never read after

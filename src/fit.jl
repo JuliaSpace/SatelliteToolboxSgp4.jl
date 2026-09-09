@@ -26,13 +26,21 @@ const _INITIAL_GUESS_T = Union{Nothing, AbstractVector, TLE, OrbitMeanElementsMe
         vr_teme::AbstractVector{Tv},
         vv_teme::AbstractVector{Tv};
         kwargs...,
-    ) where {S <: Union{TLE, OrbitMeanElementsMessage}, Tjd <: Number, Tv <: AbstractVector} -> S, SMatrix{7, 7, Float64}
+    ) where {
+        S <: Union{TLE, OrbitMeanElementsMessage},
+        Tjd <: Number,
+        Tv <: AbstractVector
+    } -> S, SMatrix{7, 7, T}, NamedTuple
+
     fit_sgp4_mean_elements(
         vjd::AbstractVector{Tjd},
         vr_teme::AbstractVector{Tv},
         vv_teme::AbstractVector{Tv};
         kwargs...,
-    ) where {Tjd <: Number, Tv <: AbstractVector} -> OrbitMeanElementsMessage, SMatrix{7, 7, Float64}
+    ) where {
+        Tjd <: Number,
+        Tv <: AbstractVector
+    } -> OrbitMeanElementsMessage, SMatrix{7, 7, T}, NamedTuple
 
 Fit a set of SGP4 mean elements represented as an object of type `S`, which can be `TLE` or
 `OrbitMeanElementsMessage`, using the osculating elements represented by a set of position
@@ -58,9 +66,10 @@ See [`fit_sgp4_mean_elements!`](@ref).
 # Returns
 
 - `S`: The fitted mean elements.
-- `SMatrix{7, 7, Float64}`: Final covariance matrix of the least-square algorithm, whose
-    state is the mean position [km], the mean velocity [km / s], and the drag term B*
-    [1 / er].
+- `SMatrix{7, 7, T}`: Final covariance matrix of the least-square algorithm, whose state
+    is the mean position [km], the mean velocity [km / s], and the drag term B* [1 / er].
+- `NamedTuple`: Statistics of the least-square algorithm (see
+    [`fit_sgp4_mean_elements!`](@ref)).
 
 # References
 
@@ -94,7 +103,7 @@ julia> vjd = [
            2.460028190050782e6
        ];
 
-julia> tle, P = fit_sgp4_mean_elements(TLE, vjd, vr_teme, vv_teme; estimate_bstar = false);
+julia> tle, P, stats = fit_sgp4_mean_elements(TLE, vjd, vr_teme, vv_teme; estimate_bstar = false);
 ACTION:   Fitting the mean elements.
            Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
                                      [km]             [km / s]                  [ ]
@@ -118,7 +127,10 @@ TLE:
                      ṅ / 2 :            0 rev / day²
                      n̈ / 6 :            0 rev / day³
 
-julia> omm, P = fit_sgp4_mean_elements(
+julia> stats
+(converged = true, iterations = 3, position_rmse = 5.793751158786877e-9, velocity_rmse = 4.383038942163017e-7, total_rmse = 4.383421785788155e-7)
+
+julia> omm, P, stats = fit_sgp4_mean_elements(
            OrbitMeanElementsMessage, vjd, vr_teme, vv_teme; estimate_bstar = false
        );
 ```
@@ -159,7 +171,8 @@ end
         S <: Union{TLE, OrbitMeanElementsMessage},
         Tjd <: Number,
         Tv <: AbstractVector,
-    } -> S, SMatrix{7, 7, T}
+    } -> S, SMatrix{7, 7, T}, NamedTuple
+
     fit_sgp4_mean_elements!(
         sgp4d::Sgp4Propagator{Tepoch, T},
         vjd::AbstractVector{Tjd},
@@ -171,7 +184,7 @@ end
         T <: Number,
         Tjd <: Number,
         Tv <: AbstractVector,
-    } -> OrbitMeanElementsMessage, SMatrix{7, 7, T}
+    } -> OrbitMeanElementsMessage, SMatrix{7, 7, T}, NamedTuple
 
 Fit a set of SGP4 mean elements for the propagator `sgp4d`, represented as an object of
 type `S`, which can be `TLE` or `OrbitMeanElementsMessage`, using the osculating elements
@@ -252,6 +265,18 @@ See also: [`fit_sgp4_mean_elements`](@ref), [`update_sgp4_mean_elements_epoch!`]
 - `S`: The fitted mean elements.
 - `SMatrix{7, 7, T}`: Final covariance matrix of the least-square algorithm, whose state
     is the mean position [km], the mean velocity [km / s], and the drag term B* [1 / er].
+- `NamedTuple`: Statistics of the least-square algorithm with the following fields:
+    - `converged::Bool`: `true` if the iterations stopped because the residue was lower
+        than `atol` or its relative variation was lower than `rtol`, or `false` if they
+        stopped by reaching `max_iterations`.
+    - `iterations::Int`: Number of iterations performed.
+    - `position_rmse::T`: RMSE of the position residue in the last iteration [km].
+    - `velocity_rmse::T`: RMSE of the velocity residue in the last iteration [km / s].
+    - `total_rmse::T`: Weighted RMSE of the residue in the last iteration.
+
+    The statistics refer to the fitting of the mean elements. If their epoch is updated
+    afterward to match `mean_elements_epoch`, the statistics of that update are not
+    returned.
 
 # Initial Guess
 
@@ -324,7 +349,7 @@ julia> vjd = [
            2.460028190050782e6
        ];
 
-julia> tle, P = fit_sgp4_mean_elements!(
+julia> tle, P, stats = fit_sgp4_mean_elements!(
            sgp4d, TLE, vjd, vr_teme, vv_teme; estimate_bstar = false
        );
 ACTION:   Fitting the mean elements.
@@ -481,7 +506,7 @@ function fit_sgp4_mean_elements!(
 
     verbose && _fit_print_action(has_color, "Fitting the mean elements.")
 
-    x₂, P = _fit_sgp4_mean_state_vector!(
+    x₂, P, stats = _fit_sgp4_mean_state_vector!(
         sgp4d,
         vjd,
         vy,
@@ -527,7 +552,7 @@ function fit_sgp4_mean_elements!(
     # Initialize the propagator with the fitted mean elements.
     sgp4_init!(sgp4d, me)
 
-    return me, P
+    return me, P, stats
 end
 
 function fit_sgp4_mean_elements!(
@@ -745,7 +770,7 @@ end
         epoch::Number,
         W::SVector{6, T};
         kwargs...,
-    ) where {Tepoch <: Number, T <: Number} -> SVector{7, T}, SMatrix{7, 7, T}
+    ) where {Tepoch <: Number, T <: Number} -> SVector{7, T}, SMatrix{7, 7, T}, NamedTuple
 
 Fit the SGP4 mean state vector at `epoch` [Julian Day, UTC] using the propagator `sgp4d`
 and the least-square algorithm in **[1]**, starting from the initial guess `x₁` and using
@@ -781,6 +806,9 @@ function can fail if the least-square iterations diverge.
 
 - `SVector{7, T}`: The fitted mean state vector.
 - `SMatrix{7, 7, T}`: Final covariance matrix of the least-square algorithm.
+- `NamedTuple`: Statistics of the least-square algorithm with the fields `converged`,
+    `iterations`, `position_rmse`, `velocity_rmse`, and `total_rmse` (see
+    [`fit_sgp4_mean_elements!`](@ref)).
 
 # Extended help
 
@@ -820,6 +848,13 @@ function _fit_sgp4_mean_state_vector!(
     # for divergence.
     Δd = 0
 
+    # Statistics returned after the iterations.
+    converged  = false
+    iterations = 0
+    σ_i        = T(0)
+    σp_i       = T(0)
+    σv_i       = T(0)
+
     # Header.
     verbose && _fit_print_header(has_color)
 
@@ -848,6 +883,7 @@ function _fit_sgp4_mean_state_vector!(
     # Loop until the maximum allowed iteration.
     @inbounds for it in 1:max_iterations
         x₁ = x₂
+        iterations = it
 
         # Variables to store the summations to compute the least square fitting algorithm.
         ΣJ′WJ = @SMatrix zeros(T, num_states, num_states)
@@ -960,7 +996,10 @@ function _fit_sgp4_mean_state_vector!(
             ((Δd ≥ 3) && (σ_i > 5e11)) && throw(Sgp4FitDivergenceError(it, σ_i))
 
             # Check if the condition to stop has been reached.
-            ((abs(Δσ) < rtol) || (σ_i < atol) || (it ≥ max_iterations)) && break
+            if (abs(Δσ) < rtol) || (σ_i < atol)
+                converged = true
+                break
+            end
         end
 
         σ_i_₁ = σ_i
@@ -971,7 +1010,16 @@ function _fit_sgp4_mean_state_vector!(
     # Compute the final covariance.
     P = pinv(ΣJ′WJ)
 
-    return x₂, P
+    # Assemble the statistics.
+    stats = (;
+        converged,
+        iterations,
+        position_rmse = σp_i,
+        velocity_rmse = σv_i,
+        total_rmse    = σ_i,
+    )
+
+    return x₂, P, stats
 end
 
 """
@@ -1045,7 +1093,7 @@ function _update_sgp4_mean_state_vector!(
     vy  = SVector{1, SVector{6, T}}(vcat(r_teme, v_teme))
     W   = SVector{6, T}(1, 1, 1, 1, 1, 1)
 
-    x₂, ~ = _fit_sgp4_mean_state_vector!(
+    x₂, ~, ~ = _fit_sgp4_mean_state_vector!(
         sgp4d,
         vjd,
         vy,

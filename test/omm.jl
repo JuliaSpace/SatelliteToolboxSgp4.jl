@@ -151,7 +151,7 @@ end
     vjd     = sgp4d.epoch .+ (0:0.2:200) ./ 1440
 
     @testset "Without Template" begin
-        omm, P = fit_sgp4_mean_elements(
+        omm, P, stats = fit_sgp4_mean_elements(
             OrbitMeanElementsMessage,
             vjd,
             vr_teme,
@@ -165,6 +165,16 @@ end
 
         @test omm isa OrbitMeanElementsMessage
         @test P isa SMatrix{7, 7, Float64}
+
+        # The fit must converge within the allowed iterations.
+        @test stats.converged
+        @test 1 < stats.iterations < 1000
+        @test stats.position_rmse isa Float64
+        @test stats.velocity_rmse isa Float64
+        @test stats.total_rmse isa Float64
+        @test 0 < stats.position_rmse < 1e-3
+        @test 0 < stats.velocity_rmse < 1e-6
+        @test stats.total_rmse ≈ √(stats.position_rmse^2 + stats.velocity_rmse^2)
 
         # The default metadata mirrors the default TLE fields.
         @test omm.originator == "SatelliteToolboxSgp4.jl"
@@ -290,6 +300,38 @@ end
         @test omm isa OrbitMeanElementsMessage
         @test P == P_ref
         @test sgp4d.epoch ≈ vjd[begin] atol = 1e-9
+    end
+
+    @testset "Statistics" begin
+        # A single iteration cannot converge, since the convergence is checked against the
+        # residue of the previous iteration.
+        omm, P, stats = fit_sgp4_mean_elements(
+            vjd,
+            vr_teme,
+            vv_teme;
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 1,
+            verbose             = false,
+        )
+
+        @test !stats.converged
+        @test stats.iterations == 1
+        @test stats.total_rmse > 0
+
+        # Stopping by the iteration limit must also be reported when it is reached later.
+        omm, P, stats = fit_sgp4_mean_elements(
+            vjd,
+            vr_teme,
+            vv_teme;
+            atol                = 0,
+            rtol                = 0,
+            mean_elements_epoch = vjd[begin],
+            max_iterations      = 3,
+            verbose             = false,
+        )
+
+        @test !stats.converged
+        @test stats.iterations == 3
     end
 
     @testset "NamedTuple Template" begin

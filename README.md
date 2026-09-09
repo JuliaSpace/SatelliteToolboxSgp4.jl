@@ -117,7 +117,7 @@ or as an `OrbitMeanElementsMessage` (OMM), given a set of osculating state vecto
 the following function:
 
 ``` julia
-fit_sgp4_mean_elements(::Type{S}, vjd::AbstractVector{Tjd}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {S <: Union{TLE, OrbitMeanElementsMessage}, Tjd <: Number, Tv <: AbstractVector} -> S, SMatrix{7, 7, Float64}
+fit_sgp4_mean_elements(::Type{S}, vjd::AbstractVector{Tjd}, vr_teme::AbstractVector{Tv}, vv_teme::AbstractVector{Tv}; kwargs...) where {S <: Union{TLE, OrbitMeanElementsMessage}, Tjd <: Number, Tv <: AbstractVector} -> S, SMatrix{7, 7, T}, NamedTuple
 ```
 
 where `S` selects the representation of the output (if it is omitted, the mean elements are
@@ -129,10 +129,12 @@ array `vjd` [Julian Day].
 The algorithm performs a least-square fitting to minimize the residue between the osculating
 elements provided by the SGP4 propagator and the input data. It was based on **[4]**.
 
-This function returns the fitted mean elements and the last covariance matrix obtained from
-the least-square algorithm. When the output is an OMM, the position and velocity block of
-the covariance is also stored in the covariance matrix section of the message, unless the
-keyword `include_covariance` is `false`.
+This function returns the fitted mean elements, the last covariance matrix obtained from
+the least-square algorithm, and a `NamedTuple` with the statistics of the fit: `converged`,
+`iterations`, `position_rmse` [km], `velocity_rmse` [km / s], and `total_rmse`. When the
+output is an OMM, the position and velocity block of the covariance is also stored in the
+covariance matrix section of the message, unless the keyword `include_covariance` is
+`false`.
 
 > **Note**
 > This algorithm version will allocate a new SGP4 propagator with the default constants
@@ -239,11 +241,14 @@ julia> vv_teme = [
 
 julia> vjd = [2.46002818657856e6, 2.460028190050782e6];
 
-julia> tle, P = fit_sgp4_mean_elements(TLE, vjd, vr_teme, vv_teme; estimate_bstar = false);
+julia> tle, P, stats = fit_sgp4_mean_elements(TLE, vjd, vr_teme, vv_teme; estimate_bstar = false);
 ACTION:   Fitting the mean elements.
            Iteration        Position RMSE        Velocity RMSE           Total RMSE       RMSE Variation
                                      [km]             [km / s]                  [ ]
 PROGRESS:          3          5.79375e-09          4.38304e-07          4.38343e-07             -99.9514 %
+
+julia> stats
+(converged = true, iterations = 3, position_rmse = 5.793751158786877e-9, velocity_rmse = 4.383038942163017e-7, total_rmse = 4.383421785788155e-7)
 
 julia> tle
 TLE:
