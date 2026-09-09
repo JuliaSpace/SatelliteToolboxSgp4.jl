@@ -265,7 +265,10 @@ message.
 _mean_elements_epoch(omm::OrbitMeanElementsMessage) = _omm_epoch_to_julian_day(omm)
 
 """
-    _mean_state_vector(omm::OrbitMeanElementsMessage; sgp4c::Sgp4Constants{T} = SGP4C_WGS84) where {T <: Number} -> SVector{7, T}
+    _mean_state_vector(
+        omm::OrbitMeanElementsMessage;
+        sgp4c::Sgp4Constants{T} = SGP4C_WGS84
+    ) where {T <: Number} -> SVector{7, T}
 
 Convert the Orbit Mean-Elements Message `omm` to the SGP4 mean state vector using the
 constants `sgp4c`. The function can fail if the message does not contain the required
@@ -286,7 +289,12 @@ function _mean_state_vector(
 end
 
 """
-    _build_mean_elements(::Type{OrbitMeanElementsMessage}, sv::SVector{7}, epoch::Number; kwargs...) -> OrbitMeanElementsMessage
+    _build_mean_elements(
+        ::Type{OrbitMeanElementsMessage},
+        sv::SVector{7},
+        epoch::Number;
+        kwargs...
+    ) -> OrbitMeanElementsMessage
 
 Create an Orbit Mean-Elements Message (OMM) for the `epoch` [Julian Day, UTC] given the
 SGP4 mean state vector `sv`, which must have the following elements:

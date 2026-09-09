@@ -230,9 +230,9 @@ See also: [`fit_sgp4_mean_elements`](@ref), [`update_sgp4_mean_elements_epoch!`]
     estimate from the osculating elements in `vr_teme` and `vv_teme`. For more information,
     see the section **Initial Guess**.
     (**Default**: `nothing`)
-- `jacobian_method::Union{FiniteDiffJacobian, ForwardDiffJacobian}`: Method used to compute
-    the Jacobian matrix. Use `FiniteDiffJacobian()` for finite differences or
-    `ForwardDiffJacobian()` for **ForwardDiff.jl** automatic differentiation.
+- `jacobian_method::AbstractJacobianMethod`: Method used to compute the Jacobian matrix.
+    Use `FiniteDiffJacobian()` for finite differences or `ForwardDiffJacobian()` for
+    **ForwardDiff.jl** automatic differentiation.
     (**Default**: `FiniteDiffJacobian()`)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
     finite-difference when calculating the Jacobian matrix. Only used with
@@ -1290,7 +1290,16 @@ function _mean_state_vector_to_elements(sv::SVector{7}, sgp4c::Sgp4Constants)
 end
 
 """
-    _elements_to_mean_state_vector(n₀::Number, e₀::Number, i₀::Number, Ω₀::Number, ω₀::Number, M₀::Number, bstar::Number, sgp4c::Sgp4Constants{T}) where {T <: Number} -> SVector{7, T}
+    _elements_to_mean_state_vector(
+        n₀::Number,
+        e₀::Number,
+        i₀::Number,
+        Ω₀::Number,
+        ω₀::Number,
+        M₀::Number,
+        bstar::Number,
+        sgp4c::Sgp4Constants{T}
+    ) where {T <: Number} -> SVector{7, T}
 
 Convert the SGP4 mean elements to the mean state vector using the constants `sgp4c`. The
 elements are the mean motion `n₀` [rev/day], the eccentricity `e₀` [-], the inclination

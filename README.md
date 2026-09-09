@@ -149,36 +149,36 @@ The following keywords are available:
     (**Default**: `SGP4C_WGS84`)
 - `atol::Number`: Tolerance for the residue absolute value. If the residue is lower than
     `atol` at any iteration, the computation loop stops.
-    (**Default** = 2e-4)
+    (**Default**: 2e-4)
 - `rtol::Number`: Tolerance for the relative difference between the residues. If the
     relative difference between the residues in two consecutive iterations is lower than
     `rtol`, the computation loop stops.
-    (**Default** = 2e-4)
+    (**Default**: 2e-4)
 - `estimate_bstar::Bool`: If `true`, the algorithm will try to estimate the B* parameter.
     Otherwise, it will be set to 0 or to the value in initial guess (see section **Initial
     Guess**).
-    (**Default** = true)
+    (**Default**: true)
 - `include_covariance::Bool`: If `true`, the covariance of the mean position and velocity is
     stored in the output OMM. It is ignored when the output is a TLE.
-    (**Default** = true)
+    (**Default**: true)
 - `initial_guess::Union{Nothing, AbstractVector, TLE, OrbitMeanElementsMessage}`: Initial
     guess for the fitting process. If it is `nothing`, the algorithm will obtain an initial
     estimate from the osculating elements in `vr_teme` and `vv_teme`. For more information,
     see the section **Initial Guess**.
-    (**Default** = nothing)
-- `jacobian_method::Union{FiniteDiffJacobian, ForwardDiffJacobian}`: Method used to compute
-    the Jacobian matrix. Use `FiniteDiffJacobian()` for finite differences or
-    `ForwardDiffJacobian()` for `ForwardDiff.jl` automatic differentiation.
-    (**Default** = `FiniteDiffJacobian()`)
+    (**Default**: nothing)
+- `jacobian_method::AbstractJacobianMethod`: Method used to compute the Jacobian matrix.
+    Use `FiniteDiffJacobian()` for finite differences or `ForwardDiffJacobian()` for
+    `ForwardDiff.jl` automatic differentiation.
+    (**Default**: `FiniteDiffJacobian()`)
 - `jacobian_perturbation::Number`: Initial state perturbation to compute the
     finite-difference when calculating the Jacobian matrix. Only used with
     `FiniteDiffJacobian()`.
-    (**Default** = 1e-3)
+    (**Default**: 1e-3)
 - `jacobian_perturbation_tol::Number`: Tolerance to accept the perturbation when calculating
     the Jacobian matrix. If the computed perturbation is lower than
     `jacobian_perturbation_tol`, we increase it until its absolute value is higher than
     `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
-    (**Default** = 1e-7)
+    (**Default**: 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
     (**Default**: 50)
 - `mean_elements_epoch::Union{Number, DateTime}`: Epoch for the fitted mean elements,
@@ -191,13 +191,13 @@ The following keywords are available:
     to the constructor of `S` on top of the default metadata, e.g.
     `(; object_name = "AMAZONIA 1", object_id = "2021-015A", norad_cat_id = 47699)`. If it
     is `nothing`, the metadata is filled with default values.
-    (**Default** = nothing)
+    (**Default**: nothing)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
-    (**Default** = true)
+    (**Default**: true)
 - `weight_vector::AbstractVector`: Vector with the measurements weights for the least-square
     algorithm. We assemble the weight matrix `W` as a diagonal matrix with the elements in
     `weight_vector` at its diagonal.
-    (**Default** = `@SVector(ones(Bool, 6))`)
+    (**Default**: `@SVector(ones(Bool, 6))`)
 
 #### Initial Guess
 
@@ -307,7 +307,7 @@ The following keywords are available:
     (**Default**: `SGP4C_WGS84`)
 - `atol::Number`: Tolerance for the residue absolute value. If, at any iteration, the
     residue is lower than `atol`, the computation loop stops.
-    (**Default** = 2e-4)
+    (**Default**: 2e-4)
 - `rtol::Number`: Tolerance for the relative difference between the residues. If, at any
     iteration, the relative difference between the residues in two consecutive iterations is
     lower than `rtol`, the computation loop stops.
@@ -326,9 +326,9 @@ The following keywords are available:
     `jacobian_perturbation_tol`. Only used with `FiniteDiffJacobian()`.
     (**Default**: 1e-7)
 - `max_iterations::Int`: Maximum number of iterations allowed for the least-square fitting.
-    (**Default** = 50)
+    (**Default**: 50)
 - `verbose::Bool`: If `true`, the algorithm prints debugging information to `stdout`.
-    (**Default** = true)
+    (**Default**: true)
 
 #### Examples
 

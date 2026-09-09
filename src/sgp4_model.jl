@@ -99,7 +99,7 @@ propagation.
 # Keywords
 
 - `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
-    (**Default** = `SGP4C_WGS84`)
+    (**Default**: `SGP4C_WGS84`)
 
 # Returns
 
@@ -478,7 +478,7 @@ more information, see [`sgp4_init`](@ref).
 # Keywords
 
 - `sgp4c::Sgp4Constants`: SGP4 orbit propagator constants (see [`Sgp4Constants`](@ref)).
-    (**Default** = `SGP4C_WGS84`)
+    (**Default**: `SGP4C_WGS84`)
 
 # Returns
 
@@ -512,11 +512,11 @@ end
 """
     sgp4!(
         sgp4d::Sgp4Propagator{Tepoch, T},
-        t::Number,
+        Δt::Number,
     ) where {Tepoch <: Number, T <: Number} -> SVector{3, T}, SVector{3, T}
 
-Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the time `t`
-[min].
+Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the time `Δt`
+[min] from the epoch.
 
 !!! note
 
@@ -524,10 +524,10 @@ Propagate the orbit defined in `sgp4d` (see [`Sgp4Propagator`](@ref)) until the 
 
 # Returns
 
-- `SVector{3, T}`: The position vector represented in TEME frame at time `t` [km].
-- `SVector{3, T}`: The velocity vector represented in TEME frame at time `t` [km/s].
+- `SVector{3, T}`: The position vector represented in TEME frame at time `Δt` [km].
+- `SVector{3, T}`: The velocity vector represented in TEME frame at time `Δt` [km/s].
 """
-function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
+function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, Δt::Number) where {Tepoch, T}
     # Unpack variables.
     e₀        = sgp4d.e₀
     i₀        = sgp4d.i₀
@@ -584,7 +584,7 @@ function sgp4!(sgp4d::Sgp4Propagator{Tepoch, T}, t::Number) where {Tepoch, T}
     # We convert to `T` to avoid numerical problems with very big numbers as pointed out in:
     #
     #   https://github.com/JuliaLang/julia/issues/27355
-    Δt = T(t)
+    Δt = T(Δt)
 
     # The inclination is only modified by the deep space perturbations. Hence, we initialize
     # it here with the epoch value together with its sine, which is used in many terms.

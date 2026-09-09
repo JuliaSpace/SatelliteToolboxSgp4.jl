@@ -109,8 +109,9 @@ Version 3.0.0
   implementation.
 - ![Bugfix][badge-bugfix] Fix the clamp that keeps `sin(i₀)` away from zero in the deep
   space initialization, which had no effect when the inclination was exactly 0 or π.
-- ![Bugfix][badge-bugfix] Fix `fit_sgp4_tle!`, which threw `UndefVarError` when
-  `max_iterations` was lower than 1. An `ArgumentError` is now thrown.
+- ![Bugfix][badge-bugfix] Fix `fit_sgp4_mean_elements!` (formerly `fit_sgp4_tle!`), which
+  threw `UndefVarError` when `max_iterations` was lower than 1. An `ArgumentError` is now
+  thrown.
 - ![Bugfix][badge-bugfix] Fix wrong and stale comments in the SGP4 model.
 
 Version 2.5.0

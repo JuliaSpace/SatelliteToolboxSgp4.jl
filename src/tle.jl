@@ -13,7 +13,10 @@ Return the epoch of the mean elements in `tle` [Julian Day, UTC].
 _mean_elements_epoch(tle::TLE) = tle_epoch(tle)
 
 """
-    _mean_state_vector(tle::TLE; sgp4c::Sgp4Constants{T} = SGP4C_WGS84) where {T <: Number} -> SVector{7, T}
+    _mean_state_vector(
+        tle::TLE;
+        sgp4c::Sgp4Constants{T} = SGP4C_WGS84
+    ) where {T <: Number} -> SVector{7, T}
 
 Convert the `tle` to the SGP4 mean state vector using the constants `sgp4c`. The state
 vector has the following structure:
