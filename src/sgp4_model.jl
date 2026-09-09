@@ -22,16 +22,16 @@ export SGP4C_WGS72, SGP4C_WGS84
 export sgp4_init, sgp4_init!, sgp4, sgp4!
 
 """
-    sgp4_is_initialized(sgp4d::Sgp4Propagator) -> Bool
+    is_initialized(sgp4d::Sgp4Propagator) -> Bool
 
 Return whether the propagator `sgp4d` has been initialized by [`sgp4_init!`](@ref), which
 is the only function that assigns the selected algorithm. A structure created with the
 constructors holds undefined fields until then.
 
 This function is public but not exported. Call it as
-`SatelliteToolboxSgp4.sgp4_is_initialized`.
+`SatelliteToolboxSgp4.is_initialized`.
 """
-sgp4_is_initialized(sgp4d::Sgp4Propagator) = isdefined(sgp4d, :algorithm)
+is_initialized(sgp4d::Sgp4Propagator) = isdefined(sgp4d, :algorithm)
 
 ############################################################################################
 #                                        Constants                                         #

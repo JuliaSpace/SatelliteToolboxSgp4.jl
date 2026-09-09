@@ -10,7 +10,7 @@
 ############################################################################################
 
 function Base.show(io::IO, sgp4d::Sgp4Propagator)
-    if !sgp4_is_initialized(sgp4d)
+    if !is_initialized(sgp4d)
         print(io, _sgp4_propagator_name(sgp4d), " (not initialized)")
         return nothing
     end
@@ -28,7 +28,7 @@ end
 # The body of the rich representation is overloaded so that the wrappers of the propagator
 # can print it under their own header.
 function print_tree_body(io::IO, sgp4d::Sgp4Propagator)
-    if !sgp4_is_initialized(sgp4d)
+    if !is_initialized(sgp4d)
         print_status(io, "not initialized")
         return nothing
     end
@@ -94,6 +94,6 @@ headers of the printed representations.
 """
 function _sgp4_propagator_name(sgp4d::Sgp4Propagator)
     name = type_name(sgp4d)
-    sgp4_is_initialized(sgp4d) || return name
+    is_initialized(sgp4d) || return name
     return string(name, " (", _sgp4_algorithm_name(sgp4d.algorithm), ")")
 end

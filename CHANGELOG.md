@@ -50,8 +50,9 @@ Version 3.0.0
   **SatelliteToolboxOrbitDataMessages.jl** v0.2, whose breaking changes (e.g. the removal
   of the accessor module `ODM` in favor of the message properties) propagate to the
   re-exported API.
-- ![Feature][badge-feature] Add the public, non-exported predicate `sgp4_is_initialized`,
-  which tells whether an `Sgp4Propagator` has been initialized by `sgp4_init!`.
+- ![Feature][badge-feature] Add the public, non-exported predicate
+  `SatelliteToolboxSgp4.is_initialized`, which tells whether an `Sgp4Propagator` has been
+  initialized by `sgp4_init!`.
 - ![Feature][badge-feature] Add `show` methods to `Sgp4Propagator`, which print the
   algorithm and the sections with the mean elements and their epoch, including the
   semi-major axis recovered from the mean motion and B*, the gravitational constants, and

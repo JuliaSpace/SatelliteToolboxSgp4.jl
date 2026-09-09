@@ -341,7 +341,7 @@ end
     @test str == expected
 
     # The body can be printed under another header.
-    @test SatelliteToolboxSgp4.sgp4_is_initialized(sgp4d)
+    @test SatelliteToolboxSgp4.is_initialized(sgp4d)
     str = sprint(SatelliteToolboxBase.print_tree_body, sgp4d)
     header = "Sgp4Propagator{Float64, Float64} (SGP4):\n"
     @test str == expected[(length(header) + 1):end]
@@ -371,7 +371,7 @@ end
 
     sgp4d = Sgp4Propagator{Float64}(SGP4C_WGS84)
 
-    @test !SatelliteToolboxSgp4.sgp4_is_initialized(sgp4d)
+    @test !SatelliteToolboxSgp4.is_initialized(sgp4d)
     @test repr(sgp4d) == "Sgp4Propagator{Float64, Float64} (not initialized)"
     expected = "Sgp4Propagator{Float64, Float64}:\n  Status : not initialized"
     @test sprint(show, MIME("text/plain"), sgp4d) == expected
